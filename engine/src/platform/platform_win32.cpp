@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <windows.h>
+#include "core/event.h"
 
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -120,6 +121,8 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     switch (uMsg)
     {
     case WM_DESTROY:
+        eventContext data = {};
+        eventFire(EVENT_CODE_APP_QUIT, 0, data);
         PostQuitMessage(0);
         return 0;
         break;

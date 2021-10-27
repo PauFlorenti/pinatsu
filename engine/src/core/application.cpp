@@ -8,10 +8,15 @@
 
 // TODO Remove iostream and use only logger system.
 
+Application* Application::m_instance = nullptr;
+
 Application::Application()
 {
+    m_instance = this;
     std::cout << "Application constructor called!" << std::endl;
 }
+
+bool appOnEvent(u16 code, void* sender, void* listener, eventContext data);
 
 /**
  * Initialize all systems neede for the app to run.
@@ -62,6 +67,8 @@ bool Application::init()
         return false;
     }
     std::cout << "Platform system initialized ...\n" << std::endl;
+    
+    eventRegister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
 
     // Init renderer system.
 
@@ -82,4 +89,17 @@ bool Application::run()
             m_isRunning = false;
     }
     return true;
+}
+
+bool appOnEvent(u16 code, void* sender, void* listener, eventContext data)
+{
+    switch (code)
+    {
+    case EVENT_CODE_APP_QUIT:
+        PDEBUG("App is to quit.");
+        Application::getInstance()->m_isRunning = false;
+        return true;
+        break;
+    }
+    return false;
 }

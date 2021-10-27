@@ -1,7 +1,16 @@
 #include "linearAllocator.h"
 
 #include "pmemory.h"
+#include "core/logger.h"
 
+/**
+ * This functions create a linear allocator by receiving
+ * the total size of the wanted memory, a pointer to that
+ * memory and returns the allocator by reference.
+ * @param u64 size
+ * @param void* memory
+ * @param LinearAllocator outAllocator
+ */
 void linearAllocatorCreate(u64 size, void* memory, LinearAllocator* outAllocator)
 {
     // Check if memory is not null.
@@ -19,8 +28,14 @@ void linearAllocatorCreate(u64 size, void* memory, LinearAllocator* outAllocator
             outAllocator->memory = memAllocate(size, MEMORY_TAG_LINEAR_ALLOCATOR);
         }
     }
+    else
+        PWARN("No allocator to be created.");
 }
 
+/**
+ * Receives the linear allocator to destroy.
+ * @param LinearAllocator allocator.
+ */
 void linearAllocatorDestroy(LinearAllocator* allocator)
 {
     if(allocator)
@@ -34,15 +49,24 @@ void linearAllocatorDestroy(LinearAllocator* allocator)
         allocator->ownsMemory   = false;
         allocator->totalSize    = 0;
     }
+    else
+        PWARN("Allocator to be destroyed is empty!");
 }
 
+/**
+ * Given a linear allocator and a size returns a block 
+ * of memory of such size allocated by the allocator.
+ * @param LinearAllocator allocator
+ * @param u64 size
+ */
 void* linearAllocatorAllocate(LinearAllocator* allocator, u64 size)
 {
     if(allocator)
     {
         if((allocator->totalSize - allocator->allocatedSize) < size)
         {
-            // TODO Logger to report insufficient memory.
+            // TODO Logger should receive variables.
+            PERROR("Not enough available space to allocate.");
             return 0;
         }
 
@@ -50,10 +74,14 @@ void* linearAllocatorAllocate(LinearAllocator* allocator, u64 size)
         allocator->allocatedSize += size;
         return block;
     }
-    // TODO Logger to report no allocator is provided.
+    PERROR("No allocator provided. No memory has been allocated.");
     return 0;
 }
 
+/**
+ * Frees all memory in the allocator.
+ * @param LinearAllocator allocator
+ */
 void linearAllocatorFreeAll(LinearAllocator* allocator)
 {
     if(allocator && allocator->memory)

@@ -8,6 +8,16 @@ class Application
 public:
     Application();
 
+    static Application* m_instance;
+
+    static Application* getInstance()
+    {
+        if(!m_instance)
+            m_instance = new Application();
+            
+        return m_instance;
+    }
+
     bool init();
     bool run();
 
