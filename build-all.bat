@@ -2,6 +2,7 @@
 
 echo "Building all project ..."
 
+mkdir bin
 pushd bin
 del /Q *
 popd

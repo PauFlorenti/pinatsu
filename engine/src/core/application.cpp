@@ -3,7 +3,10 @@
 #include "platform/platform.h"
 #include "memory/pmemory.h"
 #include "event.h"
+#include "logger.h"
 #include <iostream>
+
+// TODO Remove iostream and use only logger system.
 
 Application::Application()
 {
@@ -16,6 +19,12 @@ Application::Application()
 bool Application::init()
 {
     m_isRunning = true;
+
+    PFATAL("This is a fatal test!");
+    PERROR("This is an error test!");
+    PWARN("This is a warning test!");
+    PDEBUG("This is a debug test!");
+    PINFO("This is a info test!");
 
     u64 systemsAllocatorTotalSize = 64 * 1024 * 1024; // 64mb
     std::cout << "Initializing linear allocator with " << systemsAllocatorTotalSize << " Bytes.\n";
@@ -31,12 +40,16 @@ bool Application::init()
     memorySystemInit(&memorySystemMemoryRequirements, memorySystem);
     std::cout << "Memory system initialized ..." << std::endl;
 
+    // Init logger system if needed.
+
     // Init event system.
     std::cout << "Initializing event system ..." << std::endl;
     eventSystemInit(&eventSystemMemoryRequirements, nullptr);
     eventSystem = linearAllocatorAllocate(&systemsAllocator, eventSystemMemoryRequirements);
     eventSystemInit(&eventSystemMemoryRequirements, eventSystem);
     std::cout << "Event system initialized ..." << std::endl;
+
+    // Init input system.
 
     // Init platform system.
     std::cout << "Initializing platform system ..." << std::endl;
@@ -45,12 +58,13 @@ bool Application::init()
     if(!platformStartup(&platformSystemMemoryRequirements, 
         platformSystem, "Pinatsu platform", 100, 100, 400, 400))
     {
-        std::cout << "Platform system could not be initialized" << std::endl;
+        PFATAL("Platform system could not be initialized!");
         return false;
     }
     std::cout << "Platform system initialized ...\n" << std::endl;
 
-    platformConsoleWrite("This is a message written from platform!", 7);
+    // Init renderer system.
+
 
     std::cout << getMemoryUsageStr() << std::endl;
 

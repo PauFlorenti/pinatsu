@@ -22,4 +22,4 @@ void* platformZeroMemory(void* block, u64 size);
 
 void* platformCopyMemory(void* source, void* dest, u64 size);
 
-void platformConsoleWrite(const char* msg, u8 colour);
+void platformConsoleWrite(const char* msg, u8 level);

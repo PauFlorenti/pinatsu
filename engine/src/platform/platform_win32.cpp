@@ -106,10 +106,11 @@ void* platformCopyMemory(void* source, void* dest, u64 size)
     return memcpy(dest, source, size);
 }
 
-void platformConsoleWrite(const char* msg, u8 colour)
+void platformConsoleWrite(const char* msg, u8 level)
 {
     HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(outputHandle, colour);
+    static u8 colour[5] = {64, 4, 6, 1, 2};
+    SetConsoleTextAttribute(outputHandle, colour[level]);
     std::cout << msg << std::endl;
     SetConsoleTextAttribute(outputHandle, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 }
