@@ -1,13 +1,26 @@
 #pragma once
 
-typedef struct RenderBackend
+typedef enum RenderBackendAPI
+{
+    VULKAN_API,
+    DIRECTX_API,
+    OPENGL_API
+} RenderBackendAPI;
+
+typedef struct RendererBackend
 {
     bool (*init)();
 
     void (*shutdown)();
 
-} RenderBackend;
+    bool (*beginFrame)();
 
-bool rendererBackendInit();
+    bool (*draw)();
+
+    void (*endFrame)();
+
+} RendererBackend;
+
+bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state);
 
 void rendererBackendShutdown();

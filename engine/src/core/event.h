@@ -2,7 +2,7 @@
 
 #include "defines.h"
 
-typedef struct {
+typedef struct eventContext {
 
     union {
         i64 i64[2];
@@ -50,6 +50,8 @@ typedef enum SystemEventCode {
     EVENT_CODE_MOUSE_MOVED = 0x06,
 
     EVENT_CODE_MOUSE_WHEEL = 0x07,
+
+    EVENT_CODE_RESIZED = 0x08,
 
     MAX_EVENT_CODE = 0xFF
 } SystemEventCode;

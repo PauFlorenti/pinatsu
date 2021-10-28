@@ -4,6 +4,7 @@
 #include "memory/pmemory.h"
 #include "event.h"
 #include "logger.h"
+#include "renderer/rendererFrontend.h"
 #include <iostream>
 
 // TODO Remove iostream and use only logger system.
@@ -17,6 +18,7 @@ Application::Application()
 }
 
 bool appOnEvent(u16 code, void* sender, void* listener, eventContext data);
+bool appOnResize(u16 code, void* sender, void* listener, eventContext data);
 
 /**
  * Initialize all systems neede for the app to run.
@@ -61,7 +63,7 @@ bool Application::init()
     platformStartup(&platformSystemMemoryRequirements, 0, 0, 0, 0, 0, 0);
     platformSystem = linearAllocatorAllocate(&systemsAllocator, platformSystemMemoryRequirements);
     if(!platformStartup(&platformSystemMemoryRequirements, 
-        platformSystem, "Pinatsu platform", 100, 100, 400, 400))
+        platformSystem, "Pinatsu platform", 100, 100, 1200, 800))
     {
         PFATAL("Platform system could not be initialized!");
         return false;
@@ -69,9 +71,12 @@ bool Application::init()
     std::cout << "Platform system initialized ...\n" << std::endl;
     
     eventRegister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
+    eventRegister(EVENT_CODE_RESIZED, 0, appOnResize);
 
     // Init renderer system.
-
+    renderSystemInit(&renderSystemMemoryRequirements, nullptr, nullptr);
+    renderSystem = linearAllocatorAllocate(&systemsAllocator, renderSystemMemoryRequirements);
+    renderSystemInit(&renderSystemMemoryRequirements, renderSystem, "Pinatsu engine");
 
     std::cout << getMemoryUsageStr() << std::endl;
 
@@ -87,7 +92,17 @@ bool Application::run()
     {
         if(!platformPumpMessages())
             m_isRunning = false;
+
+        platformUpdate();
     }
+
+    eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
+    eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
+
+    platformShutdown(platformSystem);
+    eventSystemShutdown(eventSystem);
+    memorySystemShutdown(memorySystem);
+
     return true;
 }
 
@@ -96,10 +111,37 @@ bool appOnEvent(u16 code, void* sender, void* listener, eventContext data)
     switch (code)
     {
     case EVENT_CODE_APP_QUIT:
-        PDEBUG("App is to quit.");
+        PINFO("EVENT_CODE_APP_QUIT received, shutting down.");
         Application::getInstance()->m_isRunning = false;
         return true;
         break;
+    }
+    return false;
+}
+
+bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
+{
+    if(code == EVENT_CODE_RESIZED)
+    {
+        u16 width = data.data.u16[0];
+        u16 height = data.data.u16[1];
+        PDEBUG("Windows is resized to [%d, %d]!", width, height);
+
+        // If size is different, trigger resize event.
+        if(Application::getInstance()->m_width != width || 
+            Application::getInstance()->m_height != height)
+        {
+            // Minimization
+            if(width == 0 || height == 0){
+                PINFO("Window is minimized.");
+                return true;
+            }
+            else {
+                // Trigger applicaiton on resize
+                // Trigger render on resize
+            }
+        }
+        return true;
     }
     return false;
 }

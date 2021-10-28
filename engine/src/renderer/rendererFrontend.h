@@ -2,7 +2,7 @@
 
 #include "defines.h"
 
-void renderSystemInit(u64* memoryRequirement, void* state, const char* appName);
+bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName);
 
 void renderSystemShutdown(void* state);
 

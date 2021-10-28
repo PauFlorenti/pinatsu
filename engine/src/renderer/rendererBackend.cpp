@@ -1,8 +1,31 @@
 #include "rendererBackend.h"
+#include "renderer/vulkan/vulkanBackend.h"
 
-bool rendererBackendInit()
+bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
 {
-    return true;
+    switch (api)
+    {
+    case VULKAN_API :
+    {
+        state->init = vulkanBackendInit;
+
+        state->shutdown = vulkanBackendShutdown;
+
+        state->beginFrame = vulkanBeginFrame;
+
+        state->draw = vulkanDraw;
+
+        state->endFrame = vulkanEndFrame;
+
+        return true;
+    }
+        break;
+    
+    default:
+        break;
+    }
+
+    return false;
 }
 
 void rendererBackendShutdown()

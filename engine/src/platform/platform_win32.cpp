@@ -6,7 +6,9 @@
 
 #include <iostream>
 #include <windows.h>
+#include <wingdi.h>
 #include "core/event.h"
+#include "core/logger.h"
 
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -116,14 +118,49 @@ void platformConsoleWrite(const char* msg, u8 level)
     SetConsoleTextAttribute(outputHandle, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 }
 
+void platformUpdate()
+{
+    RECT rc;
+    GetClientRect(pState->hwnd, &rc);
+    RedrawWindow(pState->hwnd, &rc, 0, 0);
+}
+
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
-    case WM_DESTROY:
+    case WM_SIZE: {
+        // Get new size
+        RECT clientRect;
+        if(!GetClientRect(hwnd, &clientRect))
+        {
+            PERROR("Error getting new client size!");
+            return 0;
+        }
+
+        eventContext context = {};
+        context.data.u16[0] = (u16)(clientRect.right - clientRect.left);
+        context.data.u16[1] = (u16)(clientRect.bottom - clientRect.top);
+        eventFire(EVENT_CODE_RESIZED, 0, context);
+        return 0;
+        break;
+    }
+    case WM_CLOSE: {
         eventContext data = {};
+        PINFO("Close window event received, proceeding to quit application.");
         eventFire(EVENT_CODE_APP_QUIT, 0, data);
+        DestroyWindow(hwnd);
+        return 0;
+        break;
+    }
+    case WM_DESTROY:
+        // TODO Handled unexpected window destruction.
+        //PWARN("Window destroyed unexpectedly!");
         PostQuitMessage(0);
+        return 0;
+        break;
+    case WM_PAINT:
+        //PDEBUG("WM_PAINT is being called,.");
         return 0;
         break;
     }

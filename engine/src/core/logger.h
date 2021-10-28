@@ -21,22 +21,22 @@ typedef enum LogLevel
 bool loggerInit(u64* memoryRequirements, void* state);
 void loggerShutdown(void* state);
 
-void logOut(LogLevel level, const char* msg);
+void logOut(LogLevel level, const char* msg, ...);
 
-#define PFATAL(msg) logOut(LOG_LEVEL_FATAL, msg);
+#define PFATAL(msg, ...) logOut(LOG_LEVEL_FATAL, msg, ##__VA_ARGS__);
 
 #ifndef PERROR
-#define PERROR(msg) logOut(LOG_LEVEL_ERROR, msg);
+#define PERROR(msg, ...) logOut(LOG_LEVEL_ERROR, msg, ##__VA_ARGS__);
 #endif
 
 #ifndef PWARN
-#define PWARN(msg) logOut(LOG_LEVEL_WARN, msg);
+#define PWARN(msg, ...) logOut(LOG_LEVEL_WARN, msg, ##__VA_ARGS__);
 #endif
 
 #ifndef PDEBUG
-#define PDEBUG(msg) logOut(LOG_LEVEL_DEBUG, msg);
+#define PDEBUG(msg, ...) logOut(LOG_LEVEL_DEBUG, msg, ##__VA_ARGS__);
 #endif
 
 #ifndef PINFO
-#define PINFO(msg) logOut(LOG_LEVEL_INFO, msg);
+#define PINFO(msg, ...) logOut(LOG_LEVEL_INFO, msg, ##__VA_ARGS__);
 #endif

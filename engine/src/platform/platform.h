@@ -10,7 +10,7 @@ bool platformStartup(
     i32 width, i32 height
 );
 
-void platformShutdown();
+void platformShutdown(void* state);
 
 bool platformPumpMessages();
 
@@ -23,3 +23,5 @@ void* platformZeroMemory(void* block, u64 size);
 void* platformCopyMemory(void* source, void* dest, u64 size);
 
 void platformConsoleWrite(const char* msg, u8 level);
+
+void platformUpdate();
