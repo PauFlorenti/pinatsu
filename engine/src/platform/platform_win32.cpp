@@ -7,15 +7,18 @@
 #include <iostream>
 #include <windows.h>
 #include <wingdi.h>
-#include "core/event.h"
-#include "core/logger.h"
+#include "core\event.h"
+#include "core\logger.h"
+
+#include "vulkan\vulkan_win32.h"
 
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 typedef struct platformState
 {
-    HWND hwnd;
-    HINSTANCE hinstance;
+    HWND            hwnd;
+    HINSTANCE       hinstance;
+    VkSurfaceKHR    surface;
 } platformState;
 
 static platformState *pState;
@@ -123,6 +126,30 @@ void platformUpdate()
     RECT rc;
     GetClientRect(pState->hwnd, &rc);
     RedrawWindow(pState->hwnd, &rc, 0, 0);
+}
+
+void platformSpecificExtensions(std::vector<const char*>& extensions)
+{
+    extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+}
+
+bool platformSurfaceCreation(VulkanState* vulkanState)
+{
+    VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
+    surfaceInfo.sType       = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceInfo.hwnd        = pState->hwnd;
+    surfaceInfo.hinstance   = pState->hinstance;
+
+    VkResult result = vkCreateWin32SurfaceKHR(vulkanState->instance, &surfaceInfo, 
+                                nullptr, &pState->surface);
+    if(result != VK_SUCCESS)
+    {
+        PFATAL("Win32 Surface could not be created!");
+        return false;
+    }
+
+    vulkanState->surface = pState->surface;
+    return true;
 }
 
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -17,6 +17,8 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
 
         state->endFrame = vulkanEndFrame;
 
+        state->onResize = vulkanBackendOnResize;
+
         return true;
     }
         break;

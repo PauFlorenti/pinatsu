@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../defines.h"
+#include "renderer\vulkan\vulkanTypes.h"
+#include <vector>
 
 bool platformStartup(
     u64* memoryRequirements,
@@ -25,3 +27,7 @@ void* platformCopyMemory(void* source, void* dest, u64 size);
 void platformConsoleWrite(const char* msg, u8 level);
 
 void platformUpdate();
+
+void platformSpecificExtensions(std::vector<const char*>& extensions);
+
+bool platformSurfaceCreation(VulkanState* vulkanState);

@@ -1,7 +1,7 @@
 #include "pmemory.h"
 
 #include "platform/platform.h"
-#include <iostream>
+#include "core\logger.h"
 
 struct memoryStats
 {
@@ -52,7 +52,7 @@ void memorySystemShutdown(void* state)
 void* memAllocate(u64 size, memoryTag tag)
 {
     if(tag == MEMORY_TAG_UNKNOWN){
-        // TODO Warn through log that memory is unknown
+        PWARN("Memory tag is UNKNOWN.");
     }
 
     if(pState)
@@ -70,7 +70,7 @@ void memFree(void* block, u64 size, memoryTag tag)
 {
     if(tag == MEMORY_TAG_UNKNOWN)
     {
-        // TODO Warn through log that memory is unknown.
+        PWARN("Memory tag is UNKNOWN.");
     }
 
     if(pState)
@@ -126,7 +126,7 @@ std::string getMemoryUsageStr()
             amount = (float)pState->stats.taggedAllocations[i];
         }
         std::string aux = memoryTagsStrings[i];
-        str += aux + " " + std::to_string(amount).substr(0, std::to_string(amount).find('.') + 3) + " " + unit + "\n";
+        str += "\t" + aux + " " + std::to_string(amount).substr(0, std::to_string(amount).find('.') + 3) + " " + unit + "\n";
     }
     return title + str;
 } 

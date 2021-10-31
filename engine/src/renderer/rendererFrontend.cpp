@@ -24,7 +24,7 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName)
     pState = static_cast<RenderFrontendState*>(state);
     rendererBackendInit(VULKAN_API, &pState->renderBackend);
 
-    if(!pState->renderBackend.init())
+    if(!pState->renderBackend.init(appName))
     {
         PFATAL("Render Backend failed to initialize!");
         return false;
@@ -57,5 +57,5 @@ void renderEndFrame(f32 dt)
 
 void renderOnResize(u16 width, u16 height)
 {
-
+    pState->renderBackend.onResize();
 }

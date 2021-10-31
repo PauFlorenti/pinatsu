@@ -2,9 +2,11 @@
 
 #include "defines.h"
 
-bool vulkanBackendInit();
+bool vulkanBackendInit(const char* appName);
 
 void vulkanBackendShutdown();
+
+void vulkanBackendOnResize();
 
 bool vulkanBeginFrame();
 

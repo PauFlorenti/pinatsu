@@ -65,8 +65,8 @@ void* linearAllocatorAllocate(LinearAllocator* allocator, u64 size)
     {
         if((allocator->totalSize - allocator->allocatedSize) < size)
         {
-            // TODO Logger should receive variables.
-            PERROR("Not enough available space to allocate.");
+            PERROR("Not enough available space to allocate. Asked for %d but only %d is available.",
+                    size, (allocator->totalSize - allocator->allocatedSize));
             return 0;
         }
 

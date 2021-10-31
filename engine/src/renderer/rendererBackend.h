@@ -9,7 +9,7 @@ typedef enum RenderBackendAPI
 
 typedef struct RendererBackend
 {
-    bool (*init)();
+    bool (*init)(const char* appName);
 
     void (*shutdown)();
 
@@ -18,6 +18,8 @@ typedef struct RendererBackend
     bool (*draw)();
 
     void (*endFrame)();
+
+    void (*onResize)();
 
 } RendererBackend;
 
