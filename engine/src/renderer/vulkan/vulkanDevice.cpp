@@ -423,19 +423,19 @@ bool createLogicalDevice(VulkanState* state)
         state->device.physicalDevice,
         &deviceCreateInfo,
         nullptr,
-        &state->device.device
+        &state->device.handle
     ));
 
     PINFO("Logical Device created.");
 
     // Get queues
-    vkGetDeviceQueue(state->device.device, state->device.graphicsQueueIndex,
+    vkGetDeviceQueue(state->device.handle, state->device.graphicsQueueIndex,
     0 , &state->device.graphicsQueue);
-    vkGetDeviceQueue(state->device.device, state->device.transferQueueIndex,
+    vkGetDeviceQueue(state->device.handle, state->device.transferQueueIndex,
     0 , &state->device.transferQueue);
-    vkGetDeviceQueue(state->device.device, state->device.presentQueueIndex,
+    vkGetDeviceQueue(state->device.handle, state->device.presentQueueIndex,
     0 , &state->device.presentQueue);
-    //vkGetDeviceQueue(state->device.device, state->device.graphicsQueueIndex,
+    //vkGetDeviceQueue(state->device.handle, state->device.graphicsQueueIndex,
     //0 , &state->device.graphicsQueue);
 
     PINFO("Queues adcquired.");
@@ -444,7 +444,7 @@ bool createLogicalDevice(VulkanState* state)
     VkCommandPoolCreateInfo cmdPoolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
     cmdPoolInfo.queueFamilyIndex = state->device.graphicsQueueIndex;
 
-    VK_CHECK(vkCreateCommandPool(state->device.device, &cmdPoolInfo, 
+    VK_CHECK(vkCreateCommandPool(state->device.handle, &cmdPoolInfo, 
         nullptr, &state->device.commandPool));
     PINFO("Graphics command pool created.");
 

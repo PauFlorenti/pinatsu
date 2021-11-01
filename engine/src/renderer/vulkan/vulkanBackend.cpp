@@ -1,6 +1,9 @@
 #include "vulkanBackend.h"
 #include "vulkanTypes.h"
 #include "vulkanDevice.h"
+#include "vulkanSwapchain.h"
+#include "vulkanRenderpass.h"
+#include "vulkanFramebuffer.h"
 
 #include "core\application.h"
 
@@ -9,9 +12,6 @@
 #include <string>
 
 static VulkanState state;
-
-bool vulkanCreateSwapchain(VulkanState* pState);
-bool vulkanRecreateSwapchain(VulkanState* pState);
 
 VkResult vulkanCreateDebugMessenger(VulkanState* pState);
 
@@ -146,15 +146,43 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Create swapchain
-    if(!vulkanCreateSwapchain(&state)){
+    if(!vulkanSwapchainCreate(&state)){
         return false;
     }
 
-    // Create Semaphores
+    // Render pass
+    if(!vulkanRenderPassCreate(&state)){
+        return false;
+    }
 
-    // Create render passes
+    // Framebuffers
+    for(Framebuffer &f : state.swapchain.framebuffers){
+        vulkanFramebufferCreate(
+            &state,
+            &state.renderpass,
+            state.clientWidth,
+            state.clientHeight,
+            1,
+            state.swapchain.imageViews,
+            &f
+        );
+    }
 
-    // Create Graphics pipeline
+    // Command buffers
+    state.commandBuffers.resize(state.swapchain.imageCount);
+    for(CommandBuffer& cmd : state.commandBuffers)
+    {
+        VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        allocInfo.commandBufferCount    = 1;
+        allocInfo.commandPool           = state.device.commandPool;
+        allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        
+        vkAllocateCommandBuffers(state.device.handle, &allocInfo, &cmd.handle);
+    }
+
+    // Sync objects
+
+    // Shaders
 
 
     return true;
@@ -162,7 +190,7 @@ bool vulkanBackendInit(const char* appName)
 
 void vulkanBackendOnResize()
 {
-    vulkanRecreateSwapchain(&state);
+    vulkanSwapchainRecreate(&state);
 }
 
 void vulkanBackendShutdown()
@@ -183,94 +211,6 @@ bool vulkanDraw()
 void vulkanEndFrame()
 {
 
-}
-
-VkExtent2D getSwapchainExtent(VulkanState* pState)
-{
-    if(pState->swapchainSupport.capabilities.currentExtent.width != UINT32_MAX){
-        return pState->swapchainSupport.capabilities.currentExtent;
-    } else {
-        u32 width = 0, height = 0;
-        VkExtent2D extent = {width, height};
-        extent.width = PCLAMP(width, pState->swapchainSupport.capabilities.minImageExtent.width, 
-            pState->swapchainSupport.capabilities.maxImageExtent.width);
-        extent.height = PCLAMP(height, pState->swapchainSupport.capabilities.minImageExtent.height,
-            pState->swapchainSupport.capabilities.maxImageExtent.height);
-        return extent;
-    }
-}
-
-bool vulkanCreateSwapchain(VulkanState* pState)
-{
-    VkExtent2D extent = getSwapchainExtent(pState);
-
-    // Choose the format for the swapchain.
-    u32 formatIndex = 0;
-    for(u32 i = 0; i < pState->swapchainSupport.formatCount; ++i)
-    {
-        if(pState->swapchainSupport.formats[i].format == VK_FORMAT_B8G8R8_SRGB &&
-            pState->swapchainSupport.formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
-                formatIndex = i;
-                break;
-            }
-    }
-
-    // Choose present mode.
-    VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    for(u32 i = 0; i < pState->swapchainSupport.presentModeCount; ++i)
-    {
-        if(pState->swapchainSupport.presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR){
-            presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-            break;
-        }
-    }
-
-    VkSwapchainCreateInfoKHR swapchainInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-    swapchainInfo.surface           = pState->surface;
-    swapchainInfo.minImageCount     = pState->swapchainSupport.capabilities.minImageCount + 1;
-    swapchainInfo.imageFormat       = pState->swapchainSupport.formats[formatIndex].format;
-    swapchainInfo.imageColorSpace   = pState->swapchainSupport.formats[formatIndex].colorSpace;
-    swapchainInfo.imageExtent       = extent;
-    swapchainInfo.imageArrayLayers  = 1;
-    swapchainInfo.imageUsage        = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainInfo.presentMode       = presentMode;
-
-    if(pState->device.graphicsQueueIndex == pState->device.presentQueueIndex) {
-        swapchainInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
-        swapchainInfo.queueFamilyIndexCount = 0;
-        swapchainInfo.pQueueFamilyIndices   = nullptr;
-    } else {
-        std::vector<u32> familyIndices = {pState->device.graphicsQueueIndex, pState->device.presentQueueIndex};
-        swapchainInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-        swapchainInfo.queueFamilyIndexCount = 2;
-        swapchainInfo.pQueueFamilyIndices   = familyIndices.data();
-    }
-
-    swapchainInfo.preTransform      = pState->swapchainSupport.capabilities.currentTransform;
-    swapchainInfo.compositeAlpha    = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainInfo.clipped           = VK_TRUE;
-    swapchainInfo.oldSwapchain      = VK_NULL_HANDLE;
-
-    VkResult result = vkCreateSwapchainKHR(pState->device.device, &swapchainInfo, nullptr, &pState->swapchain);
-    if(result != VK_SUCCESS)
-    {
-        PFATAL("Failed to create swapchain! Shutting down.");
-        return false;
-    }
-    PINFO("Swapchain created.");
-    return true;
-
-}
-
-void vulkanDestroySwapchain(VulkanState* pState)
-{
-    vkDestroySwapchainKHR(pState->device.device, pState->swapchain, nullptr);
-}
-
-bool vulkanRecreateSwapchain(VulkanState* pState)
-{
-    vulkanDestroySwapchain(pState);
-    return vulkanCreateSwapchain(pState);
 }
 
 VkResult vulkanCreateDebugMessenger(VulkanState* pState)

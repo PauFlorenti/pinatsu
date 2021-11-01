@@ -52,11 +52,31 @@ bool platformStartup(
 
     RegisterClass(&wc);
 
+    u32 clientX = x;
+    u32 clientY = y;
+    u32 clientWidth = width;
+    u32 clientHeight = height;
+
+    u32 windowX = clientX;
+    u32 windowY = clientY;
+    u32 windowWidth = clientWidth;
+    u32 windowHeight = clientHeight;
+
+    // Get the border size
+    RECT border = {0, 0, 0, 0};
+    AdjustWindowRectEx(&border, WS_MAXIMIZE | WS_MINIMIZEBOX | WS_THICKFRAME | WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION, 0, WS_EX_APPWINDOW);
+
+    windowX += border.left;
+    windowY += border.right;
+
+    windowWidth += border.right - border.left;
+    windowHeight += border.bottom - border.top;
+
     // Create the window.
     HWND handle = CreateWindowEx(
         0, L"Pinatsu window", L"Pinatsu",
         WS_OVERLAPPEDWINDOW,
-        x, y, width, height, nullptr, nullptr, 
+        windowX, windowY, windowWidth + 2, windowHeight + 25, nullptr, nullptr, 
         pState->hinstance, nullptr
     );
 

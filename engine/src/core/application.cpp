@@ -32,7 +32,9 @@ bool Application::init()
     PDEBUG("This is a debug test!");
     PINFO("This is a info test!");
 
-    // TODO Create logger to log back all info properly.
+    // TODO Game info should get pass for properties such as width and height.
+    m_width = 1200;
+    m_height = 800;
 
     u64 systemsAllocatorTotalSize = 64 * 1024 * 1024; // 64mb
     linearAllocatorCreate(systemsAllocatorTotalSize, 0, &systemsAllocator);
@@ -56,7 +58,7 @@ bool Application::init()
     platformStartup(&platformSystemMemoryRequirements, 0, 0, 0, 0, 0, 0);
     platformSystem = linearAllocatorAllocate(&systemsAllocator, platformSystemMemoryRequirements);
     if(!platformStartup(&platformSystemMemoryRequirements, 
-        platformSystem, "Pinatsu platform", 100, 100, 1200, 800))
+        platformSystem, "Pinatsu platform", 100, 100, m_width, m_height))
     {
         PFATAL("Platform system could not be initialized!");
         return false;

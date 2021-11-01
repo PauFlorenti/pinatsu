@@ -10,7 +10,7 @@
 typedef struct VulkanDevice
 { 
     VkPhysicalDevice    physicalDevice;
-    VkDevice            device;
+    VkDevice            handle;
 
     u32 graphicsQueueIndex;
     u32 presentQueueIndex;
@@ -39,6 +39,36 @@ typedef struct VulkanSwapchainSupport
     VkPresentModeKHR* presentModes;
 } VulkanSwapchainSupport;
 
+typedef struct VulkanRenderpass
+{
+    VkRenderPass handle;
+} VulkanRenderpass;
+
+typedef struct Framebuffer
+{
+    VkFramebuffer handle;
+    std::vector<VkImageView> attachments;
+    VulkanRenderpass* renderpass;
+} Framebuffer;
+
+typedef struct VulkanSwapchain
+{
+    VkSwapchainKHR      handle;
+    VkSurfaceFormatKHR  format;
+    VkPresentModeKHR    presentMode;
+    u32                 imageCount;
+    u32                 maxImageInFlight;
+
+    std::vector<VkImage>        images;
+    std::vector<VkImageView>    imageViews;
+    std::vector<Framebuffer>    framebuffers;
+} VulkanSwapchain;
+
+typedef struct CommandBuffer
+{
+    VkCommandBuffer handle;
+} CommandBuffer;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
@@ -55,5 +85,10 @@ typedef struct VulkanState
     u32 clientHeight;
 
     VulkanSwapchainSupport swapchainSupport{};
-    VkSwapchainKHR swapchain;
+    VulkanSwapchain swapchain;
+
+    VulkanRenderpass renderpass;
+
+    std::vector<CommandBuffer> commandBuffers;
+
 } VulkanState;
