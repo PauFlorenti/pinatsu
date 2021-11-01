@@ -181,8 +181,17 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Sync objects
+    state.imageAvailableSemaphore.resize(state.swapchain.maxImageInFlight);
+    state.renderFinishedSemaphore.resize(state.swapchain.maxImageInFlight);
 
-    // Shaders
+    for(u8 i = 0; i < state.swapchain.maxImageInFlight; ++i)
+    {
+        VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        vkCreateSemaphore(state.device.handle, &info, nullptr, &state.imageAvailableSemaphore.at(i));
+        vkCreateSemaphore(state.device.handle, &info, nullptr, &state.renderFinishedSemaphore.at(i));
+    }
+
+    // Shaders Modules
 
 
     return true;

@@ -91,4 +91,7 @@ typedef struct VulkanState
 
     std::vector<CommandBuffer> commandBuffers;
 
+    std::vector<VkSemaphore> imageAvailableSemaphore;
+    std::vector<VkSemaphore> renderFinishedSemaphore;
+
 } VulkanState;
