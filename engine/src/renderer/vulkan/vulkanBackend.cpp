@@ -10,6 +10,7 @@
 #include "platform\platform.h"
 #include <vector>
 #include <string>
+#include <fstream>
 
 static VulkanState state;
 
@@ -238,4 +239,21 @@ VkResult vulkanCreateDebugMessenger(VulkanState* pState)
         return func(pState->instance, &debugMessengerInfo, nullptr, &pState->debugMessenger);
     }
     return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+bool vulkanShaderObjectCreate(VulkanState* pState)
+{
+    // Shader hardcoded at the moment.
+    // TODO Create a way to read and load shader dynamically.
+
+    std::ifstream vert("data\vert.spv", std::ifstream::in | std::ifstream::binary);
+
+    if(!vert.is_open()){
+        PERROR("Vert.spv could not be opened.");
+    }
+
+    VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    info.codeSize = strlen();
+    info.pCode = shaderCode;
+
 }

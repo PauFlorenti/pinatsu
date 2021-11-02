@@ -2,6 +2,7 @@
     "files.associations": {
         "string": "cpp",
         "xstring": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "fstream": "cpp"
     }
 }

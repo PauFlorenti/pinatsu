@@ -69,6 +69,11 @@ typedef struct CommandBuffer
     VkCommandBuffer handle;
 } CommandBuffer;
 
+typedef struct ShaderObject
+{
+    VkShaderModule shaderModule;
+} ShaderObject;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
