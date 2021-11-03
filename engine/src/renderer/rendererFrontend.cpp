@@ -42,6 +42,10 @@ void renderSystemShutdown(void* state)
 
 bool renderBeginFrame(f32 dt)
 {
+    if(!pState->renderBackend.beginFrame()){
+        PFATAL("Begin rendering frame error.");
+        return false;
+    }
     return true;
 }
 

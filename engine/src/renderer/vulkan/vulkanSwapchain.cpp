@@ -36,7 +36,7 @@ VkExtent2D getSwapchainExtent(VulkanState* pState)
 
 bool create(VulkanState* pState)
 {
-    VkExtent2D extent = getSwapchainExtent(pState);
+    pState->swapchain.extent = getSwapchainExtent(pState);
 
     // Choose the format for the swapchain.
     pState->swapchain.format = pState->swapchainSupport.formats[0];
@@ -68,7 +68,7 @@ bool create(VulkanState* pState)
     swapchainInfo.minImageCount     = pState->swapchain.imageCount;
     swapchainInfo.imageFormat       = pState->swapchain.format.format;
     swapchainInfo.imageColorSpace   = pState->swapchain.format.colorSpace;
-    swapchainInfo.imageExtent       = extent;
+    swapchainInfo.imageExtent       = pState->swapchain.extent;
     swapchainInfo.imageArrayLayers  = 1;
     swapchainInfo.imageUsage        = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainInfo.presentMode       = pState->swapchain.presentMode;
@@ -95,6 +95,8 @@ bool create(VulkanState* pState)
         PFATAL("Failed to create swapchain! Shutting down.");
         return false;
     }
+
+    pState->currentFrame = 0;
 
     VK_CHECK(vkGetSwapchainImagesKHR(pState->device.handle, pState->swapchain.handle, &pState->swapchain.imageCount, nullptr));
     pState->swapchain.images.resize(pState->swapchain.imageCount);

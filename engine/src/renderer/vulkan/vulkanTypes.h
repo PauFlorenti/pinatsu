@@ -56,6 +56,7 @@ typedef struct VulkanSwapchain
     VkSwapchainKHR      handle;
     VkSurfaceFormatKHR  format;
     VkPresentModeKHR    presentMode;
+    VkExtent2D          extent;
     u32                 imageCount;
     u32                 maxImageInFlight;
 
@@ -68,6 +69,12 @@ typedef struct CommandBuffer
 {
     VkCommandBuffer handle;
 } CommandBuffer;
+
+typedef struct Pipeline
+{
+    VkPipelineLayout layout;
+    VkPipeline pipeline;
+} Pipeline;
 
 typedef struct ShaderObject
 {
@@ -82,6 +89,8 @@ typedef struct VulkanState
     VkDebugUtilsMessengerEXT debugMessenger;
 
     VkSurfaceKHR    surface;
+
+    u32 currentFrame;
 
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
@@ -98,5 +107,10 @@ typedef struct VulkanState
 
     std::vector<VkSemaphore> imageAvailableSemaphore;
     std::vector<VkSemaphore> renderFinishedSemaphore;
+
+    ShaderObject vertexShaderObject;
+    ShaderObject fragmentShaderObject;
+
+    Pipeline graphicsPipeline;
 
 } VulkanState;
