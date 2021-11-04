@@ -91,8 +91,7 @@ typedef struct VulkanState
     VkSurfaceKHR    surface;
 
     u32 imageIndex; // Index to the swapchain image to paint.
-    u32 frameCount; // Number of frames during the application.
-    u32 frameIndex;
+    u32 currentFrame; // The actual index frame.
 
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;

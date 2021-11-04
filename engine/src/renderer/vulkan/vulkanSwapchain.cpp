@@ -59,8 +59,8 @@ bool create(VulkanState* pState)
         }
     }
 
-    pState->swapchain.imageCount = pState->swapchainSupport.capabilities.minImageCount + 1;
-    pState->swapchain.maxImageInFlight = pState->swapchain.imageCount - 1;
+    pState->swapchain.imageCount        = pState->swapchainSupport.capabilities.minImageCount + 1;
+    pState->swapchain.maxImageInFlight  = pState->swapchain.imageCount - 1;
     pState->swapchain.framebuffers.resize(pState->swapchain.imageCount);
 
     VkSwapchainCreateInfoKHR swapchainInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
@@ -96,8 +96,7 @@ bool create(VulkanState* pState)
         return false;
     }
 
-    pState->frameCount = 0;
-    pState->frameIndex = 0;
+    pState->currentFrame = 0;
 
     VK_CHECK(vkGetSwapchainImagesKHR(pState->device.handle, pState->swapchain.handle, &pState->swapchain.imageCount, nullptr));
     pState->swapchain.images.resize(pState->swapchain.imageCount);

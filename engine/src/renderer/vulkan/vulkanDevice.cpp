@@ -443,6 +443,7 @@ bool createLogicalDevice(VulkanState* state)
     // Create command pool for graphics queue.
     VkCommandPoolCreateInfo cmdPoolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
     cmdPoolInfo.queueFamilyIndex = state->device.graphicsQueueIndex;
+    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     VK_CHECK(vkCreateCommandPool(state->device.handle, &cmdPoolInfo, 
         nullptr, &state->device.commandPool));

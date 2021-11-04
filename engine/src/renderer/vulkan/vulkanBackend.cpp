@@ -230,16 +230,19 @@ void vulkanBackendShutdown()
 bool vulkanBeginFrame()
 {
 
+    vkQueueWaitIdle(state.device.graphicsQueue);
+
     // Wait for the previous frame to finish.
-    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.frameIndex], VK_TRUE, UINT64_MAX);
-    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.frameIndex]);
+
+    //vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
+    //vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
     vkAcquireNextImageKHR(
         state.device.handle, 
         state.swapchain.handle, 
         UINT64_MAX, 
-        state.imageAvailableSemaphores.at(state.frameIndex), 
+        state.imageAvailableSemaphores.at(state.currentFrame),
         0, 
         &state.imageIndex);
 
@@ -273,20 +276,24 @@ void vulkanEndFrame()
     vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
+    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
+
     VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.commandBufferCount   = 1;
     submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
     submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.frameIndex];
+    submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.frameIndex];
+    submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
     submitInfo.pWaitDstStageMask    = pipelineStage;
 
-    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.frameIndex]) != VK_SUCCESS){
+    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame]) != VK_SUCCESS){
         PERROR("Queue wasn't submitted.");
     }
+    vkQueueWaitIdle(state.device.graphicsQueue);
 
     // Present swapchain image
     VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
@@ -294,12 +301,11 @@ void vulkanEndFrame()
     presentInfo.swapchainCount      = 1;
     presentInfo.pSwapchains         = &state.swapchain.handle;
     presentInfo.waitSemaphoreCount  = 1;
-    presentInfo.pWaitSemaphores     = &state.renderFinishedSemaphores[state.frameIndex];
+    presentInfo.pWaitSemaphores     = &state.renderFinishedSemaphores[state.currentFrame];
     
     vkQueuePresentKHR(state.device.presentQueue, &presentInfo);
+    state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
     vkQueueWaitIdle(state.device.presentQueue);
-    state.frameCount++;
-    state.frameIndex = state.frameCount % state.swapchain.maxImageInFlight;
 }
 
 VkResult vulkanCreateDebugMessenger(VulkanState* pState)
@@ -349,12 +355,12 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     // TODO Create a way to read and load shader dynamically.
 
     std::vector<char> vertexBuffer;
-    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
+    if(!readShaderFile("../data/vert.spv", vertexBuffer)){
         return false;
     }
 
     std::vector<char> fragBuffer;
-    if(!readShaderFile("./data/frag.spv", fragBuffer)){
+    if(!readShaderFile("../data/frag.spv", fragBuffer)){
         return false;
     }
 
