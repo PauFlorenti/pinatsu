@@ -274,48 +274,51 @@ VkResult vulkanCreateDebugMessenger(VulkanState* pState)
     return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
+bool readShaderFile(std::string filename, std::vector<char>& buffer)
+{
+    std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
+
+    if(!file.is_open()){
+        PERROR("File %s could not be opened!", filename);
+        return false;
+    }
+
+    // Check if file has length and if it is multiple of 4.
+    // To be a valid binary file to be passed to the shader it must be multiple of 4.
+    size_t length = file.tellg();
+    if(length == 0 || length % 4 != 0) {
+        PERROR("File does not meet requirements.");
+        return false;
+    }
+    buffer.resize(length);
+    file.seekg(0);
+    file.read(buffer.data(), length);
+    file.close();
+    return true;
+}
+
 bool vulkanShaderObjectCreate(VulkanState* pState)
 {
     // Shader hardcoded at the moment.
     // TODO Create a way to read and load shader dynamically.
 
-    std::ifstream vert("..\\engine\\data\\vert.spv", std::ifstream::ate | std::ifstream::binary);
-    std::ifstream frag("..\\engine\\data\\frag.spv", std::ifstream::ate | std::ifstream::binary);
-
-    if(!vert.is_open() || !frag.is_open()){
-        PERROR("Shaders could not be opened.");
+    std::vector<char> vertexBuffer;
+    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
         return false;
     }
 
-    size_t length = vert.tellg();
-    if(length == 0 || length % 4 != 0){
-        PERROR("Length not valid.");
+    std::vector<char> fragBuffer;
+    if(!readShaderFile("./data/frag.spv", fragBuffer)){
         return false;
     }
-
-    std::vector<char> vBuffer(length);
-    vert.seekg(0);
-    vert.read(vBuffer.data(), length);
-    vert.close();
 
     VkShaderModuleCreateInfo vertInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    vertInfo.codeSize   = length;
-    vertInfo.pCode      = reinterpret_cast<const u32*>(vBuffer.data());
-
-    size_t fLength = frag.tellg();
-    if(fLength == 0 || fLength % 4 != 0){
-        PERROR("Length is not valid");
-        return false;
-    }
-
-    std::vector<char> fBuffer(fLength);
-    frag.seekg(0);
-    frag.read(fBuffer.data(), fLength);
-    frag.close();
+    vertInfo.codeSize   = vertexBuffer.size();
+    vertInfo.pCode      = reinterpret_cast<const u32*>(vertexBuffer.data());
 
     VkShaderModuleCreateInfo fragInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    fragInfo.codeSize = fLength;
-    fragInfo.pCode = reinterpret_cast<u32*>(fBuffer.data());
+    fragInfo.codeSize = fragBuffer.size();
+    fragInfo.pCode = reinterpret_cast<u32*>(fragBuffer.data());
     
     VK_CHECK(vkCreateShaderModule(pState->device.handle, &vertInfo, nullptr, &pState->vertexShaderObject.shaderModule));
     VK_CHECK(vkCreateShaderModule(pState->device.handle, &fragInfo, nullptr, &pState->fragmentShaderObject.shaderModule));

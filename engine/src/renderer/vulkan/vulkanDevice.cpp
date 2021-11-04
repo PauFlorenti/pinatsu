@@ -258,7 +258,7 @@ bool pickPhysicalDevice(VulkanState* state)
     requirements.compute    = false;
     requirements.transfer   = true;
     requirements.present    = true;
-    requirements.discrete   = true;
+    requirements.discrete   = false;
     requirements.samplerAnisotropy = true;
     requirements.extensionNames.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 

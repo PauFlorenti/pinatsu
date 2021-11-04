@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.h"
-#include "renderer\vulkan\vulkanTypes.h"
+#include "renderer/vulkan/vulkanTypes.h"
 #include <vector>
 
 bool platformStartup(
@@ -31,3 +31,5 @@ void platformUpdate();
 void platformSpecificExtensions(std::vector<const char*>& extensions);
 
 bool platformSurfaceCreation(VulkanState* vulkanState);
+
+const char* getExecutablePath();

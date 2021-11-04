@@ -213,3 +213,16 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
+/**
+ * @brief Returns the path of the executable.
+ * @param void
+ * @return const char* Executable path.
+ */
+const char* getExecutablePath()
+{
+    CHAR buffer[MAX_PATH] = {0};
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+    return std::string(buffer).substr(0, pos).c_str();
+}
