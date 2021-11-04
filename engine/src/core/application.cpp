@@ -91,7 +91,15 @@ bool Application::run()
         if(!platformPumpMessages())
             m_isRunning = false;
 
+        PINFO("Updating!");
+
         platformUpdate();
+
+        // Draw
+        if(renderBeginFrame(1.0f)){
+            renderDrawFrame();
+        }
+        renderEndFrame(1.0f);
     }
 
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);

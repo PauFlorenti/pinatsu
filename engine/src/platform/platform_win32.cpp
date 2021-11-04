@@ -101,12 +101,15 @@ void platformShutdown(void* state)
 
 bool platformPumpMessages()
 {
-    // Run the message loop.
-    MSG msg = {};
-    while(GetMessage(&msg, nullptr, 0, 0))
+    if(pState)
     {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        // Run the message loop.
+        MSG msg = {};
+        while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
     }
     return true;
 }
@@ -189,15 +192,12 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         context.data.u16[0] = (u16)(clientRect.right - clientRect.left);
         context.data.u16[1] = (u16)(clientRect.bottom - clientRect.top);
         eventFire(EVENT_CODE_RESIZED, 0, context);
-        return 0;
         break;
     }
     case WM_CLOSE: {
         eventContext data = {};
-        PINFO("Close window event received, proceeding to quit application.");
         eventFire(EVENT_CODE_APP_QUIT, 0, data);
         DestroyWindow(hwnd);
-        return 0;
         break;
     }
     case WM_DESTROY:
@@ -208,7 +208,6 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         break;
     case WM_PAINT:
         //PDEBUG("WM_PAINT is being called,.");
-        return 0;
         break;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

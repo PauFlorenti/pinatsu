@@ -184,14 +184,29 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Sync objects
-    state.imageAvailableSemaphore.resize(state.swapchain.maxImageInFlight);
-    state.renderFinishedSemaphore.resize(state.swapchain.maxImageInFlight);
+    state.imageAvailableSemaphores.resize(state.swapchain.maxImageInFlight);
+    state.renderFinishedSemaphores.resize(state.swapchain.maxImageInFlight);
+    state.frameInFlightFences.resize(state.swapchain.maxImageInFlight);
 
-    for(u8 i = 0; i < state.swapchain.maxImageInFlight; ++i)
+    for(u32 i = 0; i < state.swapchain.maxImageInFlight; ++i)
     {
         VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        vkCreateSemaphore(state.device.handle, &info, nullptr, &state.imageAvailableSemaphore.at(i));
-        vkCreateSemaphore(state.device.handle, &info, nullptr, &state.renderFinishedSemaphore.at(i));
+        if(vkCreateSemaphore(state.device.handle, &info, nullptr, &state.imageAvailableSemaphores.at(i)) != VK_SUCCESS){
+            PERROR("Semaphore creation failed.");
+            return false;
+        }
+        if(vkCreateSemaphore(state.device.handle, &info, nullptr, &state.renderFinishedSemaphores.at(i)) != VK_SUCCESS)
+        {
+            PERROR("Semaphore creation failed.");
+            return false;
+        }
+
+        VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        if(vkCreateFence(state.device.handle, &fenceInfo, nullptr, &state.frameInFlightFences.at(i)) != VK_SUCCESS){
+            PERROR("Fence creation failed");
+            return false;
+        }
     }
 
     // Shaders Modules
@@ -215,52 +230,83 @@ void vulkanBackendShutdown()
 bool vulkanBeginFrame()
 {
 
-    u32 imageIndex;
-    vkAcquireNextImageKHR(state.device.handle, state.swapchain.handle, UINT64_MAX, state.imageAvailableSemaphore.at(state.currentFrame), 0, &imageIndex);
-    for(size_t i = 0; i < state.commandBuffers.size(); ++i){
-        
-        VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-        VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(i).handle, &cmdBeginInfo));
+    // Wait for the previous frame to finish.
+    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.frameIndex], VK_TRUE, UINT64_MAX);
+    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.frameIndex]);
 
-        VkClearValue clearColor = {{1.0f, 0.0f, 0.0f, 1.0f}};
+    // Acquire next image index.
+    vkAcquireNextImageKHR(
+        state.device.handle, 
+        state.swapchain.handle, 
+        UINT64_MAX, 
+        state.imageAvailableSemaphores.at(state.frameIndex), 
+        0, 
+        &state.imageIndex);
 
-        VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-        info.renderPass  = state.renderpass.handle;
-        info.framebuffer = state.swapchain.framebuffers.at(i).handle;
-        info.renderArea.offset = {0, 0};
-        info.renderArea.extent = state.swapchain.extent;
-        info.clearValueCount = 1;
-        info.pClearValues = &clearColor;
-        
-        vkCmdBeginRenderPass(state.commandBuffers.at(i).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
-    }
+    VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
+
+    VkClearValue clearColor = {{1.0f, 0.0f, 0.0f, 1.0f}};
+
+    VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    info.renderPass         = state.renderpass.handle;
+    info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
+    info.renderArea.offset  = {0, 0};
+    info.renderArea.extent  = {1200, 800}; //state.swapchain.extent;
+    info.clearValueCount    = 1;
+    info.pClearValues       = &clearColor;
+    
+    vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
+
     return true;
 }
 
 bool vulkanDraw()
 {
-    for(const auto cmd : state.commandBuffers)
-    {
-        vkCmdBindPipeline(cmd.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
-        vkCmdDraw(cmd.handle, 3, 1, 0, 0);
-    }
+    vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, 3, 1, 0, 0);
     return true;
 }
 
 void vulkanEndFrame()
 {
-    for(const auto cmd : state.commandBuffers)
-    {
-        vkCmdEndRenderPass(cmd.handle);
-        VK_CHECK(vkEndCommandBuffer(cmd.handle));
+    vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
+    VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
+
+    VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.frameIndex];
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.frameIndex];
+    submitInfo.pWaitDstStageMask    = pipelineStage;
+
+    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.frameIndex]) != VK_SUCCESS){
+        PERROR("Queue wasn't submitted.");
     }
+
+    // Present swapchain image
+    VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    presentInfo.pImageIndices       = &state.imageIndex;
+    presentInfo.swapchainCount      = 1;
+    presentInfo.pSwapchains         = &state.swapchain.handle;
+    presentInfo.waitSemaphoreCount  = 1;
+    presentInfo.pWaitSemaphores     = &state.renderFinishedSemaphores[state.frameIndex];
+    
+    vkQueuePresentKHR(state.device.presentQueue, &presentInfo);
+    vkQueueWaitIdle(state.device.presentQueue);
+    state.frameCount++;
+    state.frameIndex = state.frameCount % state.swapchain.maxImageInFlight;
 }
 
 VkResult vulkanCreateDebugMessenger(VulkanState* pState)
 {
     VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
     debugMessengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | 
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT; // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT; Add info if needed.
     debugMessengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
     debugMessengerInfo.pfnUserCallback = debugCallback;
@@ -370,7 +416,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     rasterizationInfo.rasterizerDiscardEnable   = VK_FALSE;
     rasterizationInfo.polygonMode               = VK_POLYGON_MODE_FILL;
     rasterizationInfo.cullMode                  = VK_CULL_MODE_FRONT_BIT;
-    rasterizationInfo.frontFace                 = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationInfo.frontFace                 = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizationInfo.depthBiasEnable           = VK_FALSE;
     rasterizationInfo.depthBiasConstantFactor   = 0.0f;
     rasterizationInfo.depthBiasClamp            = 0.0f;

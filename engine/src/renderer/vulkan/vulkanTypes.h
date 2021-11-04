@@ -57,8 +57,8 @@ typedef struct VulkanSwapchain
     VkSurfaceFormatKHR  format;
     VkPresentModeKHR    presentMode;
     VkExtent2D          extent;
-    u32                 imageCount;
-    u32                 maxImageInFlight;
+    u32                 imageCount; // Number of images in the swapchain.
+    u32                 maxImageInFlight; // Number of images in flight.
 
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;
@@ -90,7 +90,9 @@ typedef struct VulkanState
 
     VkSurfaceKHR    surface;
 
-    u32 currentFrame;
+    u32 imageIndex; // Index to the swapchain image to paint.
+    u32 frameCount; // Number of frames during the application.
+    u32 frameIndex;
 
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
@@ -105,8 +107,9 @@ typedef struct VulkanState
 
     std::vector<CommandBuffer> commandBuffers;
 
-    std::vector<VkSemaphore> imageAvailableSemaphore;
-    std::vector<VkSemaphore> renderFinishedSemaphore;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> frameInFlightFences;
 
     ShaderObject vertexShaderObject;
     ShaderObject fragmentShaderObject;

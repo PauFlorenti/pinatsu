@@ -96,7 +96,8 @@ bool create(VulkanState* pState)
         return false;
     }
 
-    pState->currentFrame = 0;
+    pState->frameCount = 0;
+    pState->frameIndex = 0;
 
     VK_CHECK(vkGetSwapchainImagesKHR(pState->device.handle, pState->swapchain.handle, &pState->swapchain.imageCount, nullptr));
     pState->swapchain.images.resize(pState->swapchain.imageCount);

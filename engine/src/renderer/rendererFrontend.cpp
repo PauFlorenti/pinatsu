@@ -51,12 +51,16 @@ bool renderBeginFrame(f32 dt)
 
 bool renderDrawFrame()
 {
+    if(!pState->renderBackend.draw()){
+        PFATAL("Could not be able to draw.");
+        return false;
+    }
     return true;
 }
 
 void renderEndFrame(f32 dt)
 {
-
+    pState->renderBackend.endFrame();
 }
 
 void renderOnResize(u16 width, u16 height)

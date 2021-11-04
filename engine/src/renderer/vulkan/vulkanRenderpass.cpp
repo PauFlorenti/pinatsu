@@ -28,11 +28,21 @@ bool vulkanRenderPassCreate(VulkanState* pState)
     subpassDescription.colorAttachmentCount = 1;
     subpassDescription.pColorAttachments    = &attachmentRef;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass       = 0;
+    dependency.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask    = 0;
+    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkRenderPassCreateInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
     info.attachmentCount    = 1;
     info.pAttachments       = &attachmentDescription;
     info.subpassCount       = 1;
     info.pSubpasses         = &subpassDescription;
+    info.dependencyCount    = 1;
+    info.pDependencies      = &dependency;
 
     if(vkCreateRenderPass(pState->device.handle, &info, nullptr, &pState->renderpass.handle) != VK_SUCCESS)
     {
