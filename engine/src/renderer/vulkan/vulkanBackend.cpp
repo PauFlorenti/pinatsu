@@ -159,17 +159,21 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Framebuffers
-    for(Framebuffer &f : state.swapchain.framebuffers){
+    for(u32 i = 0; i < state.swapchain.imageViews.size(); ++i){
+
+        // TODO Make modular
+        std::vector<VkImageView> attachments = {state.swapchain.imageViews.at(i)};
+
         vulkanFramebufferCreate(
             &state,
             &state.renderpass,
-            state.clientWidth,
-            state.clientHeight,
-            1,
-            state.swapchain.imageViews,
-            &f
+            state.clientWidth, state.clientHeight,
+            static_cast<u32>(attachments.size()),
+            attachments,
+            &state.swapchain.framebuffers.at(i)
         );
     }
+
 
     // Command buffers
     state.commandBuffers.resize(state.swapchain.imageCount);
@@ -355,12 +359,12 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     // TODO Create a way to read and load shader dynamically.
 
     std::vector<char> vertexBuffer;
-    if(!readShaderFile("../data/vert.spv", vertexBuffer)){
+    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
         return false;
     }
 
     std::vector<char> fragBuffer;
-    if(!readShaderFile("../data/frag.spv", fragBuffer)){
+    if(!readShaderFile("./data/frag.spv", fragBuffer)){
         return false;
     }
 
