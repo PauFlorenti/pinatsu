@@ -18,6 +18,17 @@ VkResult vulkanCreateDebugMessenger(VulkanState* pState);
 
 bool vulkanShaderObjectCreate(VulkanState* pState);
 
+bool vulkanCreateFence(
+    VulkanState* pState, 
+    VulkanFence* fence, 
+    bool signaled);
+bool vulkanWaitFence(
+    VulkanState* pState,
+    VulkanFence* fence);
+bool vulkanResetFence(
+    VulkanState* pState,
+    VulkanFence* fence);
+
 static VkBool32 VKAPI_PTR debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -205,9 +216,7 @@ bool vulkanBackendInit(const char* appName)
             return false;
         }
 
-        VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        if(vkCreateFence(state.device.handle, &fenceInfo, nullptr, &state.frameInFlightFences.at(i)) != VK_SUCCESS){
+        if(vulkanCreateFence(&state, &state.frameInFlightFences.at(i), true)){
             PERROR("Fence creation failed");
             return false;
         }
@@ -238,8 +247,8 @@ bool vulkanBeginFrame()
 
     // Wait for the previous frame to finish.
 
-    //vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
-    //vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
+    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
     vkAcquireNextImageKHR(
@@ -259,7 +268,7 @@ bool vulkanBeginFrame()
     info.renderPass         = state.renderpass.handle;
     info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
     info.renderArea.offset  = {0, 0};
-    info.renderArea.extent  = {1200, 800}; //state.swapchain.extent;
+    info.renderArea.extent  = state.swapchain.extent;
     info.clearValueCount    = 1;
     info.pClearValues       = &clearColor;
     
@@ -280,9 +289,6 @@ void vulkanEndFrame()
     vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
-    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
-
     VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -297,7 +303,6 @@ void vulkanEndFrame()
     if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame]) != VK_SUCCESS){
         PERROR("Queue wasn't submitted.");
     }
-    vkQueueWaitIdle(state.device.graphicsQueue);
 
     // Present swapchain image
     VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
@@ -309,7 +314,6 @@ void vulkanEndFrame()
     
     vkQueuePresentKHR(state.device.presentQueue, &presentInfo);
     state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
-    vkQueueWaitIdle(state.device.presentQueue);
 }
 
 VkResult vulkanCreateDebugMessenger(VulkanState* pState)
@@ -481,3 +485,29 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
 
     return true;
 }
+
+bool vulkanCreateFence(
+    VulkanState* pState,
+    VulkanFence* fence,
+    bool signaled)
+{
+    VkFenceCreateInfo info = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    if(signaled){
+        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        fence->signaled = true;
+    }
+
+    VK_CHECK(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle));
+    return true;
+}
+bool vulkanWaitFence(
+    VulkanState *pState,
+    VulkanFence* fence)
+{
+    if(fence->signaled)
+        return true;
+    
+    
+}
+
+bool vulkanResetFence(VulkanFence* fence);

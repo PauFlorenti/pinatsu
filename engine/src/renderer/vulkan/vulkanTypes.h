@@ -81,6 +81,12 @@ typedef struct ShaderObject
     VkShaderModule shaderModule;
 } ShaderObject;
 
+typedef struct VulkanFence
+{
+    VkFence handle;
+    bool signaled;
+} VulkanFance;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
@@ -108,7 +114,7 @@ typedef struct VulkanState
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> frameInFlightFences;
+    std::vector<VulkanFence> frameInFlightFences;
 
     ShaderObject vertexShaderObject;
     ShaderObject fragmentShaderObject;

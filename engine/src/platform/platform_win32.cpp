@@ -62,9 +62,14 @@ bool platformStartup(
     u32 windowWidth = clientWidth;
     u32 windowHeight = clientHeight;
 
+    DWORD ws_style = 
+        WS_MAXIMIZE | WS_MINIMIZE | 
+        WS_THICKFRAME | WS_OVERLAPPED | 
+        WS_SYSMENU | WS_CAPTION;
+
     // Get the border size
     RECT border = {0, 0, 0, 0};
-    AdjustWindowRectEx(&border, WS_MAXIMIZE | WS_MINIMIZEBOX | WS_THICKFRAME | WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION, 0, WS_EX_APPWINDOW);
+    AdjustWindowRectEx(&border, ws_style, 0, WS_EX_APPWINDOW);
 
     windowX += border.left;
     windowY += border.right;
@@ -76,7 +81,8 @@ bool platformStartup(
     HWND handle = CreateWindowEx(
         0, L"Pinatsu window", L"Pinatsu",
         WS_OVERLAPPEDWINDOW,
-        windowX, windowY, windowWidth + 2, windowHeight + 25, nullptr, nullptr, 
+        //windowX, windowY, windowWidth + 2, windowHeight + 25, nullptr, nullptr, 
+        windowX, windowY, windowWidth, windowHeight, nullptr, nullptr, 
         pState->hinstance, nullptr
     );
 
