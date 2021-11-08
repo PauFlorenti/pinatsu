@@ -43,7 +43,6 @@ void renderSystemShutdown(void* state)
 bool renderBeginFrame(f32 dt)
 {
     if(!pState->renderBackend.beginFrame()){
-        PFATAL("Begin rendering frame error.");
         return false;
     }
     return true;
@@ -65,5 +64,5 @@ void renderEndFrame(f32 dt)
 
 void renderOnResize(u16 width, u16 height)
 {
-    pState->renderBackend.onResize();
+    pState->renderBackend.onResize(width, height);
 }

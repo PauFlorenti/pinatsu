@@ -25,6 +25,7 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data);
 bool Application::init()
 {
     m_isRunning = true;
+    m_isSuspended = false;
 
     PFATAL("This is a fatal test!");
     PERROR("This is an error test!");
@@ -75,9 +76,7 @@ bool Application::init()
         PFATAL("Render system could not be initialized! Shuting down now.");
         return false;
     }
-
-    std::cout << getMemoryUsageStr() << std::endl;
-    //PINFO(getMemoryUsageStr().c_str());
+    PINFO(getMemoryUsageStr().c_str());
     return true;
 }
 
@@ -86,20 +85,25 @@ bool Application::init()
  */
 bool Application::run()
 {
+    u8 frameCount = 0;
+    // TODO Clock timer to compute delta time.
+
     while(m_isRunning)
     {
         if(!platformPumpMessages())
             m_isRunning = false;
 
-        PINFO("Updating!");
+        if(!m_isSuspended)
+        {
+            platformUpdate();
 
-        platformUpdate();
-
-        // Draw
-        if(renderBeginFrame(1.0f)){
-            renderDrawFrame();
+            // Draw
+            if(renderBeginFrame(1.0f)){
+                renderDrawFrame();
+                renderEndFrame(1.0f);
+            }
         }
-        renderEndFrame(1.0f);
+        frameCount++;
     }
 
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
@@ -137,13 +141,18 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
         if(Application::getInstance()->m_width != width || 
             Application::getInstance()->m_height != height)
         {
+            Application::getInstance()->m_width = width;
+            Application::getInstance()->m_height = height;
             // Minimization
             if(width == 0 || height == 0){
+                // If minimized suspend application until it resizes.
+                Application::getInstance()->m_isSuspended = true;
                 PINFO("Window is minimized.");
                 return true;
             }
             else {
-                // Trigger applicaiton on resize
+                if(Application::getInstance()->m_isSuspended)
+                    Application::getInstance()->m_isSuspended = false;
                 // Trigger render on resize
                 renderOnResize(width, height);
             }

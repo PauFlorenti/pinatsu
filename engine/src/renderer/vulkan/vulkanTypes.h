@@ -102,11 +102,14 @@ typedef struct VulkanState
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
 
-    u32 clientWidth;
-    u32 clientHeight;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;
+    bool recreatingSwapchain;
+
+    u32 clientWidth;
+    u32 clientHeight;
+    bool resized;
 
     VulkanRenderpass renderpass;
 
@@ -120,5 +123,4 @@ typedef struct VulkanState
     ShaderObject fragmentShaderObject;
 
     Pipeline graphicsPipeline;
-
 } VulkanState;

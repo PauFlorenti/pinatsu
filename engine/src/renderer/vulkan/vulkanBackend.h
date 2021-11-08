@@ -6,7 +6,7 @@ bool vulkanBackendInit(const char* appName);
 
 void vulkanBackendShutdown();
 
-void vulkanBackendOnResize();
+void vulkanBackendOnResize(u32 width, u32 height);
 
 bool vulkanBeginFrame();
 

@@ -22,6 +22,7 @@ public:
     bool run();
 
     bool m_isRunning;
+    bool m_isSuspended;
     i16 m_width;
     i16 m_height;
     LinearAllocator systemsAllocator;

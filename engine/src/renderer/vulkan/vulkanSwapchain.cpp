@@ -1,23 +1,7 @@
 #include "vulkanSwapchain.h"
 
-bool create(VulkanState* pState);
+bool create(VulkanState* pState, u32 width, u32 height);
 void destroy(VulkanState* pState);
-
-bool vulkanSwapchainCreate(VulkanState* pState)
-{
-    return create(pState);
-}
-
-void vulkanSwapchainDestroy(VulkanState* pState)
-{
-    destroy(pState);
-}
-
-bool vulkanSwapchainRecreate(VulkanState* pState)
-{
-    destroy(pState);
-    return create(pState);
-}
 
 VkExtent2D getSwapchainExtent(VulkanState* pState)
 {
@@ -34,9 +18,32 @@ VkExtent2D getSwapchainExtent(VulkanState* pState)
     }
 }
 
-bool create(VulkanState* pState)
+bool vulkanSwapchainCreate(VulkanState* pState)
 {
-    pState->swapchain.extent = getSwapchainExtent(pState);
+    VkExtent2D swapchainExtent = getSwapchainExtent(pState);
+    return create(pState, swapchainExtent.width, swapchainExtent.height);
+}
+
+void vulkanSwapchainDestroy(VulkanState* pState)
+{
+    destroy(pState);
+}
+
+bool vulkanSwapchainRecreate(
+    VulkanState* pState, 
+    u32 width, 
+    u32 height)
+{
+    destroy(pState);
+    return create(pState, width, height);
+}
+
+bool create(
+    VulkanState* pState, 
+    u32 width, 
+    u32 height)
+{
+    pState->swapchain.extent = { width, height };
 
     // Choose the format for the swapchain.
     pState->swapchain.format = pState->swapchainSupport.formats[0];
@@ -95,7 +102,7 @@ bool create(VulkanState* pState)
         PFATAL("Failed to create swapchain! Shutting down.");
         return false;
     }
-
+    
     pState->currentFrame = 0;
 
     VK_CHECK(vkGetSwapchainImagesKHR(pState->device.handle, pState->swapchain.handle, &pState->swapchain.imageCount, nullptr));
@@ -122,7 +129,20 @@ bool create(VulkanState* pState)
     return true;
 };
 
+/**
+ * @brief Waits for all device queues to finish their process
+ * and proceeds to destroy all swapchain imageViews and the swapchain
+ * itself.
+ * @param VulkanState* pState
+ * @return void
+ */ 
 void destroy(VulkanState *pState)
 {
+    vkDeviceWaitIdle(pState->device.handle);
+
+    for(const auto& image : pState->swapchain.imageViews){
+        vkDestroyImageView(pState->device.handle, image, nullptr);
+    }
+
     vkDestroySwapchainKHR(pState->device.handle, pState->swapchain.handle, nullptr);
 };

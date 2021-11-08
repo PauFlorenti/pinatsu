@@ -6,7 +6,6 @@
 #include "vulkanFramebuffer.h"
 
 #include "core\application.h"
-
 #include "platform\platform.h"
 #include <vector>
 #include <string>
@@ -18,16 +17,43 @@ VkResult vulkanCreateDebugMessenger(VulkanState* pState);
 
 bool vulkanShaderObjectCreate(VulkanState* pState);
 
+void regenerateFramebuffers(
+    VulkanSwapchain* swapchain, 
+    VulkanRenderpass* renderpass);
+
+void createCommandBuffers();
+
 bool vulkanCreateFence(
     VulkanState* pState, 
     VulkanFence* fence, 
     bool signaled);
+
 bool vulkanWaitFence(
     VulkanState* pState,
-    VulkanFence* fence);
+    VulkanFence* fence,
+    u64 timeout = UINT64_MAX);
+
 bool vulkanResetFence(
     VulkanState* pState,
     VulkanFence* fence);
+
+bool vulkanCreateSemaphore(
+    VulkanState* pState, 
+    VkSemaphore* semaphore);
+
+bool vulkanRegenerateFramebuffers(
+    VulkanState* pState);
+
+bool recreateSwapchain();
+
+void vulkanCreateShaderModule(
+    VulkanState* pState,
+    std::vector<char>& buffer,
+    VkShaderModule* module
+);
+
+// TODO Command buffer functions
+//void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
 
 static VkBool32 VKAPI_PTR debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -51,6 +77,11 @@ static VkBool32 VKAPI_PTR debugCallback(
     return VK_FALSE;
 }
 
+/**
+ * @brief Initialize all vulkan render system.
+ * @param const char* application name.
+ * @return bool if succeded initialization.
+ */
 bool vulkanBackendInit(const char* appName)
 {
 
@@ -170,33 +201,11 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Framebuffers
-    for(u32 i = 0; i < state.swapchain.imageViews.size(); ++i){
+    regenerateFramebuffers(
+        &state.swapchain, 
+        &state.renderpass);
 
-        // TODO Make modular
-        std::vector<VkImageView> attachments = {state.swapchain.imageViews.at(i)};
-
-        vulkanFramebufferCreate(
-            &state,
-            &state.renderpass,
-            state.clientWidth, state.clientHeight,
-            static_cast<u32>(attachments.size()),
-            attachments,
-            &state.swapchain.framebuffers.at(i)
-        );
-    }
-
-
-    // Command buffers
-    state.commandBuffers.resize(state.swapchain.imageCount);
-    for(CommandBuffer& cmd : state.commandBuffers)
-    {
-        VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-        allocInfo.commandBufferCount    = 1;
-        allocInfo.commandPool           = state.device.commandPool;
-        allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        
-        vkAllocateCommandBuffers(state.device.handle, &allocInfo, &cmd.handle);
-    }
+    createCommandBuffers();
 
     // Sync objects
     state.imageAvailableSemaphores.resize(state.swapchain.maxImageInFlight);
@@ -205,19 +214,13 @@ bool vulkanBackendInit(const char* appName)
 
     for(u32 i = 0; i < state.swapchain.maxImageInFlight; ++i)
     {
-        VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        if(vkCreateSemaphore(state.device.handle, &info, nullptr, &state.imageAvailableSemaphores.at(i)) != VK_SUCCESS){
-            PERROR("Semaphore creation failed.");
+        if(!vulkanCreateSemaphore(&state, &state.imageAvailableSemaphores.at(i))){
             return false;
         }
-        if(vkCreateSemaphore(state.device.handle, &info, nullptr, &state.renderFinishedSemaphores.at(i)) != VK_SUCCESS)
-        {
-            PERROR("Semaphore creation failed.");
+        if(!vulkanCreateSemaphore(&state, &state.renderFinishedSemaphores.at(i))){
             return false;
         }
-
-        if(vulkanCreateFence(&state, &state.frameInFlightFences.at(i), true)){
-            PERROR("Fence creation failed");
+        if(!vulkanCreateFence(&state, &state.frameInFlightFences.at(i), true)){
             return false;
         }
     }
@@ -230,9 +233,18 @@ bool vulkanBackendInit(const char* appName)
     return true;
 }
 
-void vulkanBackendOnResize()
+/**
+ * @brief Triggered when resized. Take new size and mark the
+ * application to be resized.
+ * @param u32 width
+ * @param u32 height
+ * @return void
+ */
+void vulkanBackendOnResize(u32 width, u32 height)
 {
-    vulkanSwapchainRecreate(&state);
+    state.resized = true;
+    state.clientWidth = width;
+    state.clientHeight = height;
 }
 
 void vulkanBackendShutdown()
@@ -240,15 +252,41 @@ void vulkanBackendShutdown()
     vkDestroyInstance(state.instance, nullptr);
 }
 
+/**
+ * @brief Do necessary preparation to begin the frame rendering.
+ * If failed, vulkanDraw won't be called and rendering pass won't perform.
+ * @param void
+ * @return bool if succeded.
+ */
 bool vulkanBeginFrame()
 {
 
-    vkQueueWaitIdle(state.device.graphicsQueue);
+    // Wait for the device to finish recreating the swapchain.
+    if(state.recreatingSwapchain) {
+        if(VK_SUCCESS != vkDeviceWaitIdle(state.device.handle)){
+            PERROR("vkDeviceWaitIdle failed!");
+            return false;
+        }
+        PINFO("Recreating swapchain, booting.");
+        return false;
+    }
+
+    if(state.resized)
+    {
+        if(!recreateSwapchain())
+        {
+            PFATAL("Swapchain could not be recreated.");
+            return false;
+        }
+        state.resized = false;
+        PINFO("Resized, booting");
+        return false;
+    }
 
     // Wait for the previous frame to finish.
-
-    vkWaitForFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.currentFrame]);
+    vulkanWaitFence(
+        &state, 
+        &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
     vkAcquireNextImageKHR(
@@ -277,6 +315,11 @@ bool vulkanBeginFrame()
     return true;
 }
 
+/**
+ * @brief Perform the rendering action. Binds a pipeline and draws.
+ * @param void
+ * @return bool
+ */
 bool vulkanDraw()
 {
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
@@ -284,6 +327,12 @@ bool vulkanDraw()
     return true;
 }
 
+/**
+ * @brief Ends the render passa and command buffers for this frame.
+ * Submits info to the graphics queue and presents the image.
+ * @param void
+ * @return void
+ */
 void vulkanEndFrame()
 {
     vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
@@ -300,7 +349,10 @@ void vulkanEndFrame()
     submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
     submitInfo.pWaitDstStageMask    = pipelineStage;
 
-    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame]) != VK_SUCCESS){
+    vulkanWaitFence(&state, &state.frameInFlightFences[state.currentFrame]);
+    vulkanResetFence(&state, &state.frameInFlightFences[state.currentFrame]);
+
+    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
         PERROR("Queue wasn't submitted.");
     }
 
@@ -316,6 +368,11 @@ void vulkanEndFrame()
     state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
 }
 
+/**
+ * @brief Culkan debug messenger prep.
+ * @param VulkanState* pState
+ * @return VkResult if succeeded.
+ */
 VkResult vulkanCreateDebugMessenger(VulkanState* pState)
 {
     VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -334,6 +391,7 @@ VkResult vulkanCreateDebugMessenger(VulkanState* pState)
     return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
+// TODO create a function to read files and treat shaders accordingly.
 bool readShaderFile(std::string filename, std::vector<char>& buffer)
 {
     std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
@@ -357,6 +415,7 @@ bool readShaderFile(std::string filename, std::vector<char>& buffer)
     return true;
 }
 
+// TODO Separate shader and pipeline creation.
 bool vulkanShaderObjectCreate(VulkanState* pState)
 {
     // Shader hardcoded at the moment.
@@ -372,16 +431,8 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
         return false;
     }
 
-    VkShaderModuleCreateInfo vertInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    vertInfo.codeSize   = vertexBuffer.size();
-    vertInfo.pCode      = reinterpret_cast<const u32*>(vertexBuffer.data());
-
-    VkShaderModuleCreateInfo fragInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    fragInfo.codeSize = fragBuffer.size();
-    fragInfo.pCode = reinterpret_cast<u32*>(fragBuffer.data());
-    
-    VK_CHECK(vkCreateShaderModule(pState->device.handle, &vertInfo, nullptr, &pState->vertexShaderObject.shaderModule));
-    VK_CHECK(vkCreateShaderModule(pState->device.handle, &fragInfo, nullptr, &pState->fragmentShaderObject.shaderModule));
+    vulkanCreateShaderModule(&state, vertexBuffer, &pState->vertexShaderObject.shaderModule);
+    vulkanCreateShaderModule(&state, fragBuffer, &pState->fragmentShaderObject.shaderModule);
 
     // Create Graphics pipeline
 
@@ -486,6 +537,103 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     return true;
 }
 
+/**
+ * @brief Regenerate the framebuffers given a new swapchain
+ * @param VulkanSwapchain* swapchain
+ * @param VulkanRenderpass* renderpass
+ * @return void
+ */
+void regenerateFramebuffers(
+    VulkanSwapchain* swapchain, 
+    VulkanRenderpass* renderpass)
+{
+    for(u32 i = 0; i < swapchain->imageViews.size(); ++i){
+
+        // TODO Make modular
+        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i)};
+
+        vulkanFramebufferCreate(
+            &state,
+            renderpass,
+            state.clientWidth, state.clientHeight,
+            static_cast<u32>(attachments.size()),
+            attachments,
+            &swapchain->framebuffers.at(i)
+        );
+    }
+}
+
+/**
+ * @brief Function to create main command buffers for main rendering.
+ * @param void
+ * @return void
+ */
+void createCommandBuffers()
+{
+    state.commandBuffers.resize(state.swapchain.imageCount);
+    for(CommandBuffer& cmd : state.commandBuffers)
+    {
+        VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+        allocInfo.commandBufferCount    = 1;
+        allocInfo.commandPool           = state.device.commandPool;
+        allocInfo.level                 = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        
+        vkAllocateCommandBuffers(state.device.handle, &allocInfo, &cmd.handle);
+    }
+}
+
+/**
+ * @brief Recreate the swapchain for cases like minimization or resizing
+ * of the application.
+ * @param void
+ * @return bool if succeded recreating the swapchain.
+ */
+bool recreateSwapchain()
+{
+    if(state.recreatingSwapchain){
+        PDEBUG("RecreateSwapchain function called before finishing already ongoing recreation.");
+        return false;
+    }
+
+    state.recreatingSwapchain = true;
+
+    vkDeviceWaitIdle(state.device.handle);
+
+    if(!vulkanSwapchainRecreate(
+        &state, 
+        state.clientWidth, 
+        state.clientHeight))
+    {
+        PERROR("Failed to recreate swapchain.");
+        return false;
+    }
+    
+    for(const auto& cmd : state.commandBuffers){
+        vkFreeCommandBuffers(state.device.handle, state.device.commandPool, 1, &cmd.handle);
+    }
+    state.commandBuffers.clear();
+
+    for(const auto& framebuffer : state.swapchain.framebuffers){
+        vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
+    }
+
+    regenerateFramebuffers(
+        &state.swapchain,
+        &state.renderpass);
+    
+    createCommandBuffers();
+
+    state.recreatingSwapchain = false;
+    return true;
+}
+
+/**
+ * @brief Function to create a fence signaled or unsignaled.
+ * @param VulkanState* pState
+ * @param VulkanFence* fence
+ * @param bool signaled
+ * @return bool if succeded
+ */
 bool vulkanCreateFence(
     VulkanState* pState,
     VulkanFence* fence,
@@ -495,19 +643,102 @@ bool vulkanCreateFence(
     if(signaled){
         info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         fence->signaled = true;
+    } else {
+        fence->signaled = false;
     }
 
-    VK_CHECK(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle));
+    if(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle) != VK_SUCCESS){
+        PERROR("Fence creation failed!");
+        return false;
+    }
     return true;
 }
+
+/**
+ * @brief Wait for the given fence to complete.
+ * @param VulkanState* pState
+ * @param VulkanFence* fence
+ * @param u64 timeout if nothing is passed, UINT64_MAX by default.
+ * @return bool if succeded.
+ */
 bool vulkanWaitFence(
     VulkanState *pState,
-    VulkanFence* fence)
+    VulkanFence* fence,
+    u64 timeout)
 {
     if(fence->signaled)
         return true;
     
-    
+    if(vkWaitForFences(
+        pState->device.handle, 1, 
+        &fence->handle, VK_TRUE, timeout) == VK_SUCCESS)
+    {
+        return true;
+    }
+    return false;
 }
 
-bool vulkanResetFence(VulkanFence* fence);
+/**
+ * @brief Reset the given fence.
+ * @param VulkanState* pState
+ * @param VulkanFence* fence
+ * @return bool if succeeded
+ */
+bool vulkanResetFence(
+    VulkanState* pState,
+    VulkanFence* fence)
+{
+    if(vkResetFences(
+        pState->device.handle, 
+        1, 
+        &fence->handle) == VK_SUCCESS)
+    {
+        fence->signaled = false;
+        return true;   
+    }
+    return false;
+}
+
+/**
+ * @brief Create a semaphore
+ * @param VulkanState* pState,
+ * @param VkSemaphore* semaphore
+ * @return bool if creation succeeded
+ */
+bool vulkanCreateSemaphore(
+    VulkanState* pState,
+    VkSemaphore* semaphore
+)
+{
+    VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    if(vkCreateSemaphore(pState->device.handle, &info, nullptr, semaphore) != VK_SUCCESS){
+        PERROR("Semaphore creation failed!");
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Creates a shader module given a valid buffer with the
+ * shader binary data in it.
+ * @param VulkanState* pState,
+ * @param std::vector<char>& buffer
+ * @param VkShaderModule* module
+ * @return void
+ */
+void vulkanCreateShaderModule(
+    VulkanState* pState,
+    std::vector<char>& buffer,
+    VkShaderModule* module
+)
+{
+    VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+    info.codeSize = static_cast<u32>(buffer.size());
+    info.pCode = reinterpret_cast<const u32*>(buffer.data());
+    
+    VK_CHECK(vkCreateShaderModule(
+        pState->device.handle, 
+        &info, 
+        nullptr, 
+        module));
+}
