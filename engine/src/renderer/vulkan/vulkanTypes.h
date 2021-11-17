@@ -2,8 +2,9 @@
 
 #include "vulkan\vulkan.h"
 #include "core\assert.h"
-#include <vector>
 #include "core\logger.h"
+#include "math_types.h"
+#include <vector>
 
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
 
@@ -27,6 +28,7 @@ typedef struct VulkanDevice
     VkPhysicalDeviceMemoryProperties memory;
 
     VkCommandPool commandPool;
+    VkCommandPool transferCmdPool;
 
 } VulkanDevice;
 
@@ -87,6 +89,12 @@ typedef struct VulkanFence
     bool signaled;
 } VulkanFance;
 
+typedef struct Vertex
+{
+    vec3 position;
+    vec4 color;
+}Vertex;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
@@ -102,6 +110,9 @@ typedef struct VulkanState
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
 
+    // TODO Temporal variables
+    VkBuffer dataBuffer;
+    VkDeviceMemory memory;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;

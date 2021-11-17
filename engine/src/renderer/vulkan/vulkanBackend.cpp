@@ -52,6 +52,42 @@ void vulkanCreateShaderModule(
     VkShaderModule* module
 );
 
+bool vulkanBufferCreate(
+    VulkanState* pState,
+    u32 size,
+    u32 usageFlags,
+    u32 memFlagss,
+    VkDeviceMemory& memory,
+    VkBuffer* buffer
+);
+
+void vulkanTransferBuffer(
+    VkBuffer &src,
+    VkBuffer &dst,
+    VkDeviceSize size
+);
+
+std::vector<Vertex> triangle = {
+    {{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+    {{ 0.5f,  0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+    {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}}
+};
+
+std::vector<Vertex> cube = {
+    {{-0.5, -0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{-0.5, -0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{-0.5, 0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{-0.5, 0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{0.5, -0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{0.5, -0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{0.5, 0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
+    {{0.5, 0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}}
+};
+
+// Get standard attribute description.
+std::vector<VkVertexInputAttributeDescription>
+getStandardAttributeDescription(void);
+
 // TODO Command buffer functions
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
 
@@ -75,6 +111,19 @@ static VkBool32 VKAPI_PTR debugCallback(
     }
     PWARN("Validation layer: %s", pCallbackData->pMessage);
     return VK_FALSE;
+}
+
+i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(state.device.physicalDevice, &memProperties);
+    for(u32 i = 0; i < memProperties.memoryTypeCount; ++i)
+    {
+        if(typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & memFlags) == memFlags){
+            return i;
+        }
+    }
+    return -1;
 }
 
 /**
@@ -225,7 +274,42 @@ bool vulkanBackendInit(const char* appName)
         }
     }
 
-    // Shaders Modules
+    // TODO Create a staging buffer to improve GPU reading the data.
+    // Creating staging buffer.
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory = nullptr;
+
+    u32 bufferSize = sizeof(Vertex) * triangle.size();
+    vulkanBufferCreate(
+        &state,
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        stagingMemory,
+        &stagingBuffer);
+
+    // Copying data to the staging buffer.
+    void* data;
+    vkMapMemory(state.device.handle, stagingMemory, 0, triangle.size(), 0, &data);
+    std::memcpy(data, triangle.data(), (size_t)(sizeof(triangle.at(0)) * triangle.size()));
+    vkUnmapMemory(state.device.handle, stagingMemory);
+
+    // Creating data buffer.
+    vulkanBufferCreate(
+        &state,
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        state.memory,
+        &state.dataBuffer);
+
+
+    vulkanTransferBuffer(stagingBuffer, state.dataBuffer, bufferSize);
+
+    vkDestroyBuffer(state.device.handle, stagingBuffer, nullptr);
+    vkFreeMemory(state.device.handle, stagingMemory, nullptr);
+
+    // Shaders Modules and main pipeline
     if(!vulkanShaderObjectCreate(&state)){
         return false;
     }
@@ -247,7 +331,7 @@ void vulkanBackendOnResize(u32 width, u32 height)
     state.clientHeight = height;
 }
 
-void vulkanBackendShutdown()
+void vulkanBackendShutdown(void)
 {
     vkDestroyInstance(state.instance, nullptr);
 }
@@ -258,7 +342,7 @@ void vulkanBackendShutdown()
  * @param void
  * @return bool if succeded.
  */
-bool vulkanBeginFrame()
+bool vulkanBeginFrame(void)
 {
 
     // Wait for the device to finish recreating the swapchain.
@@ -300,7 +384,7 @@ bool vulkanBeginFrame()
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
 
-    VkClearValue clearColor = {{1.0f, 0.0f, 0.0f, 1.0f}};
+    VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
 
     VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     info.renderPass         = state.renderpass.handle;
@@ -320,10 +404,12 @@ bool vulkanBeginFrame()
  * @param void
  * @return bool
  */
-bool vulkanDraw()
+bool vulkanDraw(void)
 {
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
-    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, 3, 1, 0, 0);
+    VkDeviceSize offset = {0};
+    vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, triangle.size(), 1, 0, 0);
     return true;
 }
 
@@ -333,7 +419,7 @@ bool vulkanDraw()
  * @param void
  * @return void
  */
-void vulkanEndFrame()
+void vulkanEndFrame(void)
 {
     vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
@@ -452,7 +538,17 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     shaderStages.push_back(fragmentStageInfo);
 
     // Vertex Info
-    VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+    VkVertexInputBindingDescription vertexBinding = {};
+    vertexBinding.binding   = 0;
+    vertexBinding.stride    = sizeof(f32) * 7;
+    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    std::vector<VkVertexInputAttributeDescription> inputAttributes = getStandardAttributeDescription();
+    VkPipelineVertexInputStateCreateInfo vertexInputStateInfo   = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+    vertexInputStateInfo.vertexAttributeDescriptionCount        = inputAttributes.size();
+    vertexInputStateInfo.pVertexAttributeDescriptions           = inputAttributes.data();
+    vertexInputStateInfo.vertexBindingDescriptionCount          = 1;
+    vertexInputStateInfo.pVertexBindingDescriptions             = &vertexBinding;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
     inputAssemblyInfo.topology                  = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -509,10 +605,17 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     colorBlendInfo.pAttachments     = &colorBlendAttachment;
     colorBlendInfo.logicOpEnable    = VK_FALSE;
 
+    // TODO Implement dynamic states for changing viewports and scissors so the pipelines does not have to be recreated.
     //VkPipelineDynamicStateCreateInfo dynamicStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
     //dynamicStateInfo.
 
+    // TODO Implement push constants for matrix.
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.size = sizeof(mat4);
+
     VkPipelineLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    layoutInfo.pushConstantRangeCount = 0;
+
 
     VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &pState->graphicsPipeline.layout));
 
@@ -630,8 +733,8 @@ bool recreateSwapchain()
 /**
  * @brief Function to create a fence signaled or unsignaled.
  * @param VulkanState* pState
- * @param VulkanFence* fence
- * @param bool signaled
+ * @param VulkanFence* fence to be created
+ * @param bool signaled to dictate if the created fence is signaled or no.
  * @return bool if succeded
  */
 bool vulkanCreateFence(
@@ -657,7 +760,7 @@ bool vulkanCreateFence(
 /**
  * @brief Wait for the given fence to complete.
  * @param VulkanState* pState
- * @param VulkanFence* fence
+ * @param VulkanFence* fence to be waited.
  * @param u64 timeout if nothing is passed, UINT64_MAX by default.
  * @return bool if succeded.
  */
@@ -681,7 +784,7 @@ bool vulkanWaitFence(
 /**
  * @brief Reset the given fence.
  * @param VulkanState* pState
- * @param VulkanFence* fence
+ * @param VulkanFence* fence to be reset
  * @return bool if succeeded
  */
 bool vulkanResetFence(
@@ -702,7 +805,7 @@ bool vulkanResetFence(
 /**
  * @brief Create a semaphore
  * @param VulkanState* pState,
- * @param VkSemaphore* semaphore
+ * @param VkSemaphore* semaphore to be created
  * @return bool if creation succeeded
  */
 bool vulkanCreateSemaphore(
@@ -722,8 +825,8 @@ bool vulkanCreateSemaphore(
  * @brief Creates a shader module given a valid buffer with the
  * shader binary data in it.
  * @param VulkanState* pState,
- * @param std::vector<char>& buffer
- * @param VkShaderModule* module
+ * @param std::vector<char>& buffer conaining all spvr binary data
+ * @param VkShaderModule* The shader module to be created.
  * @return void
  */
 void vulkanCreateShaderModule(
@@ -741,4 +844,119 @@ void vulkanCreateShaderModule(
         &info, 
         nullptr, 
         module));
+}
+
+bool vulkanBufferCreate(
+    VulkanState* pState,
+    u32 size,
+    u32 usageFlags,
+    u32 memFlags,
+    VkDeviceMemory& memory,
+    VkBuffer* buffer)
+{
+    VkBufferCreateInfo info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+    info.size                   = size;
+    info.sharingMode            = VK_SHARING_MODE_EXCLUSIVE; // It is only used in one queue
+    info.usage                  = usageFlags;
+
+    VK_CHECK(vkCreateBuffer(pState->device.handle, &info, nullptr, buffer));
+
+    VkMemoryRequirements requirements;
+    vkGetBufferMemoryRequirements(pState->device.handle, *buffer, &requirements);
+
+    i32 index = findMemoryIndex(requirements.memoryTypeBits, memFlags);
+    if(index == -1){
+        PERROR("Could not find a valid memory index.");
+        return false;
+    }
+
+    VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    allocInfo.allocationSize    = requirements.size;
+    allocInfo.memoryTypeIndex   = index;
+
+    vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &memory);
+
+    vkBindBufferMemory(pState->device.handle, *buffer, memory, 0);
+
+    return true;
+}
+
+/**
+ * @brief Transfer the buffer info from source buffer to destination buffer.
+ * @param VkBuffer src The source of the data to be transferred.
+ * @param VkBuffer dst The destination of the data.
+ * @param VkDeviceSize size of the data to be transferred.
+ * @return void
+ */
+void vulkanTransferBuffer(
+    VkBuffer& src,
+    VkBuffer& dst,
+    VkDeviceSize size
+)
+{
+    // TODO may be useful to create a specific command pool for such commands.
+    VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    allocInfo.commandBufferCount = 1;
+    allocInfo.commandPool = state.device.transferCmdPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(state.device.handle, &allocInfo, &cmd);
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    VkBufferCopy region;
+    region.srcOffset    = 0;
+    region.dstOffset    = 0;
+    region.size         = size;
+    vkCmdCopyBuffer(cmd, src, dst, 1, &region);
+
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    
+    // We want the app to wait until transfer is completed.
+    vkQueueSubmit(state.device.transferQueue, 1, &submitInfo, nullptr);
+    vkQueueWaitIdle(state.device.transferQueue);
+
+    vkFreeCommandBuffers(state.device.handle, state.device.transferCmdPool, 1, &cmd);
+}
+
+/**
+ * @brief returns a vector containing the standard input attribute
+ * description for this engine. The attributes description is as follows:
+ *  vec3 position
+ *  vec4 colour
+ *  vec3 normal
+ *  vec2 uvs
+ * @param void
+ * @return vector containing all input attributes.
+ */
+// TODO Add Normals and uvs
+std::vector<VkVertexInputAttributeDescription>
+    getStandardAttributeDescription(void)
+{
+    std::vector<VkVertexInputAttributeDescription> attributes(2);
+    
+    // Position
+    VkVertexInputAttributeDescription vert{};
+    vert.binding    = 0;
+    vert.location   = 0;
+    vert.format     = VK_FORMAT_R32G32B32_SFLOAT;
+    vert.offset     = 0;
+    attributes.at(0) = vert;
+
+    VkVertexInputAttributeDescription color{};
+    color.binding   = 0;
+    color.location  = 1;
+    color.format    = VK_FORMAT_R32G32B32A32_SFLOAT;
+    color.offset    = sizeof(f32) * 3;
+    attributes.at(1) = color;
+
+    return attributes;
 }

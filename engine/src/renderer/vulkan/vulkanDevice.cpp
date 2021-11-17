@@ -449,5 +449,13 @@ bool createLogicalDevice(VulkanState* state)
         nullptr, &state->device.commandPool));
     PINFO("Graphics command pool created.");
 
+    // TODO make sure device should have another of these.
+    // Create comman pool for transfer queue.
+    cmdPoolInfo.queueFamilyIndex = state->device.transferQueueIndex;
+    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+    VK_CHECK(vkCreateCommandPool(state->device.handle, &cmdPoolInfo, nullptr, &state->device.transferCmdPool));
+    PINFO("Transfer command pool created");
+
     return true;
 }
