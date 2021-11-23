@@ -13,7 +13,61 @@
 
 static VulkanState state;
 
-VkResult vulkanCreateDebugMessenger(VulkanState* pState);
+/**
+ * Vulkan Debug Messenger Functions
+ */
+static VkBool32 VKAPI_PTR debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData)
+{
+    switch (messageSeverity)
+    {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        PERROR(pCallbackData->pMessage);
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        PWARN(pCallbackData->pMessage);
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        PINFO(pCallbackData->pMessage);
+        break;
+    }
+    PWARN("Validation layer: %s", pCallbackData->pMessage);
+    return VK_FALSE;
+}
+
+VkResult vulkanCreateDebugMessenger(VulkanState* pState)
+{
+    VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debugMessengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT; // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT; Add info if needed.
+    debugMessengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+    debugMessengerInfo.pfnUserCallback = debugCallback;
+    debugMessengerInfo.pUserData = nullptr;
+
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+        pState->instance, "vkCreateDebugUtilsMessengerEXT");
+    if(func != nullptr){
+        return func(pState->instance, &debugMessengerInfo, nullptr, &pState->debugMessenger);
+    }
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+void vulkanDestroyDebugMessenger(VulkanState& state)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(state.instance, "vkDestroyDebugUtilsMessengerEXT");
+    if(func != nullptr){
+        func(state.instance, state.debugMessenger, nullptr);
+    }
+}
+
+/**
+ * Shader Object Create
+ * TODO Break it into functions
+ */
 
 bool vulkanShaderObjectCreate(VulkanState* pState);
 
@@ -105,27 +159,6 @@ getStandardAttributeDescription(void);
 // TODO Command buffer functions
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
 
-static VkBool32 VKAPI_PTR debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData)
-{
-    switch (messageSeverity)
-    {
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        PERROR(pCallbackData->pMessage);
-        break;
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        PWARN(pCallbackData->pMessage);
-        break;
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        PINFO(pCallbackData->pMessage);
-        break;
-    }
-    PWARN("Validation layer: %s", pCallbackData->pMessage);
-    return VK_FALSE;
-}
 
 i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
 {
@@ -376,11 +409,24 @@ void vulkanBackendShutdown(void)
     vulkanDestroyShaderModule(state, state.fragmentShaderObject);
 
     // Layout
+    vkDestroyPipelineLayout(state.device.handle, state.graphicsPipeline.layout, nullptr);
     // Pipeline
+    vkDestroyPipeline(state.device.handle, state.graphicsPipeline.pipeline, nullptr);
     // RenderPass
-
+    vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
+    // Framebuffers
+    for(auto framebuffer : state.swapchain.framebuffers)
+    {
+        vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
+    }
     vulkanSwapchainDestroy(&state);
+    // Surfaces
+    vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
     destroyLogicalDevice(state);
+    // Debug Messenger
+#ifdef DEBUG
+    vulkanDestroyDebugMessenger(state);
+#endif
     vkDestroyInstance(state.instance, nullptr);
 }
 
@@ -500,29 +546,6 @@ void vulkanEndFrame(void)
     
     vkQueuePresentKHR(state.device.presentQueue, &presentInfo);
     state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
-}
-
-/**
- * @brief Culkan debug messenger prep.
- * @param VulkanState* pState
- * @return VkResult if succeeded.
- */
-VkResult vulkanCreateDebugMessenger(VulkanState* pState)
-{
-    VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-    debugMessengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | 
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT; // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT; Add info if needed.
-    debugMessengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-    debugMessengerInfo.pfnUserCallback = debugCallback;
-    debugMessengerInfo.pUserData = nullptr;
-
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
-        pState->instance, "vkCreateDebugUtilsMessengerEXT");
-    if(func != nullptr){
-        return func(pState->instance, &debugMessengerInfo, nullptr, &pState->debugMessenger);
-    }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
 // TODO create a function to read files and treat shaders accordingly.
@@ -663,7 +686,6 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
 
     VkPipelineLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     layoutInfo.pushConstantRangeCount = 0;
-
 
     VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &pState->graphicsPipeline.layout));
 
