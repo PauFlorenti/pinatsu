@@ -37,9 +37,17 @@ bool vulkanResetFence(
     VulkanState* pState,
     VulkanFence* fence);
 
+void vulkanDestroyFence(
+    VulkanState& state,
+    VulkanFence& fence);
+
 bool vulkanCreateSemaphore(
     VulkanState* pState, 
     VkSemaphore* semaphore);
+
+void vulkanDestroySemaphore(
+    VulkanState& state,
+    VkSemaphore& semaphore);
 
 bool vulkanRegenerateFramebuffers(
     VulkanState* pState);
@@ -49,8 +57,11 @@ bool recreateSwapchain();
 void vulkanCreateShaderModule(
     VulkanState* pState,
     std::vector<char>& buffer,
-    VkShaderModule* module
-);
+    VkShaderModule* module);
+
+void vulkanDestroyShaderModule(
+    VulkanState& state,
+    ShaderObject& module);
 
 bool vulkanBufferCreate(
     VulkanState* pState,
@@ -58,14 +69,17 @@ bool vulkanBufferCreate(
     u32 usageFlags,
     u32 memFlagss,
     VkDeviceMemory& memory,
-    VkBuffer* buffer
-);
+    VkBuffer* buffer);
+
+void vulkanBufferDestroy(
+    VulkanState& pState,
+    VkBuffer& buffer);
 
 void vulkanTransferBuffer(
     VkBuffer &src,
     VkBuffer &dst,
-    VkDeviceSize size
-);
+    VkDeviceSize size);
+
 
 std::vector<Vertex> triangle = {
     {{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
@@ -331,8 +345,42 @@ void vulkanBackendOnResize(u32 width, u32 height)
     state.clientHeight = height;
 }
 
+/**
+ * @brief Shutdown and destroy all modules and components from
+ * the vulkan backend. Usually when shutting down the renderer module.
+ * @param void
+ * @return void
+ */
 void vulkanBackendShutdown(void)
 {
+    vkDeviceWaitIdle(state.device.handle);
+
+    // Destroy all synchronization resources
+    for(VkSemaphore& semaphore : state.imageAvailableSemaphores)
+    {
+        vulkanDestroySemaphore(state, semaphore);
+    }
+    for(VkSemaphore& semaphore : state.renderFinishedSemaphores)
+    {
+        vulkanDestroySemaphore(state, semaphore);
+    }
+    for(VulkanFence& fence : state.frameInFlightFences)
+    {
+        vulkanDestroyFence(state, fence);
+    }
+
+    vulkanBufferDestroy(state, state.dataBuffer);
+    vkFreeMemory(state.device.handle, state.memory, nullptr);
+
+    vulkanDestroyShaderModule(state, state.vertexShaderObject);
+    vulkanDestroyShaderModule(state, state.fragmentShaderObject);
+
+    // Layout
+    // Pipeline
+    // RenderPass
+
+    vulkanSwapchainDestroy(&state);
+    destroyLogicalDevice(state);
     vkDestroyInstance(state.instance, nullptr);
 }
 
@@ -803,6 +851,22 @@ bool vulkanResetFence(
 }
 
 /**
+ * @brief Destroys the given fence.
+ * @param VulkanState& global vulkan state
+ * @param VulkanFence& fence to destroy
+ * @return void
+ */
+void vulkanDestroyFence(
+    VulkanState& state,
+    VulkanFence& fence)
+{
+    vkDestroyFence(
+        state.device.handle,
+        fence.handle,
+        nullptr);
+}
+
+/**
  * @brief Create a semaphore
  * @param VulkanState* pState,
  * @param VkSemaphore* semaphore to be created
@@ -819,6 +883,22 @@ bool vulkanCreateSemaphore(
         return false;
     }
     return true;
+}
+
+/**
+ * @brief Destroy the given semaphore
+ * @param VulkanState& state,
+ * @param VkSemaphore& semaphore to destroy
+ * @return void
+ */
+void vulkanDestroySemaphore(
+    VulkanState& state,
+    VkSemaphore& semaphore)
+{
+    vkDestroySemaphore(
+        state.device.handle,
+        semaphore,
+        nullptr);
 }
 
 /**
@@ -844,6 +924,19 @@ void vulkanCreateShaderModule(
         &info, 
         nullptr, 
         module));
+}
+
+/**
+ * TODO Revise if it should be Destroy ShaderObject
+ */
+void vulkanDestroyShaderModule(
+    VulkanState& state,
+    ShaderObject& module)
+{
+    vkDestroyShaderModule(
+        state.device.handle,
+        module.shaderModule,
+        nullptr);
 }
 
 bool vulkanBufferCreate(
@@ -879,6 +972,23 @@ bool vulkanBufferCreate(
     vkBindBufferMemory(pState->device.handle, *buffer, memory, 0);
 
     return true;
+}
+
+/**
+ * @brief Receives a buffer to destroy
+ * @param VulkanState& pState
+ * @param VkBuffer& buffer to destroy
+ * @return void
+ */
+void vulkanBufferDestroy(
+    VulkanState& pState,
+    VkBuffer& buffer
+)
+{
+    vkDestroyBuffer(
+        pState.device.handle, 
+        buffer,
+        nullptr);
 }
 
 /**

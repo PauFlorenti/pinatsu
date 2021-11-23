@@ -5,3 +5,5 @@
 bool pickPhysicalDevice(VulkanState* state);
 
 bool createLogicalDevice(VulkanState* state);
+
+void destroyLogicalDevice(VulkanState& state);

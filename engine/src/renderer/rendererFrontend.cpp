@@ -37,7 +37,10 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName)
 
 void renderSystemShutdown(void* state)
 {
-
+    if(pState)
+    {
+        pState->renderBackend.shutdown();
+    }
 }
 
 bool renderBeginFrame(f32 dt)

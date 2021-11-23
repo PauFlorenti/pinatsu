@@ -449,7 +449,6 @@ bool createLogicalDevice(VulkanState* state)
         nullptr, &state->device.commandPool));
     PINFO("Graphics command pool created.");
 
-    // TODO make sure device should have another of these.
     // Create comman pool for transfer queue.
     cmdPoolInfo.queueFamilyIndex = state->device.transferQueueIndex;
     cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -458,4 +457,27 @@ bool createLogicalDevice(VulkanState* state)
     PINFO("Transfer command pool created");
 
     return true;
+}
+
+/**
+ * @brief Destroy the logical device, make sure all
+ * resources created or allocated from the device have
+ * been freed or destroy previous to this.
+ * @param VulkanState& pState The Vulkan State
+ * @return void
+ */
+void destroyLogicalDevice(VulkanState& pState)
+{
+    vkDestroyCommandPool(
+        pState.device.handle,
+        pState.device.transferCmdPool,
+        nullptr);
+    
+    vkDestroyCommandPool(
+        pState.device.handle,
+        pState.device.commandPool,
+        nullptr);
+
+    vkDeviceWaitIdle(pState.device.handle);
+    vkDestroyDevice(pState.device.handle, nullptr);
 }

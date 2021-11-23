@@ -109,6 +109,7 @@ bool Application::run()
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
+    renderSystemShutdown(renderSystem);
     platformShutdown(platformSystem);
     eventSystemShutdown(eventSystem);
     memorySystemShutdown(memorySystem);
