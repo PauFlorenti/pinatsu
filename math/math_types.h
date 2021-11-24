@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+#define PI 3.14159265359
+
 typedef union vec2
 {
     f32 data[2];
@@ -33,6 +35,9 @@ typedef union vec3
     };
 } vec3;
 
+vec3 operator*(const vec3& v, f32 f) {return {v.x * f, v.y * f, v.z * f};}
+vec3 operator/(const vec3& v, f32 f) {return {v.x / f, v.y / f, v.z / f};}
+
 typedef union vec4
 {
     f32 data[4];
@@ -59,3 +64,4 @@ typedef union mat4
 {
     f32 m[16];
 } mat4;
+

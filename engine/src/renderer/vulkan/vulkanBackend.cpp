@@ -7,14 +7,20 @@
 
 #include "core\application.h"
 #include "platform\platform.h"
+#include "pmath.h"
 #include <vector>
 #include <string>
 #include <fstream>
+
+#define internal static
 
 static VulkanState state;
 
 /**
  * Vulkan Debug Messenger Functions
+ * It has de creation and destruction function.
+ * A debug callback is also needed to process the messages
+ * sent from the validation layers and treat such messages accordingly.
  */
 static VkBool32 VKAPI_PTR debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -71,40 +77,102 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
 
 bool vulkanShaderObjectCreate(VulkanState* pState);
 
-void regenerateFramebuffers(
-    VulkanSwapchain* swapchain, 
-    VulkanRenderpass* renderpass);
-
 void createCommandBuffers();
 
-bool vulkanCreateFence(
-    VulkanState* pState, 
-    VulkanFence* fence, 
-    bool signaled);
-
-bool vulkanWaitFence(
+/**
+ * Synchronization Utility Functions.
+ * This includes both Semaphores and Fences.
+ */
+internal bool vulkanCreateFence(
     VulkanState* pState,
     VulkanFence* fence,
-    u64 timeout = UINT64_MAX);
+    bool signaled)
+{
+    VkFenceCreateInfo info = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    if(signaled){
+        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        fence->signaled = true;
+    } else {
+        fence->signaled = false;
+    }
 
-bool vulkanResetFence(
+    if(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle) != VK_SUCCESS){
+        PERROR("Fence creation failed!");
+        return false;
+    }
+    return true;
+};
+
+internal bool vulkanWaitFence(
+    VulkanState *pState,
+    VulkanFence* fence,
+    u64 timeout = UINT64_MAX)
+{
+    if(fence->signaled)
+        return true;
+    
+    if(vkWaitForFences(
+        pState->device.handle, 1, 
+        &fence->handle, VK_TRUE, timeout) == VK_SUCCESS)
+    {
+        return true;
+    }
+    return false;
+}
+
+internal bool vulkanResetFence(
     VulkanState* pState,
-    VulkanFence* fence);
+    VulkanFence* fence)
+{
+    if(vkResetFences(
+        pState->device.handle, 
+        1, 
+        &fence->handle) == VK_SUCCESS)
+    {
+        fence->signaled = false;
+        return true;   
+    }
+    return false;
+}
 
-void vulkanDestroyFence(
+internal void vulkanDestroyFence(
     VulkanState& state,
-    VulkanFence& fence);
+    VulkanFence& fence)
+{
+    vkDestroyFence(
+        state.device.handle,
+        fence.handle,
+        nullptr);
+}
 
-bool vulkanCreateSemaphore(
-    VulkanState* pState, 
-    VkSemaphore* semaphore);
+internal bool vulkanCreateSemaphore(
+    VulkanState* pState,
+    VkSemaphore* semaphore)
+{
+    VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    if(vkCreateSemaphore(pState->device.handle, &info, nullptr, semaphore) != VK_SUCCESS){
+        PERROR("Semaphore creation failed!");
+        return false;
+    }
+    return true;
+}
 
-void vulkanDestroySemaphore(
+internal void vulkanDestroySemaphore(
     VulkanState& state,
-    VkSemaphore& semaphore);
+    VkSemaphore& semaphore)
+{
+    vkDestroySemaphore(
+        state.device.handle,
+        semaphore,
+        nullptr);
+}
 
-bool vulkanRegenerateFramebuffers(
-    VulkanState* pState);
+/**
+ * Framebuffers functions
+ */
+void vulkanRegenerateFramebuffers(
+    VulkanSwapchain* swapchain, 
+    VulkanRenderpass* renderpass);
 
 bool recreateSwapchain();
 
@@ -117,6 +185,9 @@ void vulkanDestroyShaderModule(
     VulkanState& state,
     ShaderObject& module);
 
+/**
+ * Buffer functions
+ */
 bool vulkanBufferCreate(
     VulkanState* pState,
     u32 size,
@@ -134,6 +205,20 @@ void vulkanTransferBuffer(
     VkBuffer &dst,
     VkDeviceSize size);
 
+internal void vulkanCreateDescriptorSetLayout()
+{
+    VkDescriptorSetLayoutBinding binding{};
+    binding.binding         = 0;
+    binding.descriptorCount = 1;
+    binding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    binding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkDescriptorSetLayoutCreateInfo info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    info.bindingCount   = 1;
+    info.pBindings      = &binding;
+
+    VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &info, nullptr, &state.descriptorLayout));
+}
 
 std::vector<Vertex> triangle = {
     {{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
@@ -159,7 +244,6 @@ getStandardAttributeDescription(void);
 // TODO Command buffer functions
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
 
-
 i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -171,6 +255,20 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
         }
     }
     return -1;
+}
+
+internal void vulkanUpdateUniformBuffer(void)
+{
+    MVPBuffer ubo{};
+    ubo.model = mat4Identity();
+    ubo.projection = mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
+    ubo.view = mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+
+    void* data;
+    u32 index = state.currentFrame + 1;
+    vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
+    std::memcpy(data, &ubo, sizeof(MVPBuffer));
+    vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
 }
 
 /**
@@ -297,7 +395,7 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Framebuffers
-    regenerateFramebuffers(
+    vulkanRegenerateFramebuffers(
         &state.swapchain, 
         &state.renderpass);
 
@@ -321,7 +419,6 @@ bool vulkanBackendInit(const char* appName)
         }
     }
 
-    // TODO Create a staging buffer to improve GPU reading the data.
     // Creating staging buffer.
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory = nullptr;
@@ -356,6 +453,27 @@ bool vulkanBackendInit(const char* appName)
     vkDestroyBuffer(state.device.handle, stagingBuffer, nullptr);
     vkFreeMemory(state.device.handle, stagingMemory, nullptr);
 
+    // Creating ubo for each frame since some frames may still be in flight
+    // when we want to upload new data.
+    for(size_t i = 0; i < state.swapchain.images.size(); i++)
+    {
+        VkBuffer buffer;
+        VkDeviceMemory memory;
+
+        vulkanBufferCreate(
+            &state,
+            sizeof(MVPBuffer),
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            memory,
+            &buffer);
+        
+        state.uniformBuffers.push_back(buffer);
+        state.uniformBuffersMemory.push_back(memory);
+    }
+
+    vulkanCreateDescriptorSetLayout();
+
     // Shaders Modules and main pipeline
     if(!vulkanShaderObjectCreate(&state)){
         return false;
@@ -373,9 +491,9 @@ bool vulkanBackendInit(const char* appName)
  */
 void vulkanBackendOnResize(u32 width, u32 height)
 {
-    state.resized = true;
-    state.clientWidth = width;
-    state.clientHeight = height;
+    state.resized       = true;
+    state.clientWidth   = width;
+    state.clientHeight  = height;
 }
 
 /**
@@ -405,28 +523,37 @@ void vulkanBackendShutdown(void)
     vulkanBufferDestroy(state, state.dataBuffer);
     vkFreeMemory(state.device.handle, state.memory, nullptr);
 
+    for(size_t i = 0; i < state.swapchain.images.size(); i++)
+    {
+        vkDestroyBuffer(state.device.handle, state.uniformBuffers.at(i), nullptr);
+        vkFreeMemory(state.device.handle, state.uniformBuffersMemory.at(i), nullptr);
+    }
+
     vulkanDestroyShaderModule(state, state.vertexShaderObject);
     vulkanDestroyShaderModule(state, state.fragmentShaderObject);
 
-    // Layout
+    vkDestroyDescriptorSetLayout(state.device.handle, state.descriptorLayout, nullptr);
+
     vkDestroyPipelineLayout(state.device.handle, state.graphicsPipeline.layout, nullptr);
-    // Pipeline
+
     vkDestroyPipeline(state.device.handle, state.graphicsPipeline.pipeline, nullptr);
-    // RenderPass
+
     vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
-    // Framebuffers
+
     for(auto framebuffer : state.swapchain.framebuffers)
     {
         vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
     }
     vulkanSwapchainDestroy(&state);
-    // Surfaces
+
     vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
     destroyLogicalDevice(state);
+
     // Debug Messenger
 #ifdef DEBUG
     vulkanDestroyDebugMessenger(state);
 #endif
+
     vkDestroyInstance(state.instance, nullptr);
 }
 
@@ -460,6 +587,9 @@ bool vulkanBeginFrame(void)
         PINFO("Resized, booting");
         return false;
     }
+
+    // Change data if necessary
+    vulkanUpdateUniformBuffer();
 
     // Wait for the previous frame to finish.
     vulkanWaitFence(
@@ -716,7 +846,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
  * @param VulkanRenderpass* renderpass
  * @return void
  */
-void regenerateFramebuffers(
+void vulkanRegenerateFramebuffers(
     VulkanSwapchain* swapchain, 
     VulkanRenderpass* renderpass)
 {
@@ -790,137 +920,40 @@ bool recreateSwapchain()
         vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
     }
 
-    regenerateFramebuffers(
+    vulkanRegenerateFramebuffers(
         &state.swapchain,
         &state.renderpass);
     
     createCommandBuffers();
 
+    // Regenerate the ubo buffers.
+    for(size_t i = 0; i < state.uniformBuffers.size(); i++)
+    {
+        vkDestroyBuffer(state.device.handle, state.uniformBuffers.at(i), nullptr);
+        vkFreeMemory(state.device.handle, state.uniformBuffersMemory.at(i), nullptr);
+    }
+    state.uniformBuffers.clear();
+    state.uniformBuffersMemory.clear();
+
+    for(size_t i = 0; i < state.swapchain.images.size(); i++)
+    {
+        VkBuffer buffer;
+        VkDeviceMemory memory;
+
+        vulkanBufferCreate(
+            &state,
+            sizeof(MVPBuffer),
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            memory,
+            &buffer);
+        
+        state.uniformBuffers.push_back(buffer);
+        state.uniformBuffersMemory.push_back(memory);
+    }
+
     state.recreatingSwapchain = false;
     return true;
-}
-
-/**
- * @brief Function to create a fence signaled or unsignaled.
- * @param VulkanState* pState
- * @param VulkanFence* fence to be created
- * @param bool signaled to dictate if the created fence is signaled or no.
- * @return bool if succeded
- */
-bool vulkanCreateFence(
-    VulkanState* pState,
-    VulkanFence* fence,
-    bool signaled)
-{
-    VkFenceCreateInfo info = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    if(signaled){
-        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        fence->signaled = true;
-    } else {
-        fence->signaled = false;
-    }
-
-    if(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle) != VK_SUCCESS){
-        PERROR("Fence creation failed!");
-        return false;
-    }
-    return true;
-}
-
-/**
- * @brief Wait for the given fence to complete.
- * @param VulkanState* pState
- * @param VulkanFence* fence to be waited.
- * @param u64 timeout if nothing is passed, UINT64_MAX by default.
- * @return bool if succeded.
- */
-bool vulkanWaitFence(
-    VulkanState *pState,
-    VulkanFence* fence,
-    u64 timeout)
-{
-    if(fence->signaled)
-        return true;
-    
-    if(vkWaitForFences(
-        pState->device.handle, 1, 
-        &fence->handle, VK_TRUE, timeout) == VK_SUCCESS)
-    {
-        return true;
-    }
-    return false;
-}
-
-/**
- * @brief Reset the given fence.
- * @param VulkanState* pState
- * @param VulkanFence* fence to be reset
- * @return bool if succeeded
- */
-bool vulkanResetFence(
-    VulkanState* pState,
-    VulkanFence* fence)
-{
-    if(vkResetFences(
-        pState->device.handle, 
-        1, 
-        &fence->handle) == VK_SUCCESS)
-    {
-        fence->signaled = false;
-        return true;   
-    }
-    return false;
-}
-
-/**
- * @brief Destroys the given fence.
- * @param VulkanState& global vulkan state
- * @param VulkanFence& fence to destroy
- * @return void
- */
-void vulkanDestroyFence(
-    VulkanState& state,
-    VulkanFence& fence)
-{
-    vkDestroyFence(
-        state.device.handle,
-        fence.handle,
-        nullptr);
-}
-
-/**
- * @brief Create a semaphore
- * @param VulkanState* pState,
- * @param VkSemaphore* semaphore to be created
- * @return bool if creation succeeded
- */
-bool vulkanCreateSemaphore(
-    VulkanState* pState,
-    VkSemaphore* semaphore
-)
-{
-    VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    if(vkCreateSemaphore(pState->device.handle, &info, nullptr, semaphore) != VK_SUCCESS){
-        PERROR("Semaphore creation failed!");
-        return false;
-    }
-    return true;
-}
-
-/**
- * @brief Destroy the given semaphore
- * @param VulkanState& state,
- * @param VkSemaphore& semaphore to destroy
- * @return void
- */
-void vulkanDestroySemaphore(
-    VulkanState& state,
-    VkSemaphore& semaphore)
-{
-    vkDestroySemaphore(
-        state.device.handle,
-        semaphore,
-        nullptr);
 }
 
 /**
@@ -934,8 +967,7 @@ void vulkanDestroySemaphore(
 void vulkanCreateShaderModule(
     VulkanState* pState,
     std::vector<char>& buffer,
-    VkShaderModule* module
-)
+    VkShaderModule* module)
 {
     VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
     info.codeSize = static_cast<u32>(buffer.size());

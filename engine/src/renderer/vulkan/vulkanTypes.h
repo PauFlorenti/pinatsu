@@ -95,6 +95,13 @@ typedef struct Vertex
     vec4 color;
 }Vertex;
 
+typedef struct MVPBuffer
+{
+    mat4 model;
+    mat4 view;
+    mat4 projection;
+} MVPBuffer;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
@@ -113,6 +120,13 @@ typedef struct VulkanState
     // TODO Temporal variables
     VkBuffer dataBuffer;
     VkDeviceMemory memory;
+
+    // TODO All this should go to a pass struct
+    VkDescriptorSetLayout descriptorLayout;
+    VkDescriptorSet descriptorSet;
+
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;

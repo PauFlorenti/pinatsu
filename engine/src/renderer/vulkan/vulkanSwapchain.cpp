@@ -1,7 +1,7 @@
 #include "vulkanSwapchain.h"
 
-bool create(VulkanState* pState, u32 width, u32 height);
-void destroy(VulkanState* pState);
+static bool create(VulkanState* pState, u32 width, u32 height);
+static void destroy(VulkanState* pState);
 
 VkExtent2D getSwapchainExtent(VulkanState* pState)
 {
@@ -38,7 +38,7 @@ bool vulkanSwapchainRecreate(
     return create(pState, width, height);
 }
 
-bool create(
+static bool create(
     VulkanState* pState, 
     u32 width, 
     u32 height)
@@ -133,10 +133,8 @@ bool create(
  * @brief Waits for all device queues to finish their process
  * and proceeds to destroy all swapchain imageViews and the swapchain
  * itself.
- * @param VulkanState* pState
- * @return void
  */ 
-void destroy(VulkanState *pState)
+static void destroy(VulkanState *pState)
 {
     vkDeviceWaitIdle(pState->device.handle);
 
