@@ -15,7 +15,7 @@ typedef struct RendererBackend
 
     void (*shutdown)();
 
-    bool (*beginFrame)();
+    bool (*beginFrame)(f64 delta);
 
     bool (*draw)();
 

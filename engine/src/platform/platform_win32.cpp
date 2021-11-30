@@ -7,6 +7,7 @@
 #include <iostream>
 #include <windows.h>
 #include <wingdi.h>
+#include <chrono>
 #include "core\event.h"
 #include "core\logger.h"
 
@@ -23,6 +24,17 @@ typedef struct platformState
 
 static platformState *pState;
 
+static LARGE_INTEGER initialTime;
+static f64 frequencyTimer;
+
+static void setupTimer()
+{
+    LARGE_INTEGER frequency;
+    QueryPerformanceCounter(&frequency);
+    frequencyTimer = 1.0 / (f64)frequency.QuadPart;
+    QueryPerformanceCounter(&initialTime);
+}
+
 /**
  * Initialize the platform system by creating
  * a window given a name, position and size.
@@ -32,8 +44,7 @@ bool platformStartup(
     void* state,
     const char* name,
     i32 x, i32 y,
-    i32 width, i32 height
-)
+    i32 width, i32 height)
 {  
     *memoryRequirements = sizeof(platformState);
     if(!state)
@@ -217,6 +228,19 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         break;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+f64 platformGetCurrentTime()
+{
+    // If no timer, start timer.
+    if(!frequencyTimer)
+    {
+        setupTimer();
+    }
+
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    return (f64)now.QuadPart * frequencyTimer;
 }
 
 /**

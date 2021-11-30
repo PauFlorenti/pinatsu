@@ -35,8 +35,7 @@ typedef union vec3
     };
 } vec3;
 
-vec3 operator*(const vec3& v, f32 f) {return {v.x * f, v.y * f, v.z * f};}
-vec3 operator/(const vec3& v, f32 f) {return {v.x / f, v.y / f, v.z / f};}
+//vec3 operator*(const vec3& v, f32 f) {return {v.x * f, v.y * f, v.z * f};}
 
 typedef union vec4
 {

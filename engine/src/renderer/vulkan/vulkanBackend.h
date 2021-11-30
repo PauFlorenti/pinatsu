@@ -8,7 +8,7 @@ void vulkanBackendShutdown();
 
 void vulkanBackendOnResize(u32 width, u32 height);
 
-bool vulkanBeginFrame();
+bool vulkanBeginFrame(f64 delta);
 
 bool vulkanDraw();
 

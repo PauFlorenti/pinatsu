@@ -122,8 +122,9 @@ typedef struct VulkanState
     VkDeviceMemory memory;
 
     // TODO All this should go to a pass struct
+    VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout descriptorLayout;
-    VkDescriptorSet descriptorSet;
+    std::vector<VkDescriptorSet> descriptorSet;
 
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;

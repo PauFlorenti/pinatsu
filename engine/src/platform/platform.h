@@ -32,4 +32,6 @@ void platformSpecificExtensions(std::vector<const char*>& extensions);
 
 bool platformSurfaceCreation(VulkanState* vulkanState);
 
+f64 platformGetCurrentTime();
+
 const char* getExecutablePath();

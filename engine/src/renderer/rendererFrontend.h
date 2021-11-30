@@ -6,7 +6,7 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName);
 
 void renderSystemShutdown(void* state);
 
-bool renderBeginFrame(f32 dt);
+bool renderBeginFrame(f64 dt);
 
 bool renderDrawFrame();
 

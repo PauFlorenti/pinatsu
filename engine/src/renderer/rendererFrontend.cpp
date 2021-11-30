@@ -43,9 +43,9 @@ void renderSystemShutdown(void* state)
     }
 }
 
-bool renderBeginFrame(f32 dt)
+bool renderBeginFrame(f64 dt)
 {
-    if(!pState->renderBackend.beginFrame()){
+    if(!pState->renderBackend.beginFrame(dt)){
         return false;
     }
     return true;

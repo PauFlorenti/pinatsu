@@ -87,6 +87,9 @@ bool Application::run()
 {
     u8 frameCount = 0;
     // TODO Clock timer to compute delta time.
+    clockStart(&clock);
+    clockUpdate(&clock);
+    lastTime = clock.elapsedTime;
 
     while(m_isRunning)
     {
@@ -95,13 +98,23 @@ bool Application::run()
 
         if(!m_isSuspended)
         {
+            // Update the clock
+            clockUpdate(&clock);
+            f64 currentTime = clock.elapsedTime;
+            f64 deltaTime = currentTime - lastTime;
+
             platformUpdate();
 
             // Draw
-            if(renderBeginFrame(1.0f)){
+            // TODO Create a struct Game with its own function pointers to
+            // Update and render
+            // At the moment update the scene is done in renderBeginFrame and it shouldn't
+            if(renderBeginFrame(deltaTime)){
                 renderDrawFrame();
                 renderEndFrame(1.0f);
             }
+
+            lastTime = currentTime;
         }
         frameCount++;
     }

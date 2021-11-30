@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "memory/linearAllocator.h"
+#include "clock.h"
 
 class Application
 {
@@ -26,6 +27,9 @@ public:
     i16 m_width;
     i16 m_height;
     LinearAllocator systemsAllocator;
+
+    Clock clock;
+    f64 lastTime;
 
     u64 memorySystemMemoryRequirements;
     void* memorySystem;

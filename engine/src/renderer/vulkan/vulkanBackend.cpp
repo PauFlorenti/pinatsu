@@ -472,7 +472,46 @@ bool vulkanBackendInit(const char* appName)
         state.uniformBuffersMemory.push_back(memory);
     }
 
+    // Create descriptor pool
+    VkDescriptorPoolSize descriptorPoolSize{};
+    descriptorPoolSize.descriptorCount = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    descriptorPoolInfo.poolSizeCount = 1;
+    descriptorPoolInfo.pPoolSizes = &descriptorPoolSize;
+    descriptorPoolInfo.maxSets = static_cast<u32>(state.swapchain.images.size());
+
+    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
     vulkanCreateDescriptorSetLayout();
+    std::vector<VkDescriptorSetLayout> layouts(state.swapchain.images.size(), state.descriptorLayout);
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    descriptorSetAllocInfo.descriptorPool = state.descriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount = static_cast<u32>(state.swapchain.images.size());
+    descriptorSetAllocInfo.pSetLayouts = layouts.data();
+    
+    state.descriptorSet.resize(state.swapchain.images.size());
+    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
+
+    for(size_t i = 0; i < state.swapchain.images.size(); i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = state.uniformBuffers.at(i);
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(MVPBuffer);
+
+        VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorWrite.dstSet = state.descriptorSet.at(i);
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrite.pImageInfo = nullptr;
+        descriptorWrite.pTexelBufferView = nullptr;
+
+        vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
+    }
 
     // Shaders Modules and main pipeline
     if(!vulkanShaderObjectCreate(&state)){
@@ -563,7 +602,7 @@ void vulkanBackendShutdown(void)
  * @param void
  * @return bool if succeded.
  */
-bool vulkanBeginFrame(void)
+bool vulkanBeginFrame(f64 delta)
 {
 
     // Wait for the device to finish recreating the swapchain.
@@ -633,6 +672,8 @@ bool vulkanDraw(void)
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
     VkDeviceSize offset = {0};
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
+    vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
+        0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
     vkCmdDraw(state.commandBuffers[state.imageIndex].handle, triangle.size(), 1, 0, 0);
     return true;
 }
@@ -934,6 +975,20 @@ bool recreateSwapchain()
     }
     state.uniformBuffers.clear();
     state.uniformBuffersMemory.clear();
+
+    // Destroy and regenerate the descriptor pool
+    vkDestroyDescriptorPool(state.device.handle, state.descriptorPool, nullptr);
+
+    VkDescriptorPoolSize descriptorPoolSize{};
+    descriptorPoolSize.descriptorCount = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    descriptorPoolInfo.poolSizeCount = 1;
+    descriptorPoolInfo.pPoolSizes = &descriptorPoolSize;
+    descriptorPoolInfo.maxSets = static_cast<u32>(state.swapchain.images.size());
+
+    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
 
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {

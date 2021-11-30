@@ -5,6 +5,8 @@
 
 #include "memory/pmemory.h"
 
+vec3 operator/(const vec3& v, f32 f) {return {v.x / f, v.y / f, v.z / f};}
+
 inline f32 vec3Length(const vec3& in)
 {
     return in.x * in.x + in.y * in.y + in.z * in.z;
