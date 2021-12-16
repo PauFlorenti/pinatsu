@@ -14,6 +14,8 @@
 
 #define internal static
 
+static f32 gameTime = 0;
+
 static VulkanState state;
 
 /**
@@ -257,15 +259,17 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
     return -1;
 }
 
-internal void vulkanUpdateUniformBuffer(void)
+internal void vulkanUpdateUniformBuffer(f32 dt)
 {
+    gameTime += dt;
+    f32 speed = 100.0f;
     MVPBuffer ubo{};
-    ubo.model       = mat4Identity();
-    ubo.projection  = mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
-    ubo.view        = mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+    ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1)); // glm::mat4(1); //glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)); //mat4Identity();
+    ubo.projection  = glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f);// mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
+    ubo.view        = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); //mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
 
     void* data;
-    u32 index = state.currentFrame + 1;
+    u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
     std::memcpy(data, &ubo, sizeof(MVPBuffer));
     vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
@@ -423,7 +427,7 @@ bool vulkanBackendInit(const char* appName)
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory = nullptr;
 
-    u32 bufferSize = sizeof(Vertex) * cube.size();
+    u32 bufferSize = sizeof(Vertex) * triangle.size();
     vulkanBufferCreate(
         &state,
         bufferSize,
@@ -434,8 +438,8 @@ bool vulkanBackendInit(const char* appName)
 
     // Copying data to the staging buffer.
     void* data;
-    vkMapMemory(state.device.handle, stagingMemory, 0, cube.size(), 0, &data);
-    std::memcpy(data, cube.data(), (size_t)(sizeof(cube.at(0)) * cube.size()));
+    vkMapMemory(state.device.handle, stagingMemory, 0, triangle.size(), 0, &data);
+    std::memcpy(data, triangle.data(), (size_t)(sizeof(triangle.at(0)) * triangle.size()));
     vkUnmapMemory(state.device.handle, stagingMemory);
 
     // Creating data buffer.
@@ -607,7 +611,7 @@ void vulkanBackendShutdown(void)
  * @param void
  * @return bool if succeded.
  */
-bool vulkanBeginFrame(f64 delta)
+bool vulkanBeginFrame(f32 delta)
 {
 
     // Wait for the device to finish recreating the swapchain.
@@ -633,7 +637,7 @@ bool vulkanBeginFrame(f64 delta)
     }
 
     // Change data if necessary
-    vulkanUpdateUniformBuffer();
+    vulkanUpdateUniformBuffer(delta);
 
     // Wait for the previous frame to finish.
     vulkanWaitFence(
@@ -679,7 +683,7 @@ bool vulkanDraw(void)
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
     vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
         0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, cube.size(), 1, 0, 0);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, triangle.size(), 1, 0, 0);
     return true;
 }
 

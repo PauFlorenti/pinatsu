@@ -100,8 +100,9 @@ bool Application::run()
         {
             // Update the clock
             clockUpdate(&clock);
-            f64 currentTime = clock.elapsedTime;
+            f64 currentTime = clock.elapsedTime * 1000000;
             f64 deltaTime = currentTime - lastTime;
+            printf("CurrentTime: %Lf - DeltaTime: %Lf\n", currentTime, deltaTime);
 
             platformUpdate();
 
@@ -109,7 +110,7 @@ bool Application::run()
             // TODO Create a struct Game with its own function pointers to
             // Update and render
             // At the moment update the scene is done in renderBeginFrame and it shouldn't
-            if(renderBeginFrame(deltaTime)){
+            if(renderBeginFrame((f32)deltaTime)){
                 renderDrawFrame();
                 renderEndFrame(1.0f);
             }

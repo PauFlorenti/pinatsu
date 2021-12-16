@@ -5,7 +5,7 @@
 void clockUpdate(Clock* clock)
 {
     if(clock->startTime != 0){
-        clock->elapsedTime = platformGetCurrentTime() - clock->elapsedTime;
+        clock->elapsedTime = platformGetCurrentTime() - clock->startTime;
     }
 }
 

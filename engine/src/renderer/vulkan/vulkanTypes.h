@@ -4,6 +4,8 @@
 #include "core\assert.h"
 #include "core\logger.h"
 #include "math_types.h"
+#include <external\glm\glm.hpp>
+#include <external\glm\gtc\matrix_transform.hpp>
 #include <vector>
 
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
@@ -97,9 +99,9 @@ typedef struct Vertex
 
 typedef struct MVPBuffer
 {
-    mat4 model;
-    mat4 view;
-    mat4 projection;
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 projection;
 } MVPBuffer;
 
 typedef struct VulkanState
