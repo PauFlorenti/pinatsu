@@ -260,9 +260,9 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
 internal void vulkanUpdateUniformBuffer(void)
 {
     MVPBuffer ubo{};
-    ubo.model = mat4Identity();
-    ubo.projection = mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
-    ubo.view = mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+    ubo.model       = mat4Identity();
+    ubo.projection  = mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
+    ubo.view        = mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
 
     void* data;
     u32 index = state.currentFrame + 1;
@@ -423,7 +423,7 @@ bool vulkanBackendInit(const char* appName)
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory = nullptr;
 
-    u32 bufferSize = sizeof(Vertex) * triangle.size();
+    u32 bufferSize = sizeof(Vertex) * cube.size();
     vulkanBufferCreate(
         &state,
         bufferSize,
@@ -434,8 +434,8 @@ bool vulkanBackendInit(const char* appName)
 
     // Copying data to the staging buffer.
     void* data;
-    vkMapMemory(state.device.handle, stagingMemory, 0, triangle.size(), 0, &data);
-    std::memcpy(data, triangle.data(), (size_t)(sizeof(triangle.at(0)) * triangle.size()));
+    vkMapMemory(state.device.handle, stagingMemory, 0, cube.size(), 0, &data);
+    std::memcpy(data, cube.data(), (size_t)(sizeof(cube.at(0)) * cube.size()));
     vkUnmapMemory(state.device.handle, stagingMemory);
 
     // Creating data buffer.
@@ -483,12 +483,15 @@ bool vulkanBackendInit(const char* appName)
     descriptorPoolInfo.maxSets = static_cast<u32>(state.swapchain.images.size());
 
     VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
+
+    // Create descriptor set layout
     vulkanCreateDescriptorSetLayout();
     std::vector<VkDescriptorSetLayout> layouts(state.swapchain.images.size(), state.descriptorLayout);
+
     VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    descriptorSetAllocInfo.descriptorPool = state.descriptorPool;
-    descriptorSetAllocInfo.descriptorSetCount = static_cast<u32>(state.swapchain.images.size());
-    descriptorSetAllocInfo.pSetLayouts = layouts.data();
+    descriptorSetAllocInfo.descriptorPool       = state.descriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
+    descriptorSetAllocInfo.pSetLayouts          = layouts.data();
     
     state.descriptorSet.resize(state.swapchain.images.size());
     VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
@@ -496,19 +499,19 @@ bool vulkanBackendInit(const char* appName)
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = state.uniformBuffers.at(i);
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(MVPBuffer);
+        bufferInfo.buffer   = state.uniformBuffers.at(i);
+        bufferInfo.offset   = 0;
+        bufferInfo.range    = sizeof(MVPBuffer);
 
         VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        descriptorWrite.dstSet = state.descriptorSet.at(i);
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pImageInfo = nullptr;
-        descriptorWrite.pTexelBufferView = nullptr;
+        descriptorWrite.dstSet              = state.descriptorSet.at(i);
+        descriptorWrite.dstBinding          = 0;
+        descriptorWrite.dstArrayElement     = 0;
+        descriptorWrite.descriptorType      = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount     = 1;
+        descriptorWrite.pBufferInfo         = &bufferInfo;
+        descriptorWrite.pImageInfo          = nullptr;
+        descriptorWrite.pTexelBufferView    = nullptr;
 
         vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
     }
@@ -572,6 +575,7 @@ void vulkanBackendShutdown(void)
     vulkanDestroyShaderModule(state, state.fragmentShaderObject);
 
     vkDestroyDescriptorSetLayout(state.device.handle, state.descriptorLayout, nullptr);
+    vkDestroyDescriptorPool(state.device.handle, state.descriptorPool, nullptr);
 
     vkDestroyPipelineLayout(state.device.handle, state.graphicsPipeline.layout, nullptr);
 
@@ -584,6 +588,7 @@ void vulkanBackendShutdown(void)
         vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
     }
     vulkanSwapchainDestroy(&state);
+
 
     vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
     destroyLogicalDevice(state);
@@ -674,7 +679,7 @@ bool vulkanDraw(void)
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
     vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
         0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, triangle.size(), 1, 0, 0);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, cube.size(), 1, 0, 0);
     return true;
 }
 
@@ -857,6 +862,8 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
 
     VkPipelineLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     layoutInfo.pushConstantRangeCount = 0;
+    layoutInfo.setLayoutCount   = 1;
+    layoutInfo.pSetLayouts      = &state.descriptorLayout;
 
     VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &pState->graphicsPipeline.layout));
 
