@@ -3,11 +3,12 @@
 echo "Building engine ..."
 set IncludePaths= /I..\engine\src\ /I..\math\ /I%VULKAN_SDK%\Include\
 set FilePaths= ..\engine\src\core\*.cpp ..\engine\src\platform\*.cpp ..\engine\src\memory\*.cpp ..\engine\src\renderer\*.cpp ..\engine\src\renderer\vulkan\*.cpp
+set WarnDisabled= /wd4805
 
 mkdir ..\bin
 pushd ..\bin
 
-cl /DDEBUG /EHsc /Zi /WX /c %IncludePaths% %FilePaths%
+cl /DDEBUG /EHsc /Zi /WX /c %WarnDisabled% %IncludePaths% %FilePaths%
 
 LIB /OUT:engine.lib *.obj
 popd ..\bin

@@ -128,7 +128,7 @@ bool eventFire(u16 code, void* sender, eventContext context)
     }
 
     for(decltype(pState->registered[code].events.size()) i = 0;
-        pState->registered[code].events.size(); ++i)
+        i < pState->registered[code].events.size(); ++i)
     {
         registeredEvent e = pState->registered[code].events.at(i);
         if(e.callback(code, sender, 0, context)){

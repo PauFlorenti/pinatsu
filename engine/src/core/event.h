@@ -24,13 +24,10 @@ typedef struct eventContext {
 typedef bool (*PFN_on_event)(u16 code, void* sender, void* listener, eventContext data);
 
 void eventSystemInit(u64* memoryRequirements, void* state);
-
 void eventSystemShutdown(void* state);
 
 bool eventRegister(u16 code, void* listener, PFN_on_event on_event);
-
 bool eventUnregister(u16 code, void* listener, PFN_on_event on_event);
-
 bool eventFire(u16 code, void* sender, eventContext context);
 
 // System internal event codes

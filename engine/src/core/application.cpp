@@ -3,6 +3,7 @@
 #include "platform/platform.h"
 #include "memory/pmemory.h"
 #include "event.h"
+#include "input.h"
 #include "logger.h"
 #include "assert.h"
 #include "renderer/rendererFrontend.h"
@@ -18,6 +19,7 @@ Application::Application()
 
 bool appOnEvent(u16 code, void* sender, void* listener, eventContext data);
 bool appOnResize(u16 code, void* sender, void* listener, eventContext data);
+bool appOnKey(u16 code, void* sender, void* listener, eventContext data);
 
 /**
  * Initialize all systems neede for the app to run.
@@ -54,6 +56,11 @@ bool Application::init()
     eventSystemInit(&eventSystemMemoryRequirements, eventSystem);
 
     // Init input system.
+    inputSystemInit(&inputSystemMemoryRequirements, nullptr);
+    inputSystem = linearAllocatorAllocate(&systemsAllocator, inputSystemMemoryRequirements);
+    inputSystemInit(&inputSystemMemoryRequirements, inputSystem);
+    eventRegister(EVENT_CODE_BUTTON_PRESSED, 0, appOnKey);
+    eventRegister(EVENT_CODE_BUTTON_RELEASED, 0, appOnKey);
 
     // Init platform system.
     platformStartup(&platformSystemMemoryRequirements, 0, 0, 0, 0, 0, 0);
@@ -102,9 +109,10 @@ bool Application::run()
             clockUpdate(&clock);
             f64 currentTime = clock.elapsedTime * 1000000;
             f64 deltaTime = currentTime - lastTime;
-            printf("CurrentTime: %Lf - DeltaTime: %Lf\n", currentTime, deltaTime);
+            //printf("CurrentTime: %Lf - DeltaTime: %Lf\n", currentTime, deltaTime);
 
             platformUpdate();
+            inputSystemUpdate((f32)deltaTime);
 
             // Draw
             // TODO Create a struct Game with its own function pointers to
@@ -120,10 +128,13 @@ bool Application::run()
         frameCount++;
     }
 
+    eventUnregister(EVENT_CODE_BUTTON_PRESSED, 0, appOnKey);
+    eventUnregister(EVENT_CODE_BUTTON_RELEASED, 0, appOnKey);
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
     renderSystemShutdown(renderSystem);
+    inputSystemShutdown(inputSystem);
     platformShutdown(platformSystem);
     eventSystemShutdown(eventSystem);
     memorySystemShutdown(memorySystem);
@@ -174,5 +185,49 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
         }
         return true;
     }
+    return false;
+}
+
+bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
+{
+    PDEBUG("App on key.");
+    if(code == EVENT_CODE_BUTTON_PRESSED)
+    {
+        u16 keyCode = data.data.u16[0];
+        if(keyCode == KEY_ESCAPE)
+        {
+            // Shutdown application
+            eventContext context = {};
+            eventFire(EVENT_CODE_APP_QUIT, 0, context);
+
+            // Return to make sure nothing else is processed.
+            return true;
+        }
+        // TODO temp information.
+        else if(keyCode == KEY_A)
+        {
+            PDEBUG("Key A is being pressed!");
+        }
+        else {
+            PDEBUG("A key %c is being pressed!", (keys)keyCode);
+        }
+        // TODO end temp information.
+        return true;
+    }
+    else if(code == EVENT_CODE_BUTTON_RELEASED)
+    {
+        u16 keyCode = data.data.u16[0];
+        // TODO temp information.
+        if(keyCode == KEY_B)
+        {
+            PDEBUG("Key B has been released!");
+        } else {
+            PDEBUG("A key has been released!");
+        }
+        // TODO end temp information.
+        return true;
+    }
+
+    // let know the event has not been handled.
     return false;
 }

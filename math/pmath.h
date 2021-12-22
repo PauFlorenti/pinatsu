@@ -19,6 +19,8 @@ inline vec3 vec3Normalize(const vec3& in)
     return out / length; 
 }
 
+// To make use of the cos angle of the result, vectors should
+// be unit-vectors.
 inline f32 vec3Dot(const vec3& a, const vec3& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;

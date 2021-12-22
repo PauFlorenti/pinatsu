@@ -259,6 +259,7 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
     return -1;
 }
 
+// Should not be handled by the renderer.
 internal void vulkanUpdateUniformBuffer(f32 dt)
 {
     gameTime += dt;
@@ -991,16 +992,29 @@ bool recreateSwapchain()
     vkDestroyDescriptorPool(state.device.handle, state.descriptorPool, nullptr);
 
     VkDescriptorPoolSize descriptorPoolSize{};
-    descriptorPoolSize.descriptorCount = static_cast<u32>(state.swapchain.images.size());
-    descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorPoolSize.descriptorCount  = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolSize.type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    descriptorPoolInfo.poolSizeCount = 1;
-    descriptorPoolInfo.pPoolSizes = &descriptorPoolSize;
-    descriptorPoolInfo.maxSets = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolInfo.poolSizeCount    = 1;
+    descriptorPoolInfo.pPoolSizes       = &descriptorPoolSize;
+    descriptorPoolInfo.maxSets          = static_cast<u32>(state.swapchain.images.size());
 
     VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
 
+    vkDestroyDescriptorSetLayout(state.device.handle, state.descriptorLayout, nullptr);
+    vulkanCreateDescriptorSetLayout();
+    std::vector<VkDescriptorSetLayout> layouts(state.swapchain.images.size(), state.descriptorLayout);
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    descriptorSetAllocInfo.descriptorPool       = state.descriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
+    descriptorSetAllocInfo.pSetLayouts          = layouts.data();
+    
+    state.descriptorSet.resize(state.swapchain.images.size());
+    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
+
+    // Recreate each uniform buffer.
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
         VkBuffer buffer;
@@ -1016,6 +1030,27 @@ bool recreateSwapchain()
         
         state.uniformBuffers.push_back(buffer);
         state.uniformBuffersMemory.push_back(memory);
+    }
+
+    // Re-Update each descriptor set.
+    for(size_t i = 0; i < state.swapchain.images.size(); i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer   = state.uniformBuffers.at(i);
+        bufferInfo.offset   = 0;
+        bufferInfo.range    = sizeof(MVPBuffer);
+
+        VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        descriptorWrite.dstSet              = state.descriptorSet.at(i);
+        descriptorWrite.dstBinding          = 0;
+        descriptorWrite.dstArrayElement     = 0;
+        descriptorWrite.descriptorType      = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount     = 1;
+        descriptorWrite.pBufferInfo         = &bufferInfo;
+        descriptorWrite.pImageInfo          = nullptr;
+        descriptorWrite.pTexelBufferView    = nullptr;
+
+        vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
     }
 
     state.recreatingSwapchain = false;
@@ -1036,8 +1071,8 @@ void vulkanCreateShaderModule(
     VkShaderModule* module)
 {
     VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    info.codeSize = static_cast<u32>(buffer.size());
-    info.pCode = reinterpret_cast<const u32*>(buffer.data());
+    info.codeSize   = static_cast<u32>(buffer.size());
+    info.pCode      = reinterpret_cast<const u32*>(buffer.data());
     
     VK_CHECK(vkCreateShaderModule(
         pState->device.handle, 

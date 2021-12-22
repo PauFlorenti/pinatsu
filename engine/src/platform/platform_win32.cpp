@@ -4,12 +4,13 @@
 #define UNICODE
 #endif
 
+#include "core\input.h"
+#include "core\event.h"
+#include "core\logger.h"
+
 #include <iostream>
 #include <windows.h>
 #include <wingdi.h>
-#include <chrono>
-#include "core\event.h"
-#include "core\logger.h"
 
 #include "vulkan\vulkan_win32.h"
 
@@ -226,6 +227,35 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     case WM_PAINT:
         //PDEBUG("WM_PAINT is being called,.");
         break;
+    case WM_SYSKEYDOWN: {
+        keys key = (keys)wParam;
+        inputProcessKey(key, true);
+        break;
+    }
+    case WM_SYSKEYUP: {
+        keys key = (keys)wParam;
+        inputProcessKey(key, false);
+        break;
+    }
+    case WM_KEYDOWN: {
+        keys key = (keys)wParam;
+        inputProcessKey(key, true);
+        break;
+    }
+    case WM_KEYUP: {
+        bool pressed = false;
+        keys key = (keys)wParam;
+        inputProcessKey(key, pressed);
+        break;
+    }
+    case WM_MOUSEMOVE: {
+        //PDEBUG("Mouse move");
+        break;
+    }
+    case WM_LBUTTONDOWN: {
+        //PDEBUG("Left mouse button.");
+        break;
+    }
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
