@@ -283,9 +283,7 @@ internal void vulkanUpdateUniformBuffer(f32 dt)
  */
 bool vulkanBackendInit(const char* appName)
 {
-
-    state.clientWidth = Application::getInstance()->m_width;
-    state.clientHeight = Application::getInstance()->m_height;
+    applicationGetFramebufferSize(&state.clientWidth, &state.clientHeight);
 
     VkApplicationInfo appInfo = {};
     appInfo.sType               = VK_STRUCTURE_TYPE_APPLICATION_INFO;
