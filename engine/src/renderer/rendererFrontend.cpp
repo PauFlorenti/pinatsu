@@ -4,11 +4,13 @@
 #include "math_types.h"
 #include "core/logger.h"
 
+#include "external/glm/gtc/matrix_transform.hpp" // TODO temp
+
 typedef struct RenderFrontendState
 {
     RendererBackend renderBackend;
-    mat4 view;
-    mat4 projection;
+    glm::mat4 view;
+    glm::mat4 projection;
     f32 near;
     f32 far;
 } RenderFrontendState;
@@ -48,6 +50,7 @@ bool renderBeginFrame(f64 dt)
     if(!pState->renderBackend.beginFrame(dt)){
         return false;
     }
+    pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)dt);
     return true;
 }
 
@@ -68,4 +71,10 @@ void renderEndFrame(f32 dt)
 void renderOnResize(u16 width, u16 height)
 {
     pState->renderBackend.onResize(width, height);
+}
+
+void setView(glm::mat4 view, glm::mat4 proj)
+{
+    pState->view        = glm::perspective(glm::radians(45.0f), 1200.0f / 800.0f, 0.01f, 100.0f);
+    pState->projection  = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));;
 }

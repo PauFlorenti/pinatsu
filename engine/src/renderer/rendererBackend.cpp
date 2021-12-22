@@ -8,16 +8,12 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
     case VULKAN_API :
     {
         state->init = vulkanBackendInit;
-
         state->shutdown = vulkanBackendShutdown;
-
         state->beginFrame = vulkanBeginFrame;
-
         state->draw = vulkanDraw;
-
         state->endFrame = vulkanEndFrame;
-
         state->onResize = vulkanBackendOnResize;
+        state->updateGlobalState = vulkanUpdateGlobalState;
 
         return true;
     }

@@ -122,6 +122,7 @@ typedef struct VulkanState
     // TODO Temporal variables
     VkBuffer dataBuffer;
     VkDeviceMemory memory;
+    MVPBuffer ubo{};
 
     // TODO All this should go to a pass struct
     VkDescriptorPool descriptorPool;

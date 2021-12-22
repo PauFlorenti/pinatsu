@@ -155,13 +155,13 @@ bool applicationRun()
             if(!pState->pGameInst->update(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to update.");
-                return false;
+                pState->m_isRunning = false;
             }
             
             if(!pState->pGameInst->render(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to render.");
-                return false;
+                pState->m_isRunning = false;
             }
 
             // Draw

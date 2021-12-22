@@ -1,3 +1,7 @@
+/**
+ *  This header defines the basic structure upon a game has to be built.
+ */
+
 #pragma once
 
 #include "defines.h"

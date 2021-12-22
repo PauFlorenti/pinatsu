@@ -3,8 +3,6 @@
 #include "game.h"
 #include "external/glm/glm.hpp"
 #include "external/glm/gtc/matrix_transform.hpp"
-#include "core/input.h"
-#include "core/logger.h"
 
 typedef struct GameState
 {

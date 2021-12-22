@@ -1,10 +1,17 @@
 #include "sandbox.h"
 
+#include "core/input.h"
+#include "core/logger.h"
+
+// TODO temp
+#include "renderer/rendererFrontend.h"
+
 bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
 
-    state->view         = glm::translate(glm::mat4(1), glm::vec3(2.0f));
+    //state->view         = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    state->view         = glm::translate(glm::mat4(1), glm::vec3(0.01, 0, 5));
     f32 ratio           = (f32)pGameInst->appConfig.startWidth / (f32)pGameInst->appConfig.startHeight;
     state->projection   = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
     state->deltaTime    = 0.0f;
@@ -14,6 +21,24 @@ bool gameInitialize(Game* pGameInst)
 
 bool gameUpdate(Game* pGameInst, f32 deltaTime)
 {
+    GameState* state = static_cast<GameState*>(pGameInst->state);
+    state->deltaTime = deltaTime;
+    if(isKeyDown(KEY_A))
+    {
+        f32 speed = 100.0f * deltaTime;
+        glm::vec3 movement = speed * glm::vec3(-1, 0, 0);
+        state->view = glm::translate(state->view, movement);
+    }
+    else if(isKeyDown(KEY_D))
+    {
+        f32 speed = 100.0f * deltaTime;
+        glm::vec3 movement = speed * glm::vec3(1, 0, 0);
+        state->view = glm::translate(state->view, movement);
+    }
+
+    state->view         = glm::translate(glm::mat4(1), glm::vec3(0.01, 0, 5));
+    setView(state->view, state->projection);
+
     return true;
 }
 

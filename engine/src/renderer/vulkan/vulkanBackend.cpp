@@ -264,16 +264,40 @@ internal void vulkanUpdateUniformBuffer(f32 dt)
 {
     gameTime += dt;
     f32 speed = 100.0f;
-    MVPBuffer ubo{};
-    ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1)); // glm::mat4(1); //glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)); //mat4Identity();
-    ubo.projection  = glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f);// mat4Perspective(45.0f, state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.1f, 100.0f);
-    ubo.view        = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)); //mat4LookAt({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f});
+    state.ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1));
+    //state.ubo.projection  = glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f);
+    //state.ubo.view        = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     void* data;
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
-    std::memcpy(data, &ubo, sizeof(MVPBuffer));
+    std::memcpy(data, &state.ubo, sizeof(MVPBuffer));
     vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
+}
+
+void vulkanUpdateGlobalState(glm::mat4 view, glm::mat4 projection, f32 dt)
+{
+    gameTime += dt;
+    f32 speed = 100.0f;
+    //state.ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1)); // glm::mat4(1); //glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)); //mat4Identity();
+    state.ubo.view        = view;
+    state.ubo.projection  = projection;
+
+    glm::mat4 nview = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    if(state.ubo.view == nview)
+        //&& state.ubo.projection == glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f))
+    {
+        PWARN("IGUAL!");
+    }
+
+    //void* data;
+    //u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
+    //vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
+    //std::memcpy(data, &state.ubo, sizeof(MVPBuffer));
+    //vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
+
+    vulkanUpdateUniformBuffer(dt);
 }
 
 /**
@@ -636,7 +660,7 @@ bool vulkanBeginFrame(f32 delta)
     }
 
     // Change data if necessary
-    vulkanUpdateUniformBuffer(delta);
+    //vulkanUpdateUniformBuffer(delta);
 
     // Wait for the previous frame to finish.
     vulkanWaitFence(

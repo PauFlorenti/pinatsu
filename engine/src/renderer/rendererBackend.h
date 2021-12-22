@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+#include "external/glm/glm.hpp" // TODO temp
+
 typedef enum RenderBackendAPI
 {
     VULKAN_API,
@@ -12,16 +14,12 @@ typedef enum RenderBackendAPI
 typedef struct RendererBackend
 {
     bool (*init)(const char* appName);
-
     void (*shutdown)();
-
     bool (*beginFrame)(f32 delta);
-
     bool (*draw)();
-
     void (*endFrame)();
-
     void (*onResize)(u32 width, u32 height);
+    void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);
 
 } RendererBackend;
 
