@@ -9,7 +9,5 @@ typedef struct Clock
 } Clock;
 
 void clockUpdate(Clock* clock);
-
 void clockStart(Clock* clock);
-
 void clockStop(Clock* clock);

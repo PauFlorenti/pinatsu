@@ -17,4 +17,4 @@ void renderEndFrame(f32 dt);
 void renderOnResize(u16 width, u16 height);
 
 // TODO temp
-void setView(glm::mat4 view, glm::mat4 proj);
+void setView(const glm::mat4 view, const glm::mat4 proj);

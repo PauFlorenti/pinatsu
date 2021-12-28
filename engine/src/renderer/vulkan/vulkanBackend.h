@@ -16,4 +16,4 @@ bool vulkanDraw();
 
 void vulkanEndFrame();
 
-void vulkanUpdateGlobalState(glm::mat4 view, glm::mat4 projection, f32 dt);
+void vulkanUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt);

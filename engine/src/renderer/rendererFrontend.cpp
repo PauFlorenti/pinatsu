@@ -73,8 +73,8 @@ void renderOnResize(u16 width, u16 height)
     pState->renderBackend.onResize(width, height);
 }
 
-void setView(glm::mat4 view, glm::mat4 proj)
+void setView(const glm::mat4 view, const glm::mat4 proj)
 {
-    pState->view        = glm::perspective(glm::radians(45.0f), 1200.0f / 800.0f, 0.01f, 100.0f);
-    pState->projection  = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));;
+    pState->view        = view;
+    pState->projection  = proj;
 }

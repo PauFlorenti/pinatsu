@@ -8,6 +8,7 @@
 #include "assert.h"
 #include "game.h"
 #include "renderer/rendererFrontend.h"
+#include "systems/resourceSystem.h"
 
 // TODO necessary?
 #include <iostream>
@@ -41,6 +42,9 @@ typedef struct ApplicationState
 
     u64 renderSystemMemoryRequirements;
     void* renderSystem;
+
+    u64 resourceSystemMemoryRequirements;
+    void* resourceSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -115,6 +119,19 @@ bool applicationInit(Game* pGameInst)
     }
     PINFO(getMemoryUsageStr().c_str());
 
+    // Init resource system
+    resourceSystemConfig resourceConfig;
+    resourceConfig.assetsBasePath = "../sandbox/assets/";
+    resourceConfig.maxLoaderCount = 10;
+
+    resourceSystemInit(&pState->resourceSystemMemoryRequirements, nullptr, resourceConfig);
+    pState->resourceSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->resourceSystemMemoryRequirements);
+    if(!resourceSystemInit(&pState->resourceSystemMemoryRequirements, &pState->resourceSystem, resourceConfig))
+    {
+        PFATAL("Resource system could not be initialized! Shutting down now.");
+        return false;
+    }
+
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
     {
@@ -146,7 +163,7 @@ bool applicationRun()
         {
             // Update the clock
             clockUpdate(&pState->clock);
-            f64 currentTime = pState->clock.elapsedTime * 1000000;
+            f64 currentTime = pState->clock.elapsedTime; // convert to seconds
             f64 deltaTime = currentTime - pState->lastTime;
             // TODO store delta time in game instance state.
 
@@ -174,6 +191,7 @@ bool applicationRun()
             }
 
             pState->lastTime = currentTime;
+            PINFO("Timer: %0.5f", currentTime);
         }
         frameCount++;
     }

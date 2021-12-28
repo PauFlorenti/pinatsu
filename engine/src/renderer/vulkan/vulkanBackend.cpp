@@ -229,14 +229,37 @@ std::vector<Vertex> triangle = {
 };
 
 std::vector<Vertex> cube = {
-    {{-0.5, -0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{-0.5, -0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{-0.5, 0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{-0.5, 0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{0.5, -0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{0.5, -0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{0.5, 0.5, -0.5}, {1.0, 1.0, 1.0, 1.0}},
-    {{0.5, 0.5, 0.5}, {1.0, 1.0, 1.0, 1.0}}
+    // Front face
+    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+
+    // Back face
+    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+
+    // Left face
+    {{-0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+
+    // Right face
+    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
+    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}}
 };
 
 // Get standard attribute description.
@@ -259,45 +282,19 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
     return -1;
 }
 
-// Should not be handled by the renderer.
-internal void vulkanUpdateUniformBuffer(f32 dt)
+void vulkanUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
     gameTime += dt;
     f32 speed = 100.0f;
-    state.ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1));
-    //state.ubo.projection  = glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f);
-    //state.ubo.view        = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    state.ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1)); // glm::mat4(1); //glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)); //mat4Identity();
+    state.ubo.view        = view;
+    state.ubo.projection  = projection;
 
     void* data;
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
     std::memcpy(data, &state.ubo, sizeof(MVPBuffer));
     vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
-}
-
-void vulkanUpdateGlobalState(glm::mat4 view, glm::mat4 projection, f32 dt)
-{
-    gameTime += dt;
-    f32 speed = 100.0f;
-    //state.ubo.model       = glm::rotate(glm::mat4(1), glm::radians(gameTime * speed), glm::vec3(0, 0, 1)); // glm::mat4(1); //glm::rotate(glm::mat4(1), glm::radians(90.0f), glm::vec3(1, 0, 0)); //mat4Identity();
-    state.ubo.view        = view;
-    state.ubo.projection  = projection;
-
-    glm::mat4 nview = glm::lookAt(glm::vec3(0.01f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    if(state.ubo.view == nview)
-        //&& state.ubo.projection == glm::perspective(glm::radians(45.0f), state.swapchain.extent.width / (f32)state.swapchain.extent.height, 0.01f, 100.0f))
-    {
-        PWARN("IGUAL!");
-    }
-
-    //void* data;
-    //u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
-    //vkMapMemory(state.device.handle, state.uniformBuffersMemory.at(index), 0, sizeof(MVPBuffer), 0, &data);
-    //std::memcpy(data, &state.ubo, sizeof(MVPBuffer));
-    //vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
-
-    vulkanUpdateUniformBuffer(dt);
 }
 
 /**
@@ -450,7 +447,7 @@ bool vulkanBackendInit(const char* appName)
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory = nullptr;
 
-    u32 bufferSize = sizeof(Vertex) * triangle.size();
+    u32 bufferSize = sizeof(Vertex) * cube.size();
     vulkanBufferCreate(
         &state,
         bufferSize,
@@ -461,8 +458,8 @@ bool vulkanBackendInit(const char* appName)
 
     // Copying data to the staging buffer.
     void* data;
-    vkMapMemory(state.device.handle, stagingMemory, 0, triangle.size(), 0, &data);
-    std::memcpy(data, triangle.data(), (size_t)(sizeof(triangle.at(0)) * triangle.size()));
+    vkMapMemory(state.device.handle, stagingMemory, 0, cube.size(), 0, &data);
+    std::memcpy(data, cube.data(), (size_t)(sizeof(cube.at(0)) * cube.size()));
     vkUnmapMemory(state.device.handle, stagingMemory);
 
     // Creating data buffer.
@@ -659,9 +656,6 @@ bool vulkanBeginFrame(f32 delta)
         return false;
     }
 
-    // Change data if necessary
-    //vulkanUpdateUniformBuffer(delta);
-
     // Wait for the previous frame to finish.
     vulkanWaitFence(
         &state, 
@@ -678,6 +672,23 @@ bool vulkanBeginFrame(f32 delta)
 
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
+
+    VkViewport viewport;
+    viewport.x          = 0.0f;
+    viewport.y          = 0.0f;
+    viewport.width      = state.clientWidth;
+    viewport.height     = state.clientHeight;
+    viewport.minDepth   = 0.0f;
+    viewport.maxDepth   = 1.0f;
+
+    VkRect2D scissor;
+    scissor.extent.width    = state.clientWidth;
+    scissor.extent.height   = state.clientHeight;
+    scissor.offset.x        = 0.0;
+    scissor.offset.y        = 0.0;
+
+    vkCmdSetViewport(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &viewport);
+    vkCmdSetScissor(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &scissor);
 
     VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
 
@@ -706,7 +717,7 @@ bool vulkanDraw(void)
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
     vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
         0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, triangle.size(), 1, 0, 0);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, cube.size(), 1, 0, 0);
     return true;
 }
 
@@ -830,7 +841,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
 
     VkViewport viewport = {};
     viewport.x          = 0.0f;
-    viewport.y          = 0.0f;
+    viewport.y          = 0.0f; //pState->clientHeight;
     viewport.width      = pState->clientWidth;
     viewport.height     = pState->clientHeight;
     viewport.maxDepth   = 1.0f;
@@ -879,9 +890,10 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     colorBlendInfo.pAttachments     = &colorBlendAttachment;
     colorBlendInfo.logicOpEnable    = VK_FALSE;
 
-    // TODO Implement dynamic states for changing viewports and scissors so the pipelines does not have to be recreated.
-    //VkPipelineDynamicStateCreateInfo dynamicStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-    //dynamicStateInfo.
+    std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+    VkPipelineDynamicStateCreateInfo dynamicStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
+    dynamicStateInfo.dynamicStateCount  = static_cast<u32>(dynamicStates.size());
+    dynamicStateInfo.pDynamicStates     = dynamicStates.data();
 
     // TODO Implement push constants for matrix.
     VkPushConstantRange pushConstantRange{};
@@ -904,7 +916,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     info.pMultisampleState      = &multisampleInfo;
     info.pDepthStencilState     = &depthStencilInfo;
     info.pColorBlendState       = &colorBlendInfo;
-    info.pDynamicState          = nullptr;
+    info.pDynamicState          = &dynamicStateInfo;
     info.pTessellationState     = nullptr;
     info.layout                 = pState->graphicsPipeline.layout;
     info.renderPass             = pState->renderpass.handle;
@@ -1001,6 +1013,7 @@ bool recreateSwapchain()
     
     createCommandBuffers();
 
+    //TODO is this necessary?
     // Regenerate the ubo buffers.
     for(size_t i = 0; i < state.uniformBuffers.size(); i++)
     {
@@ -1037,6 +1050,7 @@ bool recreateSwapchain()
     VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
 
     // Recreate each uniform buffer.
+    // TODO is this necessary?
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
         VkBuffer buffer;
@@ -1055,6 +1069,7 @@ bool recreateSwapchain()
     }
 
     // Re-Update each descriptor set.
+    // TODO is this necessary?
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
@@ -1074,6 +1089,8 @@ bool recreateSwapchain()
 
         vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
     }
+
+    // TODO Change viewport ans scissor from render pipeline
 
     state.recreatingSwapchain = false;
     return true;

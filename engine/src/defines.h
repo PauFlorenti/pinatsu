@@ -35,4 +35,6 @@ STATIC_ASSERT(sizeof(i64) == 8, "Expected i64 to be 8 byte.");
 STATIC_ASSERT(sizeof(f32) == 4, "Expected f32 to be 4 byte.");
 STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 byte.");
 
+#define INVALID_ID 4294967295U // This u32 is equivalent to 0xFFFFFFFF and any id with this value should be treated as invalid.
+
 #define PCLAMP(val, min, max) (val < min) ? min : (val > max) ? max : val;

@@ -9,6 +9,7 @@ typedef struct GameState
     f32 deltaTime;
     glm::mat4 view;
     glm::mat4 projection;
+    glm::vec3 cameraAxes; // Pitch x, yaw y, roll z
 } GameState;
 
 bool gameInitialize(Game* pGameInst);

@@ -30,10 +30,10 @@ static f64 frequencyTimer;
 
 static void setupTimer()
 {
-    LARGE_INTEGER frequency;
-    QueryPerformanceCounter(&frequency);
+    LARGE_INTEGER frequency;    // counts / second
+    QueryPerformanceFrequency(&frequency);
     frequencyTimer = 1.0 / (f64)frequency.QuadPart;
-    QueryPerformanceCounter(&initialTime);
+    QueryPerformanceCounter(&initialTime);  // counts
 }
 
 /**
@@ -263,13 +263,13 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 f64 platformGetCurrentTime()
 {
     // If no timer, start timer.
-    if(!frequencyTimer)
-    {
+    if(!frequencyTimer) {
         setupTimer();
     }
 
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
+    // return value in micro seconds
     return (f64)now.QuadPart * frequencyTimer;
 }
 
