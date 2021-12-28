@@ -282,6 +282,13 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
     return -1;
 }
 
+void vulkanUpdateData(const u32& size, )
+{
+    VkBuffer stagingBuffer;
+    
+    vulkanBufferCreate(&state, size, &stagingBuffer);
+}
+
 void vulkanUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
     gameTime += dt;
