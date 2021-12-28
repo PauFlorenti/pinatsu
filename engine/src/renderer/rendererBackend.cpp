@@ -14,6 +14,7 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
         state->endFrame = vulkanEndFrame;
         state->onResize = vulkanBackendOnResize;
         state->updateGlobalState = vulkanUpdateGlobalState;
+        state->onCreateMesh = vulkanCreateMesh;
 
         return true;
     }

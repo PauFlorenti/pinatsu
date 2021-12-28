@@ -297,6 +297,34 @@ void vulkanUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f
     vkUnmapMemory(state.device.handle, state.uniformBuffersMemory.at(index));
 }
 
+bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
+{
+    if(!vertexCount || !vertices) {
+        PERROR("vulkanCreateMesh - No vertices available. Unable to create mesh.");
+        return false;
+    }
+
+    VulkanMesh* auxiliarMesh = nullptr;
+
+    for(u32 i = 0; i < VULKAN_MAX_MESHES; ++i) {
+        if(state.vulkanMeshes[i].id == INVALID_ID){
+            mesh->rendererId = i;
+            state.vulkanMeshes[i].id = i;
+            auxiliarMesh = &state.vulkanMeshes[i];
+        }
+    }
+
+    auxiliarMesh->vertexCount   = vertexCount;
+    auxiliarMesh->vertexOffset  = 0;
+    auxiliarMesh->vertexSize    = vertexCount * sizeof(Vertex);
+
+    // TODO indices
+
+    // TODO upload data to gpu
+
+    return true;
+}
+
 /**
  * @brief Initialize all vulkan render system.
  * @param const char* application name.
@@ -443,6 +471,8 @@ bool vulkanBackendInit(const char* appName)
         }
     }
 
+    state.vulkanMeshes = (VulkanMesh*)memAllocate(sizeof(VulkanMesh) * VULKAN_MAX_MESHES, MEMORY_TAG_RENDERER);
+
     // Creating staging buffer.
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory = nullptr;
@@ -476,6 +506,7 @@ bool vulkanBackendInit(const char* appName)
 
     vkDestroyBuffer(state.device.handle, stagingBuffer, nullptr);
     vkFreeMemory(state.device.handle, stagingMemory, nullptr);
+    
 
     // Creating ubo for each frame since some frames may still be in flight
     // when we want to upload new data.
@@ -631,8 +662,51 @@ void vulkanBackendShutdown(void)
  * @param void
  * @return bool if succeded.
  */
-bool vulkanBeginFrame(f32 delta)
+
+static bool done = false;
+
+bool vulkanBeginFrame(f32 delta, Mesh* mesh)
 {
+    /*
+    if(!done)
+    {
+        // Creating staging buffer.
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingMemory = nullptr;
+
+        u32 bufferSize = sizeof(glm::vec3) * mesh->vertexCount;
+        vulkanBufferCreate(
+            &state,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingMemory,
+            &stagingBuffer);
+
+        // Copying data to the staging buffer.
+        size_t vertexSize = sizeof(glm::vec3) * mesh->vertexCount;
+        void* data;
+        vkMapMemory(state.device.handle, stagingMemory, 0, mesh->vertexCount, 0, &data);
+        std::memcpy(data, mesh->vertices, vertexSize);
+        vkUnmapMemory(state.device.handle, stagingMemory);
+
+        // Creating data buffer.
+        vulkanBufferCreate(
+            &state,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            state.memory,
+            &state.dataBuffer);
+
+
+        vulkanTransferBuffer(stagingBuffer, state.dataBuffer, bufferSize);
+
+        vkDestroyBuffer(state.device.handle, stagingBuffer, nullptr);
+        vkFreeMemory(state.device.handle, stagingMemory, nullptr);
+        done = true;
+    }
+    */
 
     // Wait for the device to finish recreating the swapchain.
     if(state.recreatingSwapchain) {
@@ -717,7 +791,7 @@ bool vulkanDraw(void)
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer, &offset);
     vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
         0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, cube.size(), 1, 0, 0);
+    vkCmdDraw(state.commandBuffers[state.imageIndex].handle, 6, 1, 0, 0);
     return true;
 }
 

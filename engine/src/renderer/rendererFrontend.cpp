@@ -45,9 +45,9 @@ void renderSystemShutdown(void* state)
     }
 }
 
-bool renderBeginFrame(f64 dt)
+bool renderBeginFrame(f64 dt, Mesh* mesh)
 {
-    if(!pState->renderBackend.beginFrame(dt)){
+    if(!pState->renderBackend.beginFrame(dt, mesh)){
         return false;
     }
     pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)dt);
@@ -71,6 +71,11 @@ void renderEndFrame(f32 dt)
 void renderOnResize(u16 width, u16 height)
 {
     pState->renderBackend.onResize(width, height);
+}
+
+bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
+{
+    return pState->renderBackend.onCreateMesh(m, vertexCount, vertices, indexCount, indices);
 }
 
 void setView(const glm::mat4 view, const glm::mat4 proj)

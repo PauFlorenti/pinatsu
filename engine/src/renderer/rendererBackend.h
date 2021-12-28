@@ -3,6 +3,7 @@
 #include "defines.h"
 
 #include "external/glm/glm.hpp" // TODO temp
+#include "resources/resourcesTypes.h" // TODO temp
 
 typedef enum RenderBackendAPI
 {
@@ -15,11 +16,12 @@ typedef struct RendererBackend
 {
     bool (*init)(const char* appName);
     void (*shutdown)();
-    bool (*beginFrame)(f32 delta);
+    bool (*beginFrame)(f32 delta, Mesh* mesh);
     bool (*draw)();
     void (*endFrame)();
     void (*onResize)(u32 width, u32 height);
     void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);
+    bool (*onCreateMesh)(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
 
 } RendererBackend;
 

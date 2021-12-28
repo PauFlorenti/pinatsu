@@ -1,17 +1,22 @@
 
 #include "application.h"
+
 #include "platform/platform.h"
 #include "memory/pmemory.h"
+
 #include "event.h"
 #include "input.h"
 #include "logger.h"
 #include "assert.h"
 #include "game.h"
-#include "renderer/rendererFrontend.h"
-#include "systems/resourceSystem.h"
 
-// TODO necessary?
-#include <iostream>
+#include "renderer/rendererFrontend.h"
+
+#include "systems/resourceSystem.h"
+#include "systems/meshSystem.h"
+
+// TODO temp
+#include "scene/scene.h"
 
 typedef struct ApplicationState
 {
@@ -24,6 +29,8 @@ typedef struct ApplicationState
 
     Clock clock;
     f64 lastTime;
+
+    Scene scene;
 
     u64 memorySystemMemoryRequirements;
     void* memorySystem;
@@ -45,6 +52,9 @@ typedef struct ApplicationState
 
     u64 resourceSystemMemoryRequirements;
     void* resourceSystem;
+
+    u64 meshSystemMemoryRequirements;
+    void* meshSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -132,6 +142,18 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
+    // Init Mesh system
+    MeshSystemConfig meshSystemConfig;
+    meshSystemConfig.maxMeshesCount = 10;
+    meshSystemInit(&pState->meshSystemMemoryRequirements, &pState->meshSystem, meshSystemConfig);
+
+    // Register resource systems.
+    // MESH Loader
+
+    // TEXTURE Loaders
+    // TODO texture loader
+
+
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
     {
@@ -153,6 +175,8 @@ bool applicationRun()
     clockStart(&pState->clock);
     clockUpdate(&pState->clock);
     pState->lastTime = pState->clock.elapsedTime;
+
+    Mesh* plane = meshSystemGetPlane(1, 1);
 
     while(pState->m_isRunning)
     {
@@ -185,13 +209,12 @@ bool applicationRun()
             // TODO Create a struct Game with its own function pointers to
             // Update and render
             // At the moment update the scene is done in renderBeginFrame and it shouldn't
-            if(renderBeginFrame((f32)deltaTime)){
+            if(renderBeginFrame((f32)deltaTime, plane)){
                 renderDrawFrame();
                 renderEndFrame(1.0f);
             }
 
             pState->lastTime = currentTime;
-            PINFO("Timer: %0.5f", currentTime);
         }
         frameCount++;
     }
@@ -201,6 +224,8 @@ bool applicationRun()
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
+    meshSystemShutdown(pState->meshSystem);
+    resourceSystemShutdown(pState->resourceSystem);
     renderSystemShutdown(pState->renderSystem);
     inputSystemShutdown(pState->inputSystem);
     platformShutdown(pState->platformSystem);

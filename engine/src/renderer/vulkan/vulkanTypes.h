@@ -104,6 +104,19 @@ typedef struct MVPBuffer
     glm::mat4 projection;
 } MVPBuffer;
 
+// TODO make configurable
+#define VULKAN_MAX_MESHES 10
+
+typedef struct VulkanMesh
+{
+    u32 id;
+    u32 vertexCount;
+    u32 vertexSize;
+    u32 vertexOffset;
+    u32 indexCount;
+    u32 indexOffset;
+} VulkanMesh;
+
 typedef struct VulkanState
 {
     VkInstance      instance;
@@ -123,6 +136,8 @@ typedef struct VulkanState
     VkBuffer dataBuffer;
     VkDeviceMemory memory;
     MVPBuffer ubo{};
+
+    VulkanMesh* vulkanMeshes;
 
     // TODO All this should go to a pass struct
     VkDescriptorPool descriptorPool;

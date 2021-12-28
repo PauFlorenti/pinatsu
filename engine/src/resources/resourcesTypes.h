@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.h"
+#include "external/glm/glm.hpp"
 
 typedef enum resourceTypes
 {
@@ -37,8 +38,22 @@ typedef struct Material
 
 #define MESH_MAX_LENGTH 256
 
+typedef struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;
+} Vertex;
+
 typedef struct Mesh {
     u32 id;
+    u32 rendererId;
     char name[MESH_MAX_LENGTH];
     Material* material;
 } Mesh;
+
+typedef struct MeshData {
+    char name[MESH_MAX_LENGTH];
+    u32 vertexCount;
+    Vertex* vertices;
+    u32 indexCount;
+    u32* indices;
+} MeshData;

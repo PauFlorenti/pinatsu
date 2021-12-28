@@ -12,16 +12,21 @@ static resourceSystemState* pState;
 
 bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConfig config)
 {
-    if(config.maxLoaderCount < 1){
-        PERROR("Maximum loaders allowed is below 1. That is an error, shuting down.");
-        return false;
-    }
-
     // If system not init yet, return memory requirements to be initialized.
     if(state == nullptr)
     {
         *memoryRequirements = sizeof(resourceSystemState) + (sizeof(resourceLoader) * config.maxLoaderCount);
         return true;
+    }
+
+    // Check the config is valid.
+    if(config.maxLoaderCount < 1){
+        PERROR("Maximum loaders allowed is below 1. That is an error, shutting down.");
+        return false;
+    }
+    if(!config.assetsBasePath) {
+        PERROR("resourceSystemInit - No assets base path has been given. Shutting down.");
+        return false;
     }
 
     pState = static_cast<resourceSystemState*>(state);
@@ -69,8 +74,8 @@ bool resourceSystemRegisterLoader(resourceLoader loader)
         for(u32 i = 0; i < count; ++i)
         {
             if(pState->loaders[i].id == INVALID_ID){
-                pState->loaders[i] = loader;
-                pState->loaders[i].id = i;
+                pState->loaders[i]      = loader;
+                pState->loaders[i].id   = i;
                 PINFO("Loader registered!");
                 return true;
             }
