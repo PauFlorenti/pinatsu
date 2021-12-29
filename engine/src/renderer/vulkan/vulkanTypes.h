@@ -91,18 +91,24 @@ typedef struct VulkanFence
     bool signaled;
 } VulkanFance;
 
-typedef struct Vertex
+typedef struct VulkanBuffer
+{
+    VkBuffer handle;
+    VkDeviceMemory memory;
+} VulkanBuffer;
+
+typedef struct VulkanVertex
 {
     vec3 position;
     vec4 color;
-}Vertex;
+}VulkanVertex;
 
-typedef struct MVPBuffer
+typedef struct ViewProjectionBuffer
 {
-    glm::mat4 model;
+    //glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
-} MVPBuffer;
+} ViewProjectionBuffer;
 
 // TODO make configurable
 #define VULKAN_MAX_MESHES 10
@@ -133,9 +139,8 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    VkBuffer dataBuffer;
-    VkDeviceMemory memory;
-    MVPBuffer ubo{};
+    VulkanBuffer dataBuffer;
+    ViewProjectionBuffer ubo{};
 
     VulkanMesh* vulkanMeshes;
 
@@ -144,8 +149,7 @@ typedef struct VulkanState
     VkDescriptorSetLayout descriptorLayout;
     std::vector<VkDescriptorSet> descriptorSet;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<VulkanBuffer> uniformBuffers;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;

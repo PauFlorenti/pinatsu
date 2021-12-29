@@ -59,26 +59,30 @@ static void meshSystemSetMesh(Mesh* mesh)
     }
 }
 
+// TODO  add the functionality to create segments and make it more customizable
 Mesh* meshSystemGetPlane(u32 width, u32 height)
 {
-    MeshData* mesh;
-    Mesh* meshref;
+    MeshData* mesh = (MeshData*)memAllocate(sizeof(MeshData), MEMORY_TAG_ENTITY);
+    Mesh* meshref = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    char* name = "Plane";
+    std::memcpy(&meshref->name, name, 5);
 
     mesh->vertexCount = 6;
     mesh->vertices = (Vertex*)memAllocate(sizeof(Vertex) * mesh->vertexCount, MEMORY_TAG_UNKNOWN);
-    //mesh.name = "Plane";
+    std::memcpy(&mesh->name, name, 5);
     mesh->indices = nullptr;
     mesh->indexCount = 0;
 
-    mesh->vertices[0] = {{-0.5f, -0.5f,  0.5f}, glm::vec3(1)};
-    mesh->vertices[1] = {{ 0.5f, -0.5f,  0.5f}, glm::vec3(1)};
-    mesh->vertices[2] = {{-0.5f,  0.5f,  0.5f}, glm::vec3(1)};
+    mesh->vertices[0] = {{-0.5f, -0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[1] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[2] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1)};
 
-    mesh->vertices[4] = {{ 0.5f,  0.5f,  0.5f}, glm::vec3(1)};
-    mesh->vertices[3] = {{ 0.5f, -0.5f,  0.5f}, glm::vec3(1)};
-    mesh->vertices[5] = {{-0.5f,  0.5f,  0.5f}, glm::vec3(1)};
+    mesh->vertices[4] = {{ 0.5f,  0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[3] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[5] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1)};
 
-    //meshSystemSetMesh(mesh);
+    meshSystemSetMesh(meshref);
+    renderCreateMesh(meshref, mesh->vertexCount, mesh->vertices, 0, nullptr);
 
     return meshref;
 }

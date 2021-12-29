@@ -4,6 +4,7 @@
 
 #include "external/glm/glm.hpp" // TODO temp
 #include "resources/resourcesTypes.h" // TODO temp
+#include "scene/scene.h"
 
 typedef enum RenderBackendAPI
 {
@@ -16,8 +17,8 @@ typedef struct RendererBackend
 {
     bool (*init)(const char* appName);
     void (*shutdown)();
-    bool (*beginFrame)(f32 delta, Mesh* mesh);
-    bool (*draw)();
+    bool (*beginFrame)(f32 delta);
+    bool (*draw)(const Scene& scene);
     void (*endFrame)();
     void (*onResize)(u32 width, u32 height);
     void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);

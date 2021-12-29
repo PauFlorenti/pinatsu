@@ -45,18 +45,18 @@ void renderSystemShutdown(void* state)
     }
 }
 
-bool renderBeginFrame(f64 dt, Mesh* mesh)
+bool renderBeginFrame(f64 dt)
 {
-    if(!pState->renderBackend.beginFrame(dt, mesh)){
+    if(!pState->renderBackend.beginFrame(dt)){
         return false;
     }
     pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)dt);
     return true;
 }
 
-bool renderDrawFrame()
+bool renderDrawFrame(const Scene& scene)
 {
-    if(!pState->renderBackend.draw()){
+    if(!pState->renderBackend.draw(scene)){
         PFATAL("Could not be able to draw.");
         return false;
     }

@@ -30,7 +30,7 @@ typedef struct ApplicationState
     Clock clock;
     f64 lastTime;
 
-    Scene scene;
+    Scene* scene;
 
     u64 memorySystemMemoryRequirements;
     void* memorySystem;
@@ -177,6 +177,15 @@ bool applicationRun()
     pState->lastTime = pState->clock.elapsedTime;
 
     Mesh* plane = meshSystemGetPlane(1, 1);
+    Entity ent;
+    ent.mesh = plane;
+    ent.model = glm::mat4(1);
+    Entity ent1;
+    ent1.mesh = plane;
+    ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
+    pState->scene = new Scene();
+    pState->scene->entities.emplace_back(ent);
+    pState->scene->entities.emplace_back(ent1);
 
     while(pState->m_isRunning)
     {
@@ -209,8 +218,8 @@ bool applicationRun()
             // TODO Create a struct Game with its own function pointers to
             // Update and render
             // At the moment update the scene is done in renderBeginFrame and it shouldn't
-            if(renderBeginFrame((f32)deltaTime, plane)){
-                renderDrawFrame();
+            if(renderBeginFrame((f32)deltaTime)){
+                renderDrawFrame(*pState->scene);
                 renderEndFrame(1.0f);
             }
 

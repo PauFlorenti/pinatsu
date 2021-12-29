@@ -40,7 +40,7 @@ typedef struct Material
 
 typedef struct Vertex {
     glm::vec3 position;
-    glm::vec3 color;
+    glm::vec4 color;
 } Vertex;
 
 typedef struct Mesh {

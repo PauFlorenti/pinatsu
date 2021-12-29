@@ -4,12 +4,13 @@
 
 #include "external/glm/glm.hpp" // TODO temp
 #include "resources/resourcesTypes.h" // TODO temp
+#include "scene/scene.h"
 
 bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName);
 void renderSystemShutdown(void* state);
 
-bool renderBeginFrame(f64 dt, Mesh* mesh);
-bool renderDrawFrame();
+bool renderBeginFrame(f64 dt);
+bool renderDrawFrame(const Scene& scene);
 void renderEndFrame(f32 dt);
 
 void renderOnResize(u16 width, u16 height);
