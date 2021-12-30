@@ -1,6 +1,10 @@
 #include "resourceSystem.h"
 
 #include "core/logger.h"
+#include "resources/loaders/meshLoader.h"
+#include "resources/loaders/textureLoader.h"
+
+// TODO Make own string container funcs.
 #include <cstring>
 
 typedef struct resoureSystemState{
@@ -40,6 +44,8 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
         pState->loaders[i].id = INVALID_ID;
     }
 
+    resourceSystemRegisterLoader(meshLoaderCreate());
+
     PINFO("Resource system initialized with base path %s.", config.assetsBasePath);
 
     return true;
@@ -51,7 +57,7 @@ void resourceSystemShutdown(void* state)
         state = nullptr;
 }
 
-bool resourceSystemRegisterLoader(resourceLoader loader)
+bool resourceSystemRegisterLoader(const resourceLoader& loader)
 {
     if(pState)
     {
@@ -92,6 +98,7 @@ bool resourceSystemLoad(const char* name, resourceTypes type, Resource* outResou
         for(u32 i = 0; i < count; ++i)
         {
             resourceLoader* loader = &pState->loaders[i];
+            PINFO("Loading %s ...", name);
             if(loader->id != INVALID_ID && pState->loaders[i].type == type) {
                 return loader->load(loader, name, outResource);
             }
@@ -133,7 +140,7 @@ void resourceSystemUnload(Resource* resource)
 bool load(const char* name, resourceLoader* loader, Resource* outResource)
 {
     if(!name || !loader || !loader->load || !outResource) {
-        outResource->id = INVALID_ID;
+        outResource->loaderId = INVALID_ID;
         return false;
     }
 

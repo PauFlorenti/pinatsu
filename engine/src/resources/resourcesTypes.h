@@ -15,7 +15,6 @@ typedef enum resourceTypes
 
 typedef struct Resource
 {
-    u32 id;
     u32 loaderId;
     const char* name;
     char* path;

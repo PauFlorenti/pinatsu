@@ -1,59 +1,46 @@
 #include "meshLoader.h"
 #include "core/logger.h"
-
-typedef struct MeshLoaderState
-{
-    u32 maxMeshesCount;
-    Mesh* registeredMeshes;
-} MeshLoaderState;
-
-static MeshLoaderState* pState;
+#include "platform/filesystem.h"
 
 bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* outResource)
 {
     if(!self || !name || !outResource)
     {
+        PERROR("meshLoaderLoad - not enough information provided.");
         return false;
     }
 
-    // check if resource already loaded.
-    if(outResource && outResource->id)
-    {
-        for(u32 i = 0; i < pState->maxMeshesCount; ++i){
-            if(pState->registeredMeshes[i].id == outResource->id)
-            {
-                PINFO("Mesh %s already loaded.", name);
-                return true;
-            }
-        }
-    }
+    // Load data from file.
+    FileHandle file;
+    filesystemOpen(name, FILE_MODE_READ, false, &file);
 
-    outResource->name = name;
-    outResource->loaderId = self->id;
-    outResource->path = nullptr;// assets path + name ??
-    
-    for(u32 i = 0; i < pState->maxMeshesCount; ++i){
-        if(pState->registeredMeshes[i].id == INVALID_ID)
-        {
-            outResource->id = i;
-            return true;
-        }
-    }
+    u64 fileSize;
+    filesystemSize(&file, &fileSize);
 
+    filesystemClose(&file);
+
+    outResource->name       = name;
+    outResource->loaderId   = self->id;
+    outResource->path       = nullptr;// assets path + name ??
+    outResource->dataSize = 0; // data size
+    outResource->data = nullptr;
 
     return true;
 }
 
-void meshLoaderUnload(Resource* resource)
+bool meshLoaderUnload(resourceLoader* self, Resource* resource)
 {
-    if(resource && resource->id != INVALID_ID)
-    {
-        for(u32 i = 0; i < pState->maxMeshesCount; ++i)
-        {
-            if(pState->registeredMeshes[i].id == resource->id){
-                pState->registeredMeshes[i].id = INVALID_ID;
-                return;
-            }
-        }
-    }
+    PERROR("meshLoaderUnload - Resource invalid or inexistent.");
+    return false;
+}
+
+resourceLoader meshLoaderCreate()
+{
+    resourceLoader loader;
+    loader.load = meshLoaderLoad;
+    loader.unload = meshLoaderUnload;
+    loader.customType = nullptr;
+    loader.type = RESOURCE_TYPE_MESH;
+    loader.typePath = "";
+    return loader;
 }

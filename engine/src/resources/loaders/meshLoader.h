@@ -9,5 +9,4 @@
 
 #include "systems/resourceSystem.h"
 
-bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* outResource);
-void meshLoaderUnload(Resource* resource);
+resourceLoader meshLoaderCreate();

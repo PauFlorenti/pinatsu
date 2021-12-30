@@ -149,6 +149,9 @@ bool applicationInit(Game* pGameInst)
 
     // Register resource systems.
     // MESH Loader
+    Resource cube;
+    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
+    PDEBUG("Cube.obj loaded.");
 
     // TEXTURE Loaders
     // TODO texture loader

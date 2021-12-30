@@ -32,6 +32,7 @@ bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig confi
         pState->meshes[i].id = INVALID_ID;
     }
 
+    PINFO("Mesh system initialized!");
     return true;
 }
 

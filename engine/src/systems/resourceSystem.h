@@ -20,7 +20,7 @@ typedef struct resourceLoader{
 bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConfig config);
 void resourceSystemShutdown(void* state);
 
-bool resourceSystemRegisterLoader(resourceLoader loader);
+bool resourceSystemRegisterLoader(const resourceLoader& loader);
 bool resourceSystemLoad(const char* name, resourceTypes type, Resource* outResource);
 bool resourceSystemCustomLoad(const char* name, const char* customType, Resource* outResource);
 void resourceSystemUnload(Resource* resource);

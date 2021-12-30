@@ -1,14 +1,32 @@
 #include "filesystem.h"
 
-#include <fstream>
 #include "core/logger.h"
+#include <fstream>
 
 bool filesystemExists(const char* filename)
 {
     return true;
 }
 
-bool filesystemOpen(const char* filename, FileModes mode, bool binary, FileHandle* handle)
+// Get the size of the file, 
+// but returning the cursor to the current position.
+void filesystemSize(
+    FileHandle* handle, 
+    u64* size)
+{
+    if(handle->isValid)
+    {
+        fseek((FILE*)handle->handle, 0, SEEK_END);
+        *size = ftell((FILE*)handle->handle);
+        rewind((FILE*)handle->handle);
+    }
+}
+
+bool filesystemOpen(
+    const char* filename, 
+    FileModes mode, 
+    bool binary, 
+    FileHandle* handle)
 {
     const char* modeStr;
 
@@ -25,6 +43,7 @@ bool filesystemOpen(const char* filename, FileModes mode, bool binary, FileHandl
     {
         modeStr = binary ? "wb" : "w";
     }
+
 
     FILE* f = fopen(filename, modeStr);
     if(!f) {
@@ -50,13 +69,33 @@ void filesystemClose(FileHandle* handle)
     }
 }
 
-bool filesystemRead(FileHandle* handle, u64 dataSize, void* outData, void* outBinaryData)
+bool filesystemRead(
+    FileHandle* handle, 
+    u64 dataSize, 
+    void* outData, 
+    void* outBinaryData)
 {
     if(handle->handle)
     {
         fread(outData, sizeof(char), dataSize, static_cast<FILE*>(handle->handle));
         //if()
         return true;
+    }
+    return false;
+}
+
+bool filesystemReadLine(
+    FileHandle* handle, 
+    u64 maxLenght,
+    u64* outLength,
+    void* outData)
+{
+    if(handle && handle->isValid && maxLenght > 0)
+    {
+        if(fgets((char*)outData, maxLenght, (FILE*)handle->handle) != 0){
+            *outLength = strlen((char*)outData);
+            return true;
+        }
     }
     return false;
 }
