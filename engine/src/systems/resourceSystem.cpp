@@ -7,19 +7,19 @@
 // TODO Make own string container funcs.
 #include <cstring>
 
-typedef struct resoureSystemState{
+typedef struct ResoureSystemState{
     resourceSystemConfig config;
     resourceLoader* loaders;
-} resourceSystemState;
+} ResourceSystemState;
 
-static resourceSystemState* pState;
+static ResourceSystemState* pState = nullptr;
 
 bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConfig config)
 {
     // If system not init yet, return memory requirements to be initialized.
     if(state == nullptr)
     {
-        *memoryRequirements = sizeof(resourceSystemState) + (sizeof(resourceLoader) * config.maxLoaderCount);
+        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(resourceLoader) * config.maxLoaderCount);
         return true;
     }
 
@@ -33,11 +33,12 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
         return false;
     }
 
-    pState = static_cast<resourceSystemState*>(state);
+    pState = static_cast<ResourceSystemState*>(state);
     pState->config = config;
 
     void* resourceLoaderPtr = pState + sizeof(resourceSystemConfig);
-    pState->loaders = static_cast<resourceLoader*>(resourceLoaderPtr);
+    //pState->loaders = static_cast<resourceLoader*>(pState + sizeof(resourceSystemConfig));
+    pState->loaders = (resourceLoader*)(pState + sizeof(pState->config));
 
     for(u32 i = 0; i < pState->config.maxLoaderCount; i++)
     {
@@ -135,6 +136,15 @@ void resourceSystemUnload(Resource* resource)
             l->unload(l, resource);
         }
     }
+}
+
+const char* resourceSystemPath(void)
+{
+    if(pState) {
+        return pState->config.assetsBasePath;
+    }
+    PERROR("Returning an empty string. No assets path provided.");
+    return "";
 }
 
 bool load(const char* name, resourceLoader* loader, Resource* outResource)

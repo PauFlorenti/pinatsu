@@ -23,16 +23,17 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
     state->deltaTime = deltaTime;
+    // TODO make own camera class.
     if(isKeyDown(KEY_A))
     {
         f32 speed = 10.0f * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(-1, 0, 0);
+        glm::vec3 movement = speed * glm::vec3(1, 0, 0);
         state->view = glm::translate(state->view, movement);
     }
     else if(isKeyDown(KEY_D))
     {
         f32 speed = 10.0f * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(1, 0, 0);
+        glm::vec3 movement = speed * glm::vec3(-1, 0, 0);
         state->view = glm::translate(state->view, movement);
     }
     else if(isKeyDown(KEY_W))

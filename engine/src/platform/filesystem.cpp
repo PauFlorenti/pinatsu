@@ -1,7 +1,7 @@
 #include "filesystem.h"
 
 #include "core/logger.h"
-#include <fstream>
+#include <string.h>
 
 bool filesystemExists(const char* filename)
 {
@@ -16,9 +16,9 @@ void filesystemSize(
 {
     if(handle->isValid)
     {
-        fseek((FILE*)handle->handle, 0, SEEK_END);
-        *size = ftell((FILE*)handle->handle);
-        rewind((FILE*)handle->handle);
+        fseek(handle->handle, 0, SEEK_END);
+        *size = ftell(handle->handle);
+        rewind(handle->handle);
     }
 }
 
@@ -31,15 +31,17 @@ bool filesystemOpen(
     const char* modeStr;
 
     // Write and read
-    if((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE))
+    if((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) != 0)
     {
         modeStr = binary ? "w+b" : "w+";
     }
-    else if((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0)
+    // Read
+    else if((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) == 0)
     {
         modeStr = binary ? "rb" : "r";
     }
-    else if((mode & FILE_MODE_READ) != 0 && (mode & FILE_MODE_WRITE) == 0)
+    // Write
+    else if((mode & FILE_MODE_READ) == 0 && (mode & FILE_MODE_WRITE) != 0)
     {
         modeStr = binary ? "wb" : "w";
     }
@@ -62,7 +64,7 @@ void filesystemClose(FileHandle* handle)
 {
     if(handle->handle)
     {
-        FILE* f = static_cast<FILE*>(handle->handle);
+        FILE* f = handle->handle;
         fclose(f);
         handle->handle = nullptr;
         handle->isValid = false;
@@ -92,7 +94,7 @@ bool filesystemReadLine(
 {
     if(handle && handle->isValid && maxLenght > 0)
     {
-        if(fgets((char*)outData, maxLenght, (FILE*)handle->handle) != 0){
+        if(fgets((char*)outData, maxLenght, handle->handle) != 0){
             *outLength = strlen((char*)outData);
             return true;
         }

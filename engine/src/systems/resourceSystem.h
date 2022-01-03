@@ -25,4 +25,6 @@ bool resourceSystemLoad(const char* name, resourceTypes type, Resource* outResou
 bool resourceSystemCustomLoad(const char* name, const char* customType, Resource* outResource);
 void resourceSystemUnload(Resource* resource);
 
+const char* resourceSystemPath(void);
+
 bool load(const char* name, resourceLoader* loader, Resource* outResource);

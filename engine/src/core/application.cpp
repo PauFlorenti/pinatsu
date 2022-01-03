@@ -86,13 +86,11 @@ bool applicationInit(Game* pGameInst)
     u64 systemsAllocatorTotalSize = 64 * 1024 * 1024; // 64mb
     linearAllocatorCreate(systemsAllocatorTotalSize, 0, &pState->systemsAllocator);
 
-    //! Init Subsystems
+    //* Init Subsystems
     // Init memory system
     memorySystemInit(&pState->memorySystemMemoryRequirements, nullptr);
     pState->memorySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->memorySystemMemoryRequirements);
     memorySystemInit(&pState->memorySystemMemoryRequirements, pState->memorySystem);
-
-    // Init logger system if needed.
 
     // Init event system.
     eventSystemInit(&pState->eventSystemMemoryRequirements, nullptr);
@@ -131,12 +129,12 @@ bool applicationInit(Game* pGameInst)
 
     // Init resource system
     resourceSystemConfig resourceConfig;
-    resourceConfig.assetsBasePath = "../sandbox/assets/";
+    resourceConfig.assetsBasePath = "data";
     resourceConfig.maxLoaderCount = 10;
 
     resourceSystemInit(&pState->resourceSystemMemoryRequirements, nullptr, resourceConfig);
     pState->resourceSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->resourceSystemMemoryRequirements);
-    if(!resourceSystemInit(&pState->resourceSystemMemoryRequirements, &pState->resourceSystem, resourceConfig))
+    if(!resourceSystemInit(&pState->resourceSystemMemoryRequirements, pState->resourceSystem, resourceConfig))
     {
         PFATAL("Resource system could not be initialized! Shutting down now.");
         return false;
@@ -145,13 +143,18 @@ bool applicationInit(Game* pGameInst)
     // Init Mesh system
     MeshSystemConfig meshSystemConfig;
     meshSystemConfig.maxMeshesCount = 10;
-    meshSystemInit(&pState->meshSystemMemoryRequirements, &pState->meshSystem, meshSystemConfig);
+    meshSystemInit(&pState->meshSystemMemoryRequirements, nullptr, meshSystemConfig);
+    pState->meshSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->meshSystemMemoryRequirements);
+    if(!meshSystemInit(&pState->meshSystemMemoryRequirements, pState->meshSystem, meshSystemConfig))
+    {
+        PFATAL("Mesh system could not be initialized! Shutting down now.");
+        return false;
+    }
 
     // Register resource systems.
     // MESH Loader
     Resource cube;
     resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
-    PDEBUG("Cube.obj loaded.");
 
     // TEXTURE Loaders
     // TODO texture loader

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "defines.h"
+#include <stdio.h>
 
 typedef struct FileHandle
 {
     bool isValid;
-    void* handle;
+    FILE* handle;
 } FileHandle;
 
 typedef enum FileModes
@@ -20,5 +21,10 @@ void filesystemSize(FileHandle* handle, u64* size);
 bool filesystemOpen(const char* filename, FileModes mode, bool binary, FileHandle* handle);
 void filesystemClose(FileHandle* handle);
 bool filesystemRead(FileHandle* handle, void* outData);
-bool filesystemReadLine(FileHandle* handle, void* outData);
+bool filesystemReadLine(
+    FileHandle* handle, 
+    u64 maxLength, 
+    u64* outLength, 
+    void* outData);
+
 // TODO bool filesystemWrite();
