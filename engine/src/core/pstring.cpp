@@ -133,3 +133,48 @@ void stringMid(char* buffer, const char* str, i32 start, i32 length)
         buffer[start + j] = 0;
     }
 }
+
+bool stringToVec4(const char* str, glm::vec4* outVector)
+{
+    if(!str){
+        return false;
+    }
+
+    memZero(outVector, sizeof(glm::vec3));
+    i32 result = sscanf(str, "%f %f %f %f", &outVector->x, &outVector->y, &outVector->z, &outVector->w);
+    return result != -1;
+}
+
+bool stringToVec3(const char* str, glm::vec3* outVector)
+{
+    if(!str){
+        return false;
+    }
+
+    memZero(outVector, sizeof(glm::vec3));
+    i32 result = sscanf(str, "%f %f %f", &outVector->x, &outVector->y, &outVector->z);
+    return result != -1;
+}
+
+bool stringToVec2(const char* str, glm::vec2* outVector)
+{
+    if(!str) {
+        return false;
+    }
+
+    memZero(outVector, sizeof(glm::vec2));
+    i32 result = sscanf(str, "%f %f", &outVector->x, &outVector->y);
+    return result != -1;
+}
+
+bool stringToObjFace(const char* str, glm::vec3* outFace)
+{
+    if(!str) {
+        return false;
+    }
+
+    memZero(outFace, sizeof(glm::vec3));
+    i32 result = sscanf(str, "%f/%f/%f", &outFace->x, &outFace->y, &outFace->z);
+    printf("%d - %d - %d\n", (u32)outFace->x, (u32)outFace->y, (u32)outFace->z);
+    return result != -1;
+}

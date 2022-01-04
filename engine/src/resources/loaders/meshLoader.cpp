@@ -4,6 +4,7 @@
 #include "core/pstring.h"
 #include "platform/filesystem.h"
 #include "memory/pmemory.h"
+#include "memory/linearAllocator.h"
 
 bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* outResource)
 {
@@ -32,6 +33,19 @@ bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* out
     char buffer[512];
     char* outData = &buffer[0];
     u64 lineLength = 0;
+
+    LinearAllocator alloc;
+    linearAllocatorCreate(sizeof(u32) * 1024, nullptr, &alloc);
+
+    glm::vec3* vertices = (glm::vec3*)linearAllocatorAllocate(&alloc, 1024);
+    u32 nVertices = 0;
+    glm::vec2* uvs = (glm::vec2*)linearAllocatorAllocate(&alloc, 1024);
+    u32 nUvs = 0;
+    glm::vec3* normals = (glm::vec3*)linearAllocatorAllocate(&alloc, 1024);
+    u32 nNormals = 0;
+    glm::vec3* faces = (glm::vec3*)linearAllocatorAllocate(&alloc, 1024);
+    u32 nFaces = 0;
+
     while(filesystemReadLine(&file, 1024, &lineLength, outData))
     {
         char* trimmed = stringTrim(outData);
@@ -49,13 +63,46 @@ bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* out
             stringCopy(value, &meshResource->name[0]);
         }
         else if(stringEquals(variable, "v")) {
+            glm::vec3 v;
+            stringToVec3(value, &v);
+            vertices[nVertices] = v;
+            nVertices++;
         }
         else if(stringEquals(variable, "vt")) {
-            PDEBUG("UVs: %s", value);
+            glm::vec2 v;
+            stringToVec2(value, &v);
+            uvs[nUvs] = v;
+            nUvs++;
         }
         else if(stringEquals(variable, "vn")) {
-            PDEBUG("Normal: %s", value);
+            glm::vec3 v;
+            stringToVec3(value, &v);
+            normals[nNormals] = v;
+            nNormals++;
         }
+        else if(stringEquals(variable, "f")) {
+            char str1[6];
+            char str2[6];
+            char str3[6];
+            sscanf(value, "%s %s %s", &str1, &str2, &str3);
+            PINFO("%d %s", nFaces, str1);
+            stringToObjFace(&str1[0], &faces[nFaces]);
+            nFaces++;
+            PINFO("%d %s", nFaces, str2);
+            stringToObjFace(&str2[0], &faces[nFaces]);
+            nFaces++;
+            PINFO("%d %s", nFaces, str3);
+            stringToObjFace(&str3[0], &faces[nFaces]);
+            nFaces++;
+        }
+    }
+
+    PINFO("NVertex %d", nVertices);
+    PINFO("Nuvs %d", nUvs);
+    PINFO("NNormals %d", nNormals);
+
+    for(u32 i = 0; i < nFaces; ++i) {
+        PINFO("Face %d: x = %d, y = %d, z = %d", i, (u32)faces[i].x, (u32)faces[i].y, (u32)faces[i].z);
     }
 
     filesystemClose(&file);

@@ -158,6 +158,8 @@ bool applicationInit(Game* pGameInst)
 
     // TEXTURE Loaders
     // TODO texture loader
+    MeshData* data = (MeshData*)cube.data;
+    PINFO("The name of the loaded resource is: %s.", data->name);
 
 
     // Init game
