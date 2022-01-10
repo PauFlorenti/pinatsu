@@ -303,10 +303,10 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     // TODO upload data to gpu
 
     u32 flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &state.dataBuffer);
+    vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->buffer);
 
     u32 offset = 0;
-    vulkanUploadDataToGPU(state.dataBuffer, offset, size, vertices);
+    vulkanUploadDataToGPU(auxiliarMesh->buffer, offset, size, vertices);
 
     return true;
 }
@@ -568,6 +568,17 @@ void vulkanBackendShutdown(void)
         vulkanDestroyFence(state, fence);
     }
 
+    // Destroy all buffers from loaded meshes
+    for(u32 i = 0;
+        i < VULKAN_MAX_MESHES;
+        ++i)
+    {
+        if(state.vulkanMeshes[i].id != INVALID_ID)
+        {
+            vulkanBufferDestroy(state, state.vulkanMeshes[i].buffer);
+        }
+    }
+
     vulkanBufferDestroy(state, state.dataBuffer);
 
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
@@ -698,8 +709,9 @@ bool vulkanDraw(const Scene& scene)
 
     for(const Entity& ent : scene.entities)
     {
+        VulkanMesh* mesh = &state.vulkanMeshes[ent.mesh->rendererId];
         VkDeviceSize offset = {0};
-        vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &state.dataBuffer.handle, &offset);
+        vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &mesh->buffer.handle, &offset);
         vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
             0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
         vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.graphicsPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &ent.model);

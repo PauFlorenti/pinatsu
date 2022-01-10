@@ -121,6 +121,7 @@ typedef struct VulkanMesh
     u32 vertexOffset;
     u32 indexCount;
     u32 indexOffset;
+    VulkanBuffer buffer;    // TODO rethink this when ECS
 } VulkanMesh;
 
 typedef struct VulkanState

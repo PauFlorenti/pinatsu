@@ -159,18 +159,18 @@ bool applicationInit(Game* pGameInst)
     // TEXTURE Loaders
     // TODO texture loader
 
-    //Mesh* plane = meshSystemGetPlane(1, 1);
-    //Entity ent;
-    //ent.mesh = plane;
-    //ent.model = glm::mat4(1);
+    Mesh* plane = meshSystemGetPlane(1, 1);
+    Entity ent;
+    ent.mesh = plane;
+    ent.model = glm::mat4(1);
     //Entity ent1;
     //ent1.mesh = plane;
     //ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
     Entity ent2;
     ent2.mesh = cubeMesh;
-    ent2.model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+    ent2.model = glm::translate(glm::mat4(1), glm::vec3(-3, 0, 0));
     pState->scene = new Scene();
-    //pState->scene->entities.emplace_back(ent);
+    pState->scene->entities.emplace_back(ent);
     //pState->scene->entities.emplace_back(ent1);
     pState->scene->entities.emplace_back(ent2);
 
