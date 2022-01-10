@@ -242,47 +242,6 @@ internal void vulkanCreateDescriptorSetLayout()
     VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &info, nullptr, &state.descriptorLayout));
 }
 
-// TODO Remove meshes.
-std::vector<VulkanVertex> triangle = {
-    {{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-    {{ 0.5f,  0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-    {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}}
-};
-
-std::vector<VulkanVertex> cube = {
-    // Front face
-    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-
-    // Back face
-    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-
-    // Left face
-    {{-0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{-0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-
-    // Right face
-    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f,  0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f,  0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f, -0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}},
-    {{ 0.5f,  0.5f, -0.5f},{1.0f, 1.0f, 1.0f, 1.0f}}
-};
-
 // Get standard attribute description.
 std::vector<VkVertexInputAttributeDescription>
 getStandardAttributeDescription(void);

@@ -47,7 +47,7 @@ static void meshSystemSetMesh(Mesh* mesh)
 {
     for(u32 i = 0; i < pState->config.maxMeshesCount; ++i)
     {
-        if(pState->meshes[i].id == mesh->id){
+        if(mesh->id != INVALID_ID && pState->meshes[i].id == mesh->id){
             PWARN("Mesh already set in system.");
             return;
         }
@@ -57,6 +57,9 @@ static void meshSystemSetMesh(Mesh* mesh)
             pState->meshes[i].id = i;
             return;
         }
+        if(i == pState->meshCount - 1) {
+            PERROR("meshSystemSetMesh - No room for a new mesh.");
+        }
     }
 }
 
@@ -65,6 +68,7 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
 {
     MeshData* mesh = (MeshData*)memAllocate(sizeof(MeshData), MEMORY_TAG_ENTITY);
     Mesh* meshref = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    meshref->id = INVALID_ID;
     char* name = "Plane";
     std::memcpy(&meshref->name, name, 5);
 
@@ -86,4 +90,20 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     renderCreateMesh(meshref, mesh->vertexCount, mesh->vertices, 0, nullptr);
 
     return meshref;
+}
+
+Mesh* meshSystemCreateFromData(const MeshData* data)
+{
+    if(!data) {
+        return false;
+    }
+
+    Mesh* mesh = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    mesh->id = INVALID_ID;
+    
+    meshSystemSetMesh(mesh);
+    if(!renderCreateMesh(mesh, data->vertexCount, data->vertices, data->indexCount, data->indices)) {
+        PERROR("meshSystemCreateFromData - Error al create mesh in renderer.");
+    }
+    return mesh;
 }

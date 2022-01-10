@@ -56,10 +56,9 @@ bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* out
         stringMid(variable, trimmed, 0, index);
         char value[256];    // value should not be greater than 256
         memZero(&value[0], sizeof(char) * 256);
-        stringMid(value, trimmed, index, length - index);
+        stringMid(value, trimmed, index + 1, length - index);
 
         if(stringEquals(variable, "o")) {
-            PDEBUG("Name: %s", value);
             stringCopy(value, &meshResource->name[0]);
         }
         else if(stringEquals(variable, "v")) {
@@ -85,31 +84,28 @@ bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* out
             char str2[6];
             char str3[6];
             sscanf(value, "%s %s %s", &str1, &str2, &str3);
-            PINFO("%d %s", nFaces, str1);
             stringToObjFace(&str1[0], &faces[nFaces]);
             nFaces++;
-            PINFO("%d %s", nFaces, str2);
             stringToObjFace(&str2[0], &faces[nFaces]);
             nFaces++;
-            PINFO("%d %s", nFaces, str3);
             stringToObjFace(&str3[0], &faces[nFaces]);
             nFaces++;
         }
     }
 
-    PINFO("NVertex %d", nVertices);
-    PINFO("Nuvs %d", nUvs);
-    PINFO("NNormals %d", nNormals);
-
+    meshResource->vertices = (Vertex*)memAllocate(sizeof(Vertex) * nFaces, MEMORY_TAG_ENTITY);
+    meshResource->vertexCount = nFaces;
     for(u32 i = 0; i < nFaces; ++i) {
-        PINFO("Face %d: x = %d, y = %d, z = %d", i, (u32)faces[i].x, (u32)faces[i].y, (u32)faces[i].z);
+        meshResource->vertices[i].position = vertices[(u32)faces[i].x - 1];
+        meshResource->vertices[i].color = glm::vec4(1);
     }
 
+    linearAllocatorDestroy(&alloc);
     filesystemClose(&file);
 
     outResource->name       = name;
     outResource->loaderId   = self->id;
-    outResource->dataSize   = fileSize; // data size
+    outResource->dataSize   = sizeof(MeshData);
     outResource->data       = meshResource;
 
     return true;

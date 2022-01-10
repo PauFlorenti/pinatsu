@@ -35,9 +35,6 @@ typedef struct ApplicationState
     u64 memorySystemMemoryRequirements;
     void* memorySystem;
 
-    u64 logSystemMemoryRequirements;
-    void* logSystem;
-
     u64 eventSystemMemoryRequirements;
     void* eventSystem;
 
@@ -156,11 +153,26 @@ bool applicationInit(Game* pGameInst)
     Resource cube;
     resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
 
+    MeshData* data = (MeshData*)cube.data;
+    Mesh* cubeMesh = meshSystemCreateFromData(data);
+
     // TEXTURE Loaders
     // TODO texture loader
-    MeshData* data = (MeshData*)cube.data;
-    PINFO("The name of the loaded resource is: %s.", data->name);
 
+    //Mesh* plane = meshSystemGetPlane(1, 1);
+    //Entity ent;
+    //ent.mesh = plane;
+    //ent.model = glm::mat4(1);
+    //Entity ent1;
+    //ent1.mesh = plane;
+    //ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
+    Entity ent2;
+    ent2.mesh = cubeMesh;
+    ent2.model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+    pState->scene = new Scene();
+    //pState->scene->entities.emplace_back(ent);
+    //pState->scene->entities.emplace_back(ent1);
+    pState->scene->entities.emplace_back(ent2);
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
@@ -184,17 +196,6 @@ bool applicationRun()
     clockUpdate(&pState->clock);
     pState->lastTime = pState->clock.elapsedTime;
 
-    Mesh* plane = meshSystemGetPlane(1, 1);
-    Entity ent;
-    ent.mesh = plane;
-    ent.model = glm::mat4(1);
-    Entity ent1;
-    ent1.mesh = plane;
-    ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
-    pState->scene = new Scene();
-    pState->scene->entities.emplace_back(ent);
-    pState->scene->entities.emplace_back(ent1);
-
     while(pState->m_isRunning)
     {
         if(!platformPumpMessages())
@@ -207,6 +208,14 @@ bool applicationRun()
             f64 currentTime = pState->clock.elapsedTime; // convert to seconds
             f64 deltaTime = currentTime - pState->lastTime;
             // TODO store delta time in game instance state.
+
+            // TODO This logic should be given by the game itself.
+            // TEMP
+            for(auto& ent : pState->scene->entities)
+            {
+                ent.model = glm::rotate(ent.model, glm::radians((f32)deltaTime * 10), glm::vec3(0, 1, 0));
+            }
+            // END TEMP
 
             platformUpdate();
             inputSystemUpdate((f32)deltaTime);

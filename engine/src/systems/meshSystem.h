@@ -14,3 +14,4 @@ void meshSystemShutdown(void* state);
 
 // TODO make with segments, more custom.
 Mesh* meshSystemGetPlane(u32 width, u32 height);
+Mesh* meshSystemCreateFromData(const MeshData* data);

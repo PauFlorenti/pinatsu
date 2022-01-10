@@ -117,7 +117,7 @@ void stringMid(char* buffer, const char* str, i32 start, i32 length)
 
     if(length > 0)
     {
-        for(u64 i = start, j = 0; i < length && str[i]; ++i, ++j)
+        for(u64 i = start, j = 0; i <= length && str[i]; ++i, ++j)
         {
             buffer[j] = str[i];
         }
@@ -175,6 +175,5 @@ bool stringToObjFace(const char* str, glm::vec3* outFace)
 
     memZero(outFace, sizeof(glm::vec3));
     i32 result = sscanf(str, "%f/%f/%f", &outFace->x, &outFace->y, &outFace->z);
-    printf("%d - %d - %d\n", (u32)outFace->x, (u32)outFace->y, (u32)outFace->z);
     return result != -1;
 }
