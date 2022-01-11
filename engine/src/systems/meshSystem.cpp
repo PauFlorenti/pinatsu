@@ -39,6 +39,7 @@ bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig confi
 void meshSystemShutdown(void* state)
 {
     if(state) {
+        // TODO render destroy mesh. Free GPU memory for all updated meshes.
         pState = nullptr;
     }
 }
@@ -97,6 +98,8 @@ Mesh* meshSystemCreateFromData(const MeshData* data)
     if(!data) {
         return false;
     }
+
+    // TODO make sure mesh is not already updated.
 
     Mesh* mesh = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
     mesh->id = INVALID_ID;

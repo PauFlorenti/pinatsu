@@ -22,6 +22,8 @@ void platformFreeMemory(void* block);
 
 void* platformZeroMemory(void* block, u64 size);
 
+void* platformSetMemory(void* dest, i32 value, u64 size);
+
 void* platformCopyMemory(void* source, void* dest, u64 size);
 
 void platformConsoleWrite(const char* msg, u8 level);

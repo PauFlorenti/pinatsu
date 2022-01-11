@@ -66,6 +66,14 @@ void memFree(void* block, u64 size, memoryTag tag);
 void* memZero(void* block, u64 size);
 
 /**
+ * Sets the value to the whole block of memory.
+ * @param void* block The memory block to fill out.
+ * @param i32 value The value to fill.
+ * @param u64 size The size of the block of memory to fil out.
+ */
+void* memSet(void* block, i32 value, u64 size);
+
+/**
  * Copies the memory data from source to dest.
  * @param void* source
  * @param void* dest

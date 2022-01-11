@@ -300,8 +300,6 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
 
     // TODO indices
 
-    // TODO upload data to gpu
-
     u32 flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->buffer);
 
@@ -309,6 +307,61 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     vulkanUploadDataToGPU(auxiliarMesh->buffer, offset, size, vertices);
 
     return true;
+}
+
+void vulkanDestroyMesh(const Mesh* mesh)
+{
+    if(!mesh) {
+        return;
+    }
+
+    for(u32 i = 0;
+        i < VULKAN_MAX_MESHES;
+        ++i)
+    {
+        if(state.vulkanMeshes[i].id == mesh->id)
+        {
+            vulkanBufferDestroy(state, state.vulkanMeshes[i].buffer);
+            state.vulkanMeshes[i].id = INVALID_ID;
+            break;
+        }
+    }
+}
+
+bool vulkanCreateTexture(void* data, Texture* texture)
+{
+    if(!data || !texture) {
+        PERROR("vulkanCreateTexture - Unable to create the texture given the inputs.");
+        return false;
+    }
+
+    VulkanTexture* texture = (VulkanTexture*)texture->data;
+
+    VkDeviceSize textureSize = texture->width * texture->height * texture->channels;
+
+    // ! Assume 8 bit per channel
+    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+
+    // Staging buffer, load data into it.
+    VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkMemoryPropertyFlags memPropsFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VulkanBuffer staging;
+    vulkanBufferCreate(&state, textureSize, usageFlags, memPropsFlags, &staging);
+
+    vulkanBufferLoadData(&state, &staging, 0, textureSize, 0, texture->data);
+
+    // TODO vulkan create image
+
+    // TODO image transition layer
+
+
+
+    return true;
+}
+
+void vulkanDestroyTexture(const Texture* texture)
+{
+
 }
 
 /**

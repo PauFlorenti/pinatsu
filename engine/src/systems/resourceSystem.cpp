@@ -138,6 +138,7 @@ void resourceSystemUnload(Resource* resource)
     }
 }
 
+// Return the base assets path.
 const char* resourceSystemPath(void)
 {
     if(pState) {

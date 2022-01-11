@@ -88,6 +88,11 @@ void* memZero(void* block, u64 size)
     return platformZeroMemory(block, size);
 }
 
+void* memSet(void* block, i32 value, u64 size)
+{
+    return platformSetMemory(block, value, size);
+}
+
 void* memCopy(void* source, void* dest, u64 size)
 {
     return platformCopyMemory(source, dest, size);

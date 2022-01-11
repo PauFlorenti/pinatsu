@@ -110,6 +110,24 @@ typedef struct ViewProjectionBuffer
     glm::mat4 projection;
 } ViewProjectionBuffer;
 
+typedef struct VulkanImage
+{
+    VkImage handle;
+    VkDeviceMemory memory;
+    VkImageView view;
+    u32 width;
+    u32 height;
+} VulkanImage;
+
+// TODO make configurable
+#define VULKAN_MAX_TEXTURES 10
+
+typedef struct VulkanTexture
+{
+    VulkanImage image;
+    VkSampler sampler;
+} VulkanTexture;
+
 // TODO make configurable
 #define VULKAN_MAX_MESHES 10
 
@@ -142,6 +160,7 @@ typedef struct VulkanState
     // TODO Temporal variables
     VulkanBuffer dataBuffer;
     ViewProjectionBuffer ubo{};
+    VulkanBuffer textBuffer;
 
     VulkanMesh* vulkanMeshes;
 

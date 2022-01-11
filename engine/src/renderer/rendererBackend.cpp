@@ -15,6 +15,7 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
         state->onResize = vulkanBackendOnResize;
         state->updateGlobalState = vulkanUpdateGlobalState;
         state->onCreateMesh = vulkanCreateMesh;
+        state->onCreateTexture = vulkanCreateTexture;
 
         return true;
     }

@@ -22,17 +22,33 @@ typedef struct Resource
     void* data;
 } Resource;
 
+typedef struct TextureResource
+{
+    u8* pixels;
+    u32 width;
+    u32 height;
+    u32 channels;
+} TextureResource;
+
+#define TEXTURE_NAME_MAX_LENGTH 256
+
 typedef struct Texture
 {
     u32 id;
     u32 width;
     u32 height;
+    u32 channels;
+    bool hasTransparency;
+    char name[TEXTURE_NAME_MAX_LENGTH];
+    void* data;
 } Texture;
+
+#define MATERIAL_NAME_MAX_LENGHT 256
 
 typedef struct Material
 {
     u32 id;
-    const char* name;
+    char name[MATERIAL_NAME_MAX_LENGHT];
 } Material;
 
 #define MESH_MAX_LENGTH 256
