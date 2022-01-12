@@ -2,3 +2,4 @@
 
 #include "systems/resourceSystem.h"
 
+ResourceLoader textureLoaderCreate();

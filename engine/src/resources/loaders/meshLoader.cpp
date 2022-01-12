@@ -6,7 +6,7 @@
 #include "memory/pmemory.h"
 #include "memory/linearAllocator.h"
 
-bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* outResource)
+bool meshLoaderLoad(struct ResourceLoader* self, const char* name, Resource* outResource)
 {
     if(!self || !name || !outResource)
     {
@@ -111,15 +111,15 @@ bool meshLoaderLoad(struct resourceLoader* self, const char* name, Resource* out
     return true;
 }
 
-bool meshLoaderUnload(resourceLoader* self, Resource* resource)
+bool meshLoaderUnload(ResourceLoader* self, Resource* resource)
 {
     PERROR("meshLoaderUnload - Resource invalid or inexistent.");
     return false;
 }
 
-resourceLoader meshLoaderCreate()
+ResourceLoader meshLoaderCreate()
 {
-    resourceLoader loader;
+    ResourceLoader loader;
     loader.load         = meshLoaderLoad;
     loader.unload       = meshLoaderUnload;
     loader.customType   = nullptr;

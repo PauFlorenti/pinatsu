@@ -9,7 +9,7 @@
 
 typedef struct ResoureSystemState{
     resourceSystemConfig config;
-    resourceLoader* loaders;
+    ResourceLoader* loaders;
 } ResourceSystemState;
 
 static ResourceSystemState* pState = nullptr;
@@ -19,7 +19,7 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
     // If system not init yet, return memory requirements to be initialized.
     if(state == nullptr)
     {
-        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(resourceLoader) * config.maxLoaderCount);
+        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(ResourceLoader) * config.maxLoaderCount);
         return true;
     }
 
@@ -37,8 +37,7 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
     pState->config = config;
 
     void* resourceLoaderPtr = pState + sizeof(resourceSystemConfig);
-    //pState->loaders = static_cast<resourceLoader*>(pState + sizeof(resourceSystemConfig));
-    pState->loaders = (resourceLoader*)(pState + sizeof(pState->config));
+    pState->loaders = (ResourceLoader*)(pState + sizeof(pState->config));
 
     for(u32 i = 0; i < pState->config.maxLoaderCount; i++)
     {
@@ -46,6 +45,7 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
     }
 
     resourceSystemRegisterLoader(meshLoaderCreate());
+    resourceSystemRegisterLoader(textureLoaderCreate());
 
     PINFO("Resource system initialized with base path %s.", config.assetsBasePath);
 
@@ -58,7 +58,7 @@ void resourceSystemShutdown(void* state)
         state = nullptr;
 }
 
-bool resourceSystemRegisterLoader(const resourceLoader& loader)
+bool resourceSystemRegisterLoader(const ResourceLoader& loader)
 {
     if(pState)
     {
@@ -66,7 +66,7 @@ bool resourceSystemRegisterLoader(const resourceLoader& loader)
         // Make sure resource loader is not already registered
         for(u32 i = 0; i < count; i++)
         {
-            resourceLoader* l = &pState->loaders[i];
+            ResourceLoader* l = &pState->loaders[i];
             if(l->id != INVALID_ID)
             {
                 if(l->type == loader.type)
@@ -98,7 +98,7 @@ bool resourceSystemLoad(const char* name, resourceTypes type, Resource* outResou
         u32 count = pState->config.maxLoaderCount;
         for(u32 i = 0; i < count; ++i)
         {
-            resourceLoader* loader = &pState->loaders[i];
+            ResourceLoader* loader = &pState->loaders[i];
             PINFO("Loading %s ...", name);
             if(loader->id != INVALID_ID && pState->loaders[i].type == type) {
                 return loader->load(loader, name, outResource);
@@ -116,7 +116,7 @@ bool resourceSystemCustomLoad(const char* name, const char* customType, Resource
         u32 count = pState->config.maxLoaderCount;
         for(u32 i = 0; i < count; ++i)
         {
-            resourceLoader* loader = &pState->loaders[i];
+            ResourceLoader* loader = &pState->loaders[i];
             if(loader->id != INVALID_ID && loader->type == RESOURCE_TYPE_CUSTOM && std::strcmp(pState->loaders[i].customType, customType)) {
                 return loader->load(loader, name, outResource);
             }
@@ -132,7 +132,7 @@ void resourceSystemUnload(Resource* resource)
     {
         if(resource->loaderId != INVALID_ID)
         {
-            resourceLoader* l = &pState->loaders[resource->loaderId];
+            ResourceLoader* l = &pState->loaders[resource->loaderId];
             l->unload(l, resource);
         }
     }
@@ -148,7 +148,7 @@ const char* resourceSystemPath(void)
     return "";
 }
 
-bool load(const char* name, resourceLoader* loader, Resource* outResource)
+bool load(const char* name, ResourceLoader* loader, Resource* outResource)
 {
     if(!name || !loader || !loader->load || !outResource) {
         outResource->loaderId = INVALID_ID;

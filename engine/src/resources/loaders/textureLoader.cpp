@@ -10,7 +10,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <external/stb/stb_image.h>
 
-bool textureLoaderLoad(struct resourceLoader* self, const char* name, Resource* outResource)
+bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* outResource)
 {
     if(!self || !name || !outResource)
     {
@@ -61,4 +61,21 @@ bool textureLoaderLoad(struct resourceLoader* self, const char* name, Resource* 
 
     filesystemClose(&handle);
     return true;
+}
+
+bool textureLoaderUnload(ResourceLoader* self, Resource* resource)
+{
+
+}
+
+ResourceLoader textureLoaderCreate()
+{
+    ResourceLoader resource;
+    resource.id = INVALID_ID;
+    resource.load = textureLoaderLoad;
+    resource.unload = textureLoaderUnload;
+    resource.type = RESOURCE_TYPE_TEXTURE;
+    resource.typePath = "textures";
+    resource.customType = "";
+    return resource;
 }
