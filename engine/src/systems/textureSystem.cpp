@@ -43,7 +43,7 @@ bool textureSytemInit(u64* memoryRequirements, void* state, TextureSystemConfig 
         pState->textures[i].id = INVALID_ID;
     }
 
-    pState->defaultTexture.id = INVALID_ID;
+    pState->defaultTexture->id = INVALID_ID;
     // TODO create default texture.
 
     return true;

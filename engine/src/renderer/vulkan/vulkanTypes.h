@@ -158,9 +158,9 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    VulkanBuffer dataBuffer;
     ViewProjectionBuffer ubo{};
     VulkanBuffer textBuffer;
+    VulkanTexture texture;
 
     VulkanMesh* vulkanMeshes;
 

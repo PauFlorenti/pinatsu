@@ -221,6 +221,43 @@ internal void vulkanUploadDataToGPU(
     u64 size,
     const void* data);
 
+internal void vulkanBufferCopyToImage(
+    VulkanState* pState,
+    VulkanBuffer* buffer,
+    VulkanImage* image,
+    u32 width,
+    u32 height);
+
+//
+// * Texture functions
+//
+internal void vulkanCreateImage(
+    VulkanState* pState,
+    VkImageType type,
+    u32 width,
+    u32 height,
+    VkFormat imageFormat,
+    VkImageTiling tiling,
+    VkImageUsageFlags,
+    VkMemoryPropertyFlags,
+    bool createView,
+    VkImageAspectFlags viewAspectFlags,
+    VulkanImage* outImage);
+
+internal void vulkanCreateImageView(
+    VulkanState* pState, 
+    VulkanImage* image,
+    VkFormat format,
+    VkImageAspectFlags aspectFlags);
+
+internal void vulkanImageTransitionLayout(
+    VulkanState* pState,
+    VulkanImage* image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkCommandBuffer& cmd);
+
 internal void vulkanCreateDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding binding{};
@@ -246,8 +283,21 @@ internal void vulkanCreateDescriptorSetLayout()
 std::vector<VkVertexInputAttributeDescription>
 getStandardAttributeDescription(void);
 
+/**
+ * * Command buffer functions
+ */
 // TODO Command buffer functions
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
+
+void vulkanCommandBufferAllocateAndBeginSingleUse(
+    VulkanState* pState,
+    VkCommandPool pool,
+    VkCommandBuffer& cmd);
+
+void vulkanCommandBufferEndSingleUse(
+    VulkanState* pState,
+    VkCommandPool pool,
+    VkCommandBuffer& cmd);
 
 i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
 {
@@ -335,7 +385,7 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         return false;
     }
 
-    VulkanTexture* texture = (VulkanTexture*)texture->data;
+    //VulkanTexture* texture = (VulkanTexture*)texture->data;
 
     VkDeviceSize textureSize = texture->width * texture->height * texture->channels;
 
@@ -350,18 +400,50 @@ bool vulkanCreateTexture(void* data, Texture* texture)
 
     vulkanBufferLoadData(&state, &staging, 0, textureSize, 0, texture->data);
 
-    // TODO vulkan create image
+    vulkanCreateImage(
+        &state,
+        VK_IMAGE_TYPE_2D,
+        texture->width,
+        texture->height,
+        format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        VK_IMAGE_ASPECT_COLOR_BIT,
+        &state.texture.image
+    );
 
-    // TODO image transition layer
+    VkCommandBuffer temporalCommand;
+    vulkanCommandBufferAllocateAndBeginSingleUse(&state, state.device.commandPool, temporalCommand);
 
+    vulkanImageTransitionLayout(
+        &state, &state.texture.image, 
+        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, temporalCommand);
 
+    vulkanBufferCopyToImage(
+        &state,
+        &staging, 
+        &state.texture.image, 
+        state.texture.image.width, 
+        state.texture.image.height);
+    
+    vulkanImageTransitionLayout(
+        &state, &state.texture.image, 
+        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, temporalCommand);
+
+    vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, temporalCommand);
+
+    vulkanBufferDestroy(state, staging);
 
     return true;
 }
 
 void vulkanDestroyTexture(const Texture* texture)
 {
-
+    // TODO destroy specific texture
 }
 
 /**
@@ -632,7 +714,9 @@ void vulkanBackendShutdown(void)
         }
     }
 
-    vulkanBufferDestroy(state, state.dataBuffer);
+    // Destroy all images.
+    vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
+    vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
 
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
@@ -1328,6 +1412,219 @@ internal void vulkanUploadDataToGPU(
     vulkanBufferLoadData(&state, &stagingBuffer, 0, size, 0, data);
     vulkanTransferBuffer(stagingBuffer.handle, buffer.handle, size);
     vulkanBufferDestroy(state, stagingBuffer);
+}
+
+/**
+ * @brief Copy the buffer data to an image.
+ */
+internal void vulkanBufferCopyToImage(
+    VulkanState* pState,
+    VulkanBuffer* buffer,
+    VulkanImage* image,
+    u32 width,
+    u32 height)
+{
+    VkCommandBuffer temporalCommandBuffer;
+    vulkanCommandBufferAllocateAndBeginSingleUse(
+        pState, 
+        pState->device.commandPool, 
+        temporalCommandBuffer);
+    
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {width, height, 1};
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.layerCount = 1;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.mipLevel = 0;
+
+    vkCmdCopyBufferToImage(
+        temporalCommandBuffer, 
+        buffer->handle, 
+        image->handle, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        1, 
+        &region);
+
+    vulkanCommandBufferEndSingleUse(
+        pState,
+        pState->device.commandPool,
+        temporalCommandBuffer);
+}
+
+/**
+ * Function to create an image in vulkan.
+ */
+internal void vulkanCreateImage(
+    VulkanState* pState,
+    VkImageType type,
+    u32 width,
+    u32 height,
+    VkFormat imageFormat,
+    VkImageTiling tiling,
+    VkImageUsageFlags imageUsage,
+    VkMemoryPropertyFlags memoryProperties,
+    bool createView,
+    VkImageAspectFlags viewAspectFlags,
+    VulkanImage* outImage)
+{
+
+    outImage->width = width;
+    outImage->height = height;
+
+    VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    info.imageType = type;
+    info.format = imageFormat;
+    info.extent = {width, height, 1};
+    info.mipLevels = 1;
+    info.arrayLayers = 1;
+    info.tiling = tiling;
+    info.usage = imageUsage;
+    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    info.samples = VK_SAMPLE_COUNT_1_BIT;
+    //info.queueFamilyIndexCount = 1;
+    //info.pQueueFamilyIndices = &pState->device.graphicsQueueIndex; ignored as it is not VK_SHARING_MODE_CONCURRENT
+    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VK_CHECK(vkCreateImage(pState->device.handle, &info, nullptr, &outImage->handle));
+
+    VkMemoryRequirements memoryRequirements;
+    vkGetImageMemoryRequirements(
+        pState->device.handle, 
+        outImage->handle, 
+        &memoryRequirements);
+
+    VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    memoryAllocateInfo.allocationSize = memoryRequirements.size;
+    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(memoryRequirements.memoryTypeBits, memoryProperties);
+
+    VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
+
+    VK_CHECK(vkBindImageMemory(pState->device.handle, outImage->handle, outImage->memory, 0));
+
+    if(createView)
+    {
+        outImage->view = 0;
+        vulkanCreateImageView(
+            pState, 
+            outImage, 
+            VK_FORMAT_R8G8B8A8_UNORM, 
+            viewAspectFlags);
+    }
+}
+
+internal void vulkanCreateImageView(
+    VulkanState* pState, 
+    VulkanImage* image,
+    VkFormat format,
+    VkImageAspectFlags aspectFlags)
+{
+    VkImageViewCreateInfo info {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    info.image = image->handle;
+    info.viewType = VK_IMAGE_VIEW_TYPE_2D;  // TODO make configurable
+    info.format = format;
+    info.subresourceRange.aspectMask = aspectFlags;
+
+    //TODO make configurable
+    info.subresourceRange.levelCount = 1;
+    info.subresourceRange.baseMipLevel = 0;
+    info.subresourceRange.layerCount = 1;
+    info.subresourceRange.baseArrayLayer = 0;
+
+    VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &image->view));
+}
+
+internal void vulkanImageTransitionLayout(
+    VulkanState* pState,
+    VulkanImage* image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    VkCommandBuffer& cmd)
+{
+    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    barrier.image = image->handle;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = pState->device.graphicsQueueIndex;
+    barrier.dstQueueFamilyIndex = pState->device.graphicsQueueIndex;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+
+    VkPipelineStageFlags srcStage;
+    VkPipelineStageFlags dstStage;
+
+    if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && 
+        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+
+    vkCmdPipelineBarrier(
+        cmd,
+        srcStage,
+        dstStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
+}
+
+// ****************************
+// * Command buffer functions *
+// ****************************
+void vulkanCommandBufferAllocateAndBeginSingleUse(
+    VulkanState* pState,
+    VkCommandPool pool,
+    VkCommandBuffer& cmd)
+{
+    VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    allocInfo.commandPool = pool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+    VK_CHECK(vkAllocateCommandBuffers(pState->device.handle, &allocInfo, &cmd));
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    
+    VK_CHECK(vkBeginCommandBuffer(cmd, &beginInfo));
+}
+
+void vulkanCommandBufferEndSingleUse(
+    VulkanState* pState,
+    VkCommandPool pool,
+    VkCommandBuffer& cmd)
+{
+    vkEndCommandBuffer(cmd);
+
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+
+    VK_CHECK(vkQueueSubmit(pState->device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+
+    VK_CHECK(vkQueueWaitIdle(pState->device.graphicsQueue));
+
+    vkFreeCommandBuffers(pState->device.handle, pool, 1, &cmd);
 }
 
 /**
