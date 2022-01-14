@@ -10,7 +10,9 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
         state->init = vulkanBackendInit;
         state->shutdown = vulkanBackendShutdown;
         state->beginFrame = vulkanBeginFrame;
+        state->beginRenderPass = vulkanBeginRenderPass;
         state->draw = vulkanDraw;
+        state->endRenderPass = vulkanEndRenderPass;
         state->endFrame = vulkanEndFrame;
         state->onResize = vulkanBackendOnResize;
         state->updateGlobalState = vulkanUpdateGlobalState;

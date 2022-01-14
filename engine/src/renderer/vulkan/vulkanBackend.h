@@ -3,7 +3,7 @@
 #include "defines.h"
 
 #include "external/glm/glm.hpp" // TODO temp
-#include "resources/resourcesTypes.h" // TODO temp
+#include "renderer/renderTypes.h"
 
 struct Scene;
 
@@ -13,7 +13,9 @@ void vulkanBackendShutdown();
 void vulkanBackendOnResize(u32 width, u32 height);
 
 bool vulkanBeginFrame(f32 delta);
-bool vulkanDraw(const Scene& scene);
+bool vulkanBeginRenderPass(DefaultRenderPasses renderPassID);
+bool vulkanDraw(const RenderPacket& packet);
+void vulkanEndRenderPass(DefaultRenderPasses renderPassID);
 void vulkanEndFrame();
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);

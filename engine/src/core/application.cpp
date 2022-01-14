@@ -247,10 +247,13 @@ bool applicationRun()
             // TODO Create a struct Game with its own function pointers to
             // Update and render
             // At the moment update the scene is done in renderBeginFrame and it shouldn't
-            if(renderBeginFrame((f32)deltaTime)){
-                renderDrawFrame(*pState->scene);
-                renderEndFrame(1.0f);
-            }
+
+            RenderPacket packet;
+            packet.deltaTime = deltaTime;
+            packet.meshesCount = 1;
+            packet.meshes = pState->scene->entities[0].mesh;
+            packet.model = pState->scene->entities[0].model;
+            renderDrawFrame(packet);
 
             pState->lastTime = currentTime;
         }

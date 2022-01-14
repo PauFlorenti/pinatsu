@@ -45,27 +45,33 @@ void renderSystemShutdown(void* state)
     }
 }
 
-bool renderBeginFrame(f64 dt)
+bool renderDrawFrame(const RenderPacket& packet)
 {
-    if(!pState->renderBackend.beginFrame(dt)){
-        return false;
-    }
-    pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)dt);
-    return true;
-}
 
-bool renderDrawFrame(const Scene& scene)
-{
-    if(!pState->renderBackend.draw(scene)){
-        PFATAL("Could not be able to draw.");
-        return false;
-    }
-    return true;
-}
+    if(pState->renderBackend.beginFrame(packet.deltaTime))
+    {
+        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
 
-void renderEndFrame(f32 dt)
-{
-    pState->renderBackend.endFrame();
+        // Begin renderpass
+        if(!pState->renderBackend.beginRenderPass(RENDER_PASS_FORWARD))
+        {
+            PFATAL("renderDrawFrame - Could not begin render pass.");
+            return false;
+        }
+
+        if(!pState->renderBackend.draw(packet)){
+            PFATAL("renderDrawFrame - Could not draw.");
+            return false;
+        }
+        pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
+
+        pState->renderBackend.endFrame();
+
+        return true;
+    }
+        PERROR("Could not start rendering the frame;")
+        return false;
+
 }
 
 void renderOnResize(u16 width, u16 height)

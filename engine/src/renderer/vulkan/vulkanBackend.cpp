@@ -5,9 +5,8 @@
 #include "vulkanRenderpass.h"
 #include "vulkanFramebuffer.h"
 
-#include "core\application.h"
-#include "platform\platform.h"
-#include "scene/scene.h"
+#include "core/application.h"
+#include "platform/platform.h"
 #include "pmath.h"
 #include <vector>
 #include <string>
@@ -834,19 +833,37 @@ bool vulkanBeginFrame(f32 delta)
     vkCmdSetViewport(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &viewport);
     vkCmdSetScissor(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &scissor);
 
-    VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
-
-    VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-    info.renderPass         = state.renderpass.handle;
-    info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
-    info.renderArea.offset  = {0, 0};
-    info.renderArea.extent  = state.swapchain.extent;
-    info.clearValueCount    = 1;
-    info.pClearValues       = &clearColor;
-    
-    vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
 
     return true;
+}
+
+bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
+{
+
+    // TODO Abstract render pass creation.
+    switch(renderPassid)
+    {
+            // Forward render pass
+        case 0:
+        {
+            VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
+
+            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+            info.renderPass         = state.renderpass.handle;
+            info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
+            info.renderArea.offset  = {0, 0};
+            info.renderArea.extent  = state.swapchain.extent;
+            info.clearValueCount    = 1;
+            info.pClearValues       = &clearColor;
+            
+            vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
+            return true;
+            break;
+        }
+        default:
+            return false;
+            break;
+    }
 }
 
 /**
@@ -854,22 +871,36 @@ bool vulkanBeginFrame(f32 delta)
  * @param void
  * @return bool
  */
-bool vulkanDraw(const Scene& scene)
+bool vulkanDraw(const RenderPacket& packet)
 {
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
 
-    for(const Entity& ent : scene.entities)
+    for(u32 i = 0; i < packet.meshesCount; ++i)
     {
-        VulkanMesh* mesh = &state.vulkanMeshes[ent.mesh->rendererId];
+        VulkanMesh* mesh = &state.vulkanMeshes[packet.meshes[i].rendererId];
         VkDeviceSize offset = {0};
         vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &mesh->buffer.handle, &offset);
         vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
             0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-        vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.graphicsPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &ent.model);
-        u32 vCount = state.vulkanMeshes[ent.mesh->rendererId].vertexCount;
+        vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.graphicsPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &packet.model);
+        u32 vCount = state.vulkanMeshes[packet.meshes[i].rendererId].vertexCount;
         vkCmdDraw(state.commandBuffers[state.imageIndex].handle, vCount, 1, 0, 0);
     }
     return true;
+}
+
+void vulkanEndRenderPass(DefaultRenderPasses renderPass)
+{
+    // TODO end the given render pass
+    switch (renderPass)
+    {
+    case 0:
+        vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
+        break;
+    
+    default:
+        break;
+    }
 }
 
 /**
@@ -880,7 +911,6 @@ bool vulkanDraw(const Scene& scene)
  */
 void vulkanEndFrame(void)
 {
-    vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
     VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
