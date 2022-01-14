@@ -65,7 +65,7 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
 
 bool textureLoaderUnload(ResourceLoader* self, Resource* resource)
 {
-
+    return true;
 }
 
 ResourceLoader textureLoaderCreate()
@@ -76,6 +76,6 @@ ResourceLoader textureLoaderCreate()
     resource.unload = textureLoaderUnload;
     resource.type = RESOURCE_TYPE_TEXTURE;
     resource.typePath = "textures";
-    resource.customType = "";
+    resource.customType = nullptr;
     return resource;
 }

@@ -14,6 +14,7 @@
 
 #include "systems/resourceSystem.h"
 #include "systems/meshSystem.h"
+#include "systems/textureSystem.h"
 
 // TODO temp
 #include "scene/scene.h"
@@ -52,6 +53,9 @@ typedef struct ApplicationState
 
     u64 meshSystemMemoryRequirements;
     void* meshSystem;
+
+    u64 textureSystemMemoryRequirements;
+    void* textureSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -138,8 +142,7 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Mesh system
-    MeshSystemConfig meshSystemConfig;
-    meshSystemConfig.maxMeshesCount = 10;
+    MeshSystemConfig meshSystemConfig{10};
     meshSystemInit(&pState->meshSystemMemoryRequirements, nullptr, meshSystemConfig);
     pState->meshSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->meshSystemMemoryRequirements);
     if(!meshSystemInit(&pState->meshSystemMemoryRequirements, pState->meshSystem, meshSystemConfig))
@@ -148,38 +151,40 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
+    // Init Texture system.
+    TextureSystemConfig textureSystemConfig{10};
+    textureSystemInit(&pState->textureSystemMemoryRequirements, nullptr, textureSystemConfig);    
+    pState->textureSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->textureSystemMemoryRequirements);
+    if(!textureSystemInit(&pState->textureSystemMemoryRequirements, pState->textureSystem, textureSystemConfig))
+    {
+        PFATAL("Texture system could not be initialized! Shutting down now.");
+        return false;
+    }
+
     // Register resource systems.
     // MESH Loader
     Resource cube;
     resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
     MeshData* data = (MeshData*)cube.data;
-    Mesh* cubeMesh = meshSystemCreateFromData(data);
+    //Mesh* cubeMesh = meshSystemCreateFromData(data);
 
-    Resource monkey;
-    resourceSystemLoad("monkey_smooth.obj", RESOURCE_TYPE_MESH, &monkey);
-    MeshData* monkeyData = (MeshData*)monkey.data;
-    Mesh* monkeyMesh = meshSystemCreateFromData(monkeyData);
-
-    // TEXTURE Loaders
-    // TODO texture loader
-    Resource texture;
-    resourceSystemLoad("", RESOURCE_TYPE_TEXTURE, &texture);
+    //Texture* text = textureSystemGetDefaultTexture();
 
     Mesh* plane = meshSystemGetPlane(1, 1);
     Entity ent;
     ent.mesh = plane;
     ent.model = glm::mat4(1);
     Entity ent1;
-    ent1.mesh = monkeyMesh;
+    //ent1.mesh = monkeyMesh;
     ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
     ent1.model = glm::scale(ent1.model, glm::vec3(0.5f));
     Entity ent2;
-    ent2.mesh = cubeMesh;
+    //ent2.mesh = cubeMesh;
     ent2.model = glm::translate(glm::mat4(1), glm::vec3(-3, 0, 0));
     pState->scene = new Scene();
     pState->scene->entities.emplace_back(ent);
     //pState->scene->entities.emplace_back(ent1);
-    pState->scene->entities.emplace_back(ent2);
+    //pState->scene->entities.emplace_back(ent2);
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))

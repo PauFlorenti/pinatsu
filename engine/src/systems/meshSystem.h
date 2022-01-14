@@ -8,7 +8,6 @@ typedef struct MeshSystemConfig
     u32 maxMeshesCount;
 } MeshSystemConfig;
 
-
 bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig config);
 void meshSystemShutdown(void* state);
 

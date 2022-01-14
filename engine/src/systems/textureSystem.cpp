@@ -3,6 +3,7 @@
 #include "core/logger.h"
 #include "memory/pmemory.h"
 #include "resources/resourcesTypes.h"
+#include "renderer/rendererFrontend.h"
 
 typedef struct TextureSystemState
 {
@@ -16,7 +17,7 @@ typedef struct TextureSystemState
 
 static TextureSystemState* pState;
 
-bool textureSytemInit(u64* memoryRequirements, void* state, TextureSystemConfig config)
+bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig config)
 {
     if(config.maxTextureCount < 1)
     {
@@ -43,6 +44,7 @@ bool textureSytemInit(u64* memoryRequirements, void* state, TextureSystemConfig 
         pState->textures[i].id = INVALID_ID;
     }
 
+    pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture*), MEMORY_TAG_TEXTURE);
     pState->defaultTexture->id = INVALID_ID;
     // TODO create default texture.
 
@@ -64,7 +66,7 @@ void textureSystemShutdown(void* state)
     }
 }
 
-static bool createDefaultTextures()
+Texture* textureSystemGetDefaultTexture()
 {
     // Create a default 256x256 texture with a checkered pattern.
     PDEBUG("Creating default texture.");
@@ -105,6 +107,7 @@ static bool createDefaultTextures()
     pState->defaultTexture->id = INVALID_ID;
 
     // TODO renderer create texture
+    renderCreateTexture(pixels, pState->defaultTexture);
 
-    return true;
+    return pState->defaultTexture;
 }

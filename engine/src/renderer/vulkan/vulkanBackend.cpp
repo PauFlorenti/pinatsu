@@ -83,7 +83,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState);
 void createCommandBuffers();
 
 /**
- * Synchronization Utility Functions.
+ * *Synchronization Utility Functions.
  * This includes both Semaphores and Fences.
  */
 internal bool vulkanCreateFence(
@@ -266,12 +266,6 @@ internal void vulkanCreateDescriptorSetLayout()
     binding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     binding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
 
-    VkDescriptorSetLayoutBinding entityBinding{};
-    entityBinding.binding           = 1;
-    entityBinding.descriptorCount   = 1;
-    entityBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    entityBinding.stageFlags        = VK_SHADER_STAGE_VERTEX_BIT;
-
     VkDescriptorSetLayoutCreateInfo info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     info.bindingCount   = 1;
     info.pBindings      = &binding;
@@ -437,6 +431,25 @@ bool vulkanCreateTexture(void* data, Texture* texture)
     vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, temporalCommand);
 
     vulkanBufferDestroy(state, staging);
+
+    VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 16;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    VK_CHECK(vkCreateSampler(state.device.handle, &samplerInfo, nullptr, &state.texture.sampler));
 
     return true;
 }
@@ -614,7 +627,7 @@ bool vulkanBackendInit(const char* appName)
     }
 
     // Create descriptor pool
-    VkDescriptorPoolSize descriptorPoolSize{};
+    VkDescriptorPoolSize descriptorPoolSize;
     descriptorPoolSize.descriptorCount = static_cast<u32>(state.swapchain.images.size());
     descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
@@ -717,6 +730,7 @@ void vulkanBackendShutdown(void)
     // Destroy all images.
     vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
     vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
+    vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
 
     for(size_t i = 0; i < state.swapchain.images.size(); i++)
     {
@@ -962,7 +976,7 @@ bool vulkanShaderObjectCreate(VulkanState* pState)
     // Vertex Info
     VkVertexInputBindingDescription vertexBinding = {};
     vertexBinding.binding   = 0;
-    vertexBinding.stride    = sizeof(f32) * 7;
+    vertexBinding.stride    = sizeof(VulkanVertex);
     vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     std::vector<VkVertexInputAttributeDescription> inputAttributes = getStandardAttributeDescription();
@@ -1641,7 +1655,7 @@ void vulkanCommandBufferEndSingleUse(
 std::vector<VkVertexInputAttributeDescription>
     getStandardAttributeDescription(void)
 {
-    std::vector<VkVertexInputAttributeDescription> attributes(2);
+    std::vector<VkVertexInputAttributeDescription> attributes(3);
     
     // Position
     VkVertexInputAttributeDescription vert{};
@@ -1657,6 +1671,13 @@ std::vector<VkVertexInputAttributeDescription>
     color.format    = VK_FORMAT_R32G32B32A32_SFLOAT;
     color.offset    = sizeof(f32) * 3;
     attributes.at(1) = color;
+
+    VkVertexInputAttributeDescription uvs{};
+    uvs.binding = 0;
+    uvs.location = 2;
+    uvs.format = VK_FORMAT_R32G32_SFLOAT;
+    uvs.offset = sizeof(f32) * 7;
+    attributes.at(2) = uvs;
 
     return attributes;
 }

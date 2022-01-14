@@ -9,4 +9,4 @@
 
 #include "systems/resourceSystem.h"
 
-resourceLoader meshLoaderCreate();
+ResourceLoader meshLoaderCreate();

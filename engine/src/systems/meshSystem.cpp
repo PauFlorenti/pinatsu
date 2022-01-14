@@ -79,13 +79,13 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     mesh->indices = nullptr;
     mesh->indexCount = 0;
 
-    mesh->vertices[0] = {{-0.5f, -0.5f,  0.5f}, glm::vec4(1)};
-    mesh->vertices[1] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1)};
-    mesh->vertices[2] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[0] = {{-0.5f, -0.5f,  0.5f}, glm::vec4(1), {0, 0}};
+    mesh->vertices[1] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1), {1, 0}};
+    mesh->vertices[2] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1), {0, 1}};
 
-    mesh->vertices[4] = {{ 0.5f,  0.5f,  0.5f}, glm::vec4(1)};
-    mesh->vertices[3] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1)};
-    mesh->vertices[5] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1)};
+    mesh->vertices[4] = {{ 0.5f,  0.5f,  0.5f}, glm::vec4(1), {1, 1}};
+    mesh->vertices[3] = {{ 0.5f, -0.5f,  0.5f}, glm::vec4(1), {1, 0}};
+    mesh->vertices[5] = {{-0.5f,  0.5f,  0.5f}, glm::vec4(1), {0, 1}};
 
     meshSystemSetMesh(meshref);
     renderCreateMesh(meshref, mesh->vertexCount, mesh->vertices, 0, nullptr);

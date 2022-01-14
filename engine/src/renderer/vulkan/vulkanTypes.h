@@ -101,6 +101,7 @@ typedef struct VulkanVertex
 {
     vec3 position;
     vec4 color;
+    vec2 uv;
 }VulkanVertex;
 
 typedef struct ViewProjectionBuffer
