@@ -317,21 +317,11 @@ internal bool vulkanCreateForwardShader(
     fragmentStageInfo.pName     = "main";
     shaderStages.at(1) = (fragmentStageInfo);
 
-    /*
     VkViewport viewport;
     viewport.x = 0;
     viewport.y = pState->clientHeight;
     viewport.width = pState->clientWidth;
     viewport.height = -(f32)pState->clientHeight;
-    viewport.maxDepth = 1;
-    viewport.minDepth = 0;
-    */
-
-    VkViewport viewport;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = pState->clientWidth;
-    viewport.height = pState->clientHeight;
     viewport.maxDepth = 1;
     viewport.minDepth = 0;
 
@@ -891,21 +881,11 @@ bool vulkanBeginFrame(f32 delta)
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
 
-    /*
     VkViewport viewport;
     viewport.x          = 0.0f;
     viewport.y          = state.clientHeight;
     viewport.width      = state.clientWidth;
     viewport.height     = -(f32)state.clientHeight;
-    viewport.minDepth   = 0.0f;
-    viewport.maxDepth   = 1.0f;
-    */
-
-    VkViewport viewport;
-    viewport.x          = 0.0f;
-    viewport.y          = 0.0f;
-    viewport.width      = state.clientWidth;
-    viewport.height     = state.clientHeight;
     viewport.minDepth   = 0.0f;
     viewport.maxDepth   = 1.0f;
 
