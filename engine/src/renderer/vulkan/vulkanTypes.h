@@ -74,16 +74,11 @@ typedef struct CommandBuffer
     VkCommandBuffer handle;
 } CommandBuffer;
 
-typedef struct Pipeline
+typedef struct VulkanPipeline
 {
     VkPipelineLayout layout;
     VkPipeline pipeline;
-} Pipeline;
-
-typedef struct ShaderObject
-{
-    VkShaderModule shaderModule;
-} ShaderObject;
+} VulkanPipeline;
 
 typedef struct VulkanFence
 {
@@ -140,8 +135,44 @@ typedef struct VulkanMesh
     u32 vertexOffset;
     u32 indexCount;
     u32 indexOffset;
-    VulkanBuffer buffer;    // TODO rethink this when ECS
+    VulkanBuffer vertexBuffer;    // TODO rethink this when ECS
+    VulkanBuffer indexBuffer;
 } VulkanMesh;
+
+#define VULKAN_MAX_SHADER_STAGES 2
+
+typedef struct VulkanShaderObject
+{
+    VkShaderModule shaderModule;
+} VulkanShaderObject;
+
+/** Vulkan Material Shader
+ * This object should hold all information related to
+ * the shader pass.
+ *  - Descriptors
+ *  - Shader Stages
+ */
+typedef struct VulkanForwardShader
+{
+    // Vertex and fragment
+    VulkanShaderObject shaderStages[VULKAN_MAX_SHADER_STAGES];
+
+    // Global objects - Currently view and projection matrices.
+    // global descriptors will be allocated from this pool
+    VkDescriptorPool globalDescriptorPool;
+
+     // One DescriptorSet per each buffer from the triple buffer
+    VkDescriptorSet globalDescriptorSet[3];
+    VkDescriptorSetLayout globalDescriptorSetLayout;
+
+    // Struct to be loaded into global Ubo buffer.
+    ViewProjectionBuffer globalUboData;
+    // Buffer holding the data from globalUboData to be uploaded to the gpu.
+    VulkanBuffer globalUbo;
+
+    VulkanPipeline pipeline;
+
+} VulkanForwardShader;
 
 typedef struct VulkanState
 {
@@ -159,18 +190,11 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    ViewProjectionBuffer ubo{};
-    VulkanBuffer textBuffer;
     VulkanTexture texture;
-
     VulkanMesh* vulkanMeshes;
 
-    // TODO All this should go to a pass struct
-    VkDescriptorPool descriptorPool;
-    VkDescriptorSetLayout descriptorLayout;
-    std::vector<VkDescriptorSet> descriptorSet;
-
-    std::vector<VulkanBuffer> uniformBuffers;
+    // Forward rendering
+    VulkanForwardShader forwardShader;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;
@@ -187,9 +211,4 @@ typedef struct VulkanState
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VulkanFence> frameInFlightFences;
-
-    ShaderObject vertexShaderObject;
-    ShaderObject fragmentShaderObject;
-
-    Pipeline graphicsPipeline;
 } VulkanState;

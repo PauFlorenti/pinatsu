@@ -34,7 +34,6 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName)
     PINFO("Render Backend initialized!");
 
     return true;
-
 }
 
 void renderSystemShutdown(void* state)
@@ -50,7 +49,6 @@ bool renderDrawFrame(const RenderPacket& packet)
 
     if(pState->renderBackend.beginFrame(packet.deltaTime))
     {
-        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
 
         // Begin renderpass
         if(!pState->renderBackend.beginRenderPass(RENDER_PASS_FORWARD))
@@ -59,19 +57,20 @@ bool renderDrawFrame(const RenderPacket& packet)
             return false;
         }
 
-        if(!pState->renderBackend.draw(packet)){
-            PFATAL("renderDrawFrame - Could not draw.");
-            return false;
+        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
+
+        for(u32 i = 0; i < packet.renderMeshDataCount; ++i) {
+            pState->renderBackend.drawGeometry(&packet.meshes[i]);
         }
+
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
 
         pState->renderBackend.endFrame();
 
         return true;
     }
-        PERROR("Could not start rendering the frame;")
-        return false;
-
+    PERROR("Could not start rendering the frame;")
+    return false;
 }
 
 void renderOnResize(u16 width, u16 height)

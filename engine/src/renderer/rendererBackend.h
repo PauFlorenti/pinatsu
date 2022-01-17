@@ -18,7 +18,7 @@ typedef struct RendererBackend
     void (*shutdown)();
     bool (*beginFrame)(f32 delta);
     bool (*beginRenderPass)(DefaultRenderPasses renderPass);
-    bool (*draw)(const RenderPacket& packet);
+    void (*drawGeometry)(const RenderMeshData* mesh);
     void (*endRenderPass)(DefaultRenderPasses renderPass);
     void (*endFrame)();
     void (*onResize)(u32 width, u32 height);

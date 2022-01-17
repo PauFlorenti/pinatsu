@@ -163,28 +163,20 @@ bool applicationInit(Game* pGameInst)
 
     // Register resource systems.
     // MESH Loader
-    Resource cube;
-    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
-    MeshData* data = (MeshData*)cube.data;
+    //Resource cube;
+    //resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
+    //MeshData* data = (MeshData*)cube.data;
     //Mesh* cubeMesh = meshSystemCreateFromData(data);
 
-    //Texture* text = textureSystemGetDefaultTexture();
-
-    Mesh* plane = meshSystemGetPlane(1, 1);
+    PDEBUG("Loading scene ...");
+    //Mesh* plane = meshSystemGetPlane(1, 1);
+    Mesh* tri = meshSystemGetTriangle();
     Entity ent;
-    ent.mesh = plane;
+    ent.mesh = tri;
     ent.model = glm::mat4(1);
-    Entity ent1;
-    //ent1.mesh = monkeyMesh;
-    ent1.model = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
-    ent1.model = glm::scale(ent1.model, glm::vec3(0.5f));
-    Entity ent2;
-    //ent2.mesh = cubeMesh;
-    ent2.model = glm::translate(glm::mat4(1), glm::vec3(-3, 0, 0));
     pState->scene = new Scene();
     pState->scene->entities.emplace_back(ent);
-    //pState->scene->entities.emplace_back(ent1);
-    //pState->scene->entities.emplace_back(ent2);
+    PDEBUG("Loading scene finished.");
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
@@ -248,11 +240,14 @@ bool applicationRun()
             // Update and render
             // At the moment update the scene is done in renderBeginFrame and it shouldn't
 
-            RenderPacket packet;
+            RenderMeshData testData{};
+            testData.mesh = pState->scene->entities[0].mesh;
+            testData.model = pState->scene->entities[0].model;
+
+            RenderPacket packet{};
             packet.deltaTime = deltaTime;
-            packet.meshesCount = 1;
-            packet.meshes = pState->scene->entities[0].mesh;
-            packet.model = pState->scene->entities[0].model;
+            packet.renderMeshDataCount = 1;
+            packet.meshes = &testData;
             renderDrawFrame(packet);
 
             pState->lastTime = currentTime;

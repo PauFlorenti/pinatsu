@@ -12,5 +12,6 @@ bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig confi
 void meshSystemShutdown(void* state);
 
 // TODO make with segments, more custom.
+Mesh* meshSystemGetTriangle();
 Mesh* meshSystemGetPlane(u32 width, u32 height);
 Mesh* meshSystemCreateFromData(const MeshData* data);

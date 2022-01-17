@@ -4,6 +4,7 @@
 #include "vulkanSwapchain.h"
 #include "vulkanRenderpass.h"
 #include "vulkanFramebuffer.h"
+#include "vulkanPipeline.h"
 
 #include "core/application.h"
 #include "platform/platform.h"
@@ -72,12 +73,8 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
     }
 }
 
-/**
- * Shader Object Create
- * TODO Break it into functions
- */
-
-bool vulkanShaderObjectCreate(VulkanState* pState);
+// TODO revise this function.
+bool readShaderFile(std::string filename, std::vector<char>& buffer);
 
 void createCommandBuffers();
 
@@ -185,7 +182,7 @@ void vulkanCreateShaderModule(
 
 void vulkanDestroyShaderModule(
     VulkanState& state,
-    ShaderObject& module);
+    VulkanShaderObject& module);
 
 /**
  * *Buffer functions
@@ -257,8 +254,43 @@ internal void vulkanImageTransitionLayout(
     VkImageLayout newLayout,
     VkCommandBuffer& cmd);
 
-internal void vulkanCreateDescriptorSetLayout()
+// TODO make configurable depending on the shader.
+// Get standard attribute description.
+std::vector<VkVertexInputAttributeDescription>
+getStandardAttributeDescription(void);
+
+
+/**
+ * * Vulkan Shader creation functions
+ *  - Create shader stages
+ *  - Prepare descriptors for feeding the shader.
+ *  - Create the graphics pipeline accordingly.
+ */
+internal bool vulkanCreateForwardShader(
+    VulkanState* pState,
+    VulkanForwardShader* outShader)
 {
+
+    // Create the buffer holding the data to upload to the GPU
+    vulkanBufferCreate(
+        pState, 
+        sizeof(ViewProjectionBuffer),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &outShader->globalUbo);
+
+    // Create global descriptor pool
+    VkDescriptorPoolSize descriptorPoolSize;
+    descriptorPoolSize.descriptorCount  = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolSize.type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    descriptorPoolInfo.poolSizeCount    = 1;
+    descriptorPoolInfo.pPoolSizes       = &descriptorPoolSize;
+    descriptorPoolInfo.maxSets          = static_cast<u32>(state.swapchain.images.size());
+
+    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &outShader->globalDescriptorPool));
+
     VkDescriptorSetLayoutBinding binding{};
     binding.binding         = 0;
     binding.descriptorCount = 1;
@@ -269,12 +301,103 @@ internal void vulkanCreateDescriptorSetLayout()
     info.bindingCount   = 1;
     info.pBindings      = &binding;
 
-    VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &info, nullptr, &state.descriptorLayout));
+    VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &info, nullptr, &outShader->globalDescriptorSetLayout));
+
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
+
+    VkPipelineShaderStageCreateInfo vertexStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    vertexStageInfo.stage   = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexStageInfo.module  = outShader->shaderStages[0].shaderModule;
+    vertexStageInfo.pName   = "main";
+    shaderStages.at(0) = (vertexStageInfo);
+
+    VkPipelineShaderStageCreateInfo fragmentStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    fragmentStageInfo.stage     = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragmentStageInfo.module    = outShader->shaderStages[1].shaderModule;
+    fragmentStageInfo.pName     = "main";
+    shaderStages.at(1) = (fragmentStageInfo);
+
+    /*
+    VkViewport viewport;
+    viewport.x = 0;
+    viewport.y = pState->clientHeight;
+    viewport.width = pState->clientWidth;
+    viewport.height = -(f32)pState->clientHeight;
+    viewport.maxDepth = 1;
+    viewport.minDepth = 0;
+    */
+
+    VkViewport viewport;
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = pState->clientWidth;
+    viewport.height = pState->clientHeight;
+    viewport.maxDepth = 1;
+    viewport.minDepth = 0;
+
+    VkRect2D scissors;
+    scissors.extent = {pState->clientWidth, pState->clientHeight};
+    scissors.offset = {0, 0};
+
+    vulkanCreateGraphicsPipeline(
+        pState,
+        &pState->renderpass,
+        getStandardAttributeDescription().size(),
+        getStandardAttributeDescription().data(),
+        shaderStages.size(),
+        shaderStages.data(),
+        1,
+        &outShader->globalDescriptorSetLayout,
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN,
+        viewport,
+        scissors,
+        false,
+        true,
+        &outShader->pipeline
+    );
+
+    VkDescriptorSetLayout layouts[3] = {
+        outShader->globalDescriptorSetLayout,
+        outShader->globalDescriptorSetLayout,
+        outShader->globalDescriptorSetLayout
+    };
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    descriptorSetAllocInfo.descriptorPool       = outShader->globalDescriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
+    descriptorSetAllocInfo.pSetLayouts          = layouts;
+    
+    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, outShader->globalDescriptorSet));
+    return true;
 }
 
-// Get standard attribute description.
-std::vector<VkVertexInputAttributeDescription>
-getStandardAttributeDescription(void);
+internal void
+vulkanDestroyForwardShader(VulkanState* pState)
+{
+    vulkanBufferDestroy(*pState, pState->forwardShader.globalUbo);
+
+    vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[0].shaderModule, nullptr);
+    vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[1].shaderModule, nullptr);
+
+    // TO free the descriptor sets -> descriptor pool should have been created with VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
+    // Otherwise, descriptor sets are freed when descriptor pool is destroyed.
+    //vkFreeDescriptorSets(pState->device.handle, pState->forwardShader.globalDescriptorPool, 3, pState->forwardShader.globalDescriptorSet);
+    vkDestroyDescriptorSetLayout(pState->device.handle, pState->forwardShader.globalDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(pState->device.handle, pState->forwardShader.globalDescriptorPool, nullptr);
+
+    vkDestroyPipelineLayout(pState->device.handle, pState->forwardShader.pipeline.layout, nullptr);
+    vkDestroyPipeline(pState->device.handle, pState->forwardShader.pipeline.pipeline, nullptr);
+}
+
+void vulkanBindForwardMaterial()
+{
+
+}
+
+internal bool vulkanCreateUIShader(
+    VulkanState* pState
+    // TODO VulkanUIShader* outShader
+);
 
 /**
  * * Command buffer functions
@@ -305,16 +428,16 @@ i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
     return -1;
 }
 
-void vulkanUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
+// TODO review to function per shader pass.
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
     gameTime += dt;
     f32 speed = 100.0f;
-    state.ubo.view        = view;
-    state.ubo.projection  = projection;
+    state.forwardShader.globalUboData.view        = view;
+    state.forwardShader.globalUboData.projection  = projection;
 
-    void* data;
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
-    vulkanBufferLoadData(&state, &state.uniformBuffers.at(index), 0, sizeof(ViewProjectionBuffer), 0, &state.ubo);
+    vulkanBufferLoadData(&state, &state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -341,13 +464,19 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     auxiliarMesh->vertexOffset  = 0;
     auxiliarMesh->vertexSize    = size;
 
-    // TODO indices
-
     u32 flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->buffer);
-
+    vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->vertexBuffer);
     u32 offset = 0;
-    vulkanUploadDataToGPU(auxiliarMesh->buffer, offset, size, vertices);
+    vulkanUploadDataToGPU(auxiliarMesh->vertexBuffer, offset, size, vertices);
+
+    // TODO indices
+    if(indexCount > 0 && indices)
+    {
+        u64 indexSize = indexCount * sizeof(u32);
+        u32 indexFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->indexBuffer);
+        vulkanUploadDataToGPU(auxiliarMesh->indexBuffer, offset, indexSize, indices);
+    }
 
     return true;
 }
@@ -364,7 +493,11 @@ void vulkanDestroyMesh(const Mesh* mesh)
     {
         if(state.vulkanMeshes[i].id == mesh->id)
         {
-            vulkanBufferDestroy(state, state.vulkanMeshes[i].buffer);
+            vulkanBufferDestroy(state, state.vulkanMeshes[i].vertexBuffer);
+            if(state.vulkanMeshes[i].indexBuffer.handle)
+            {
+                vulkanBufferDestroy(state, state.vulkanMeshes[i].indexBuffer);
+            }
             state.vulkanMeshes[i].id = INVALID_ID;
             break;
         }
@@ -609,70 +742,22 @@ bool vulkanBackendInit(const char* appName)
         state.vulkanMeshes[i].id = INVALID_ID;
     }
 
-    // Creating ubo for each frame since some frames may still be in flight
-    // when we want to upload new data.
-    for(size_t i = 0; i < state.swapchain.images.size(); i++)
-    {
-        VulkanBuffer buffer;
-
-        vulkanBufferCreate(
-            &state,
-            sizeof(ViewProjectionBuffer),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &buffer);
-        
-        state.uniformBuffers.push_back(buffer);
-    }
-
-    // Create descriptor pool
-    VkDescriptorPoolSize descriptorPoolSize;
-    descriptorPoolSize.descriptorCount = static_cast<u32>(state.swapchain.images.size());
-    descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    descriptorPoolInfo.poolSizeCount = 1;
-    descriptorPoolInfo.pPoolSizes = &descriptorPoolSize;
-    descriptorPoolInfo.maxSets = static_cast<u32>(state.swapchain.images.size());
-
-    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
-
-    // Create descriptor set layout
-    vulkanCreateDescriptorSetLayout();
-    std::vector<VkDescriptorSetLayout> layouts(state.swapchain.images.size(), state.descriptorLayout);
-
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    descriptorSetAllocInfo.descriptorPool       = state.descriptorPool;
-    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
-    descriptorSetAllocInfo.pSetLayouts          = layouts.data();
-    
-    state.descriptorSet.resize(state.swapchain.images.size());
-    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
-
-    for(size_t i = 0; i < state.swapchain.images.size(); i++)
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer   = state.uniformBuffers.at(i).handle;
-        bufferInfo.offset   = 0;
-        bufferInfo.range    = sizeof(ViewProjectionBuffer);
-
-        VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        descriptorWrite.dstSet              = state.descriptorSet.at(i);
-        descriptorWrite.dstBinding          = 0;
-        descriptorWrite.dstArrayElement     = 0;
-        descriptorWrite.descriptorType      = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount     = 1;
-        descriptorWrite.pBufferInfo         = &bufferInfo;
-        descriptorWrite.pImageInfo          = nullptr;
-        descriptorWrite.pTexelBufferView    = nullptr;
-
-        vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
-    }
-
-    // Shaders Modules and main pipeline
-    if(!vulkanShaderObjectCreate(&state)){
+// TODO TEMP
+    std::vector<char> vertexBuffer;
+    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
         return false;
     }
+
+    std::vector<char> fragBuffer;
+    if(!readShaderFile("./data/frag.spv", fragBuffer)){
+        return false;
+    }
+
+    vulkanCreateShaderModule(&state, vertexBuffer, &state.forwardShader.shaderStages[0].shaderModule);
+    vulkanCreateShaderModule(&state, fragBuffer, &state.forwardShader.shaderStages[1].shaderModule);
+
+// TODO END TEMP
+    vulkanCreateForwardShader(&state, &state.forwardShader);
 
     return true;
 }
@@ -722,7 +807,10 @@ void vulkanBackendShutdown(void)
     {
         if(state.vulkanMeshes[i].id != INVALID_ID)
         {
-            vulkanBufferDestroy(state, state.vulkanMeshes[i].buffer);
+            vulkanBufferDestroy(state, state.vulkanMeshes[i].vertexBuffer);
+            if(state.vulkanMeshes[i].indexBuffer.handle){
+                vulkanBufferDestroy(state, state.vulkanMeshes[i].indexBuffer);
+            }
         }
     }
 
@@ -731,20 +819,7 @@ void vulkanBackendShutdown(void)
     vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
     vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
 
-    for(size_t i = 0; i < state.swapchain.images.size(); i++)
-    {
-        vulkanBufferDestroy(state, state.uniformBuffers.at(i));
-    }
-
-    vulkanDestroyShaderModule(state, state.vertexShaderObject);
-    vulkanDestroyShaderModule(state, state.fragmentShaderObject);
-
-    vkDestroyDescriptorSetLayout(state.device.handle, state.descriptorLayout, nullptr);
-    vkDestroyDescriptorPool(state.device.handle, state.descriptorPool, nullptr);
-
-    vkDestroyPipelineLayout(state.device.handle, state.graphicsPipeline.layout, nullptr);
-
-    vkDestroyPipeline(state.device.handle, state.graphicsPipeline.pipeline, nullptr);
+    vulkanDestroyForwardShader(&state);
 
     vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
 
@@ -816,6 +891,16 @@ bool vulkanBeginFrame(f32 delta)
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
 
+    /*
+    VkViewport viewport;
+    viewport.x          = 0.0f;
+    viewport.y          = state.clientHeight;
+    viewport.width      = state.clientWidth;
+    viewport.height     = -(f32)state.clientHeight;
+    viewport.minDepth   = 0.0f;
+    viewport.maxDepth   = 1.0f;
+    */
+
     VkViewport viewport;
     viewport.x          = 0.0f;
     viewport.y          = 0.0f;
@@ -832,7 +917,6 @@ bool vulkanBeginFrame(f32 delta)
 
     vkCmdSetViewport(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &viewport);
     vkCmdSetScissor(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &scissor);
-
 
     return true;
 }
@@ -866,27 +950,57 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
     }
 }
 
-/**
- * @brief Perform the rendering action. Binds a pipeline and draws.
- * @param void
- * @return bool
- */
-bool vulkanDraw(const RenderPacket& packet)
+void vulkanDrawGeometry(const RenderMeshData* data)
 {
-    vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.pipeline);
+    // TODO make material specify the type to render
+    Material* m = data->mesh->material;
+    VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
 
-    for(u32 i = 0; i < packet.meshesCount; ++i)
+    // Get Material, set shaders, update, write and bind descriptors.
+    // TODO Func should create shader modules??
+
+    VkDescriptorBufferInfo globalUboInfo = {};
+    globalUboInfo.buffer = state.forwardShader.globalUbo.handle;
+    globalUboInfo.offset = {0};
+    globalUboInfo.range = sizeof(ViewProjectionBuffer);
+
+    // Write global shader descriptor
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.pBufferInfo = &globalUboInfo;
+    write.dstSet = state.forwardShader.globalDescriptorSet[state.imageIndex];
+
+    vkUpdateDescriptorSets(state.device.handle, 1, &write, 0, nullptr);
+
+    // Bind pipeline and mesh data
+
+    vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
+    VkDeviceSize offset = {0};
+    vkCmdBindDescriptorSets(
+        state.commandBuffers[state.imageIndex].handle, 
+        VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        state.forwardShader.pipeline.layout,
+        0,
+        1,
+        &state.forwardShader.globalDescriptorSet[state.imageIndex],
+        0, nullptr);
+
+    glm::mat4 mat = glm::mat4(1);
+    vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
+
+    vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
+    if(geometry->indexCount > 0)
     {
-        VulkanMesh* mesh = &state.vulkanMeshes[packet.meshes[i].rendererId];
-        VkDeviceSize offset = {0};
-        vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &mesh->buffer.handle, &offset);
-        vkCmdBindDescriptorSets(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.graphicsPipeline.layout,
-            0, 1, &state.descriptorSet[state.imageIndex], 0, nullptr);
-        vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.graphicsPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &packet.model);
-        u32 vCount = state.vulkanMeshes[packet.meshes[i].rendererId].vertexCount;
-        vkCmdDraw(state.commandBuffers[state.imageIndex].handle, vCount, 1, 0, 0);
+        vkCmdBindIndexBuffer(state.commandBuffers[state.imageIndex].handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(state.commandBuffers[state.imageIndex].handle, geometry->indexCount, 1, 0, 0, 0);
     }
-    return true;
+    else
+    {
+        vkCmdDraw(state.commandBuffers[state.imageIndex].handle, geometry->vertexCount, 1, 0, 0);
+    }
 }
 
 void vulkanEndRenderPass(DefaultRenderPasses renderPass)
@@ -964,150 +1078,6 @@ bool readShaderFile(std::string filename, std::vector<char>& buffer)
     file.seekg(0);
     file.read(buffer.data(), length);
     file.close();
-    return true;
-}
-
-// TODO Separate shader and pipeline creation.
-bool vulkanShaderObjectCreate(VulkanState* pState)
-{
-    // Shader hardcoded at the moment.
-    // TODO Create a way to read and load shader dynamically.
-
-    std::vector<char> vertexBuffer;
-    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
-        return false;
-    }
-
-    std::vector<char> fragBuffer;
-    if(!readShaderFile("./data/frag.spv", fragBuffer)){
-        return false;
-    }
-
-    vulkanCreateShaderModule(&state, vertexBuffer, &pState->vertexShaderObject.shaderModule);
-    vulkanCreateShaderModule(&state, fragBuffer, &pState->fragmentShaderObject.shaderModule);
-
-    // Create Graphics pipeline
-
-    // Shader stages
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-
-    VkPipelineShaderStageCreateInfo vertexStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    vertexStageInfo.stage   = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexStageInfo.module  = pState->vertexShaderObject.shaderModule;
-    vertexStageInfo.pName   = "main";
-    shaderStages.push_back(vertexStageInfo);
-
-    VkPipelineShaderStageCreateInfo fragmentStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    fragmentStageInfo.stage     = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentStageInfo.module    = pState->fragmentShaderObject.shaderModule;
-    fragmentStageInfo.pName     = "main";
-    shaderStages.push_back(fragmentStageInfo);
-
-    // Vertex Info
-    VkVertexInputBindingDescription vertexBinding = {};
-    vertexBinding.binding   = 0;
-    vertexBinding.stride    = sizeof(VulkanVertex);
-    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    std::vector<VkVertexInputAttributeDescription> inputAttributes = getStandardAttributeDescription();
-    VkPipelineVertexInputStateCreateInfo vertexInputStateInfo   = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-    vertexInputStateInfo.vertexAttributeDescriptionCount        = inputAttributes.size();
-    vertexInputStateInfo.pVertexAttributeDescriptions           = inputAttributes.data();
-    vertexInputStateInfo.vertexBindingDescriptionCount          = 1;
-    vertexInputStateInfo.pVertexBindingDescriptions             = &vertexBinding;
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-    inputAssemblyInfo.topology                  = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssemblyInfo.primitiveRestartEnable    = VK_FALSE;
-
-    VkViewport viewport = {};
-    viewport.x          = 0.0f;
-    viewport.y          = 0.0f; //pState->clientHeight;
-    viewport.width      = pState->clientWidth;
-    viewport.height     = pState->clientHeight;
-    viewport.maxDepth   = 1.0f;
-    viewport.minDepth   = 0.0f;
-
-    VkRect2D scissors = {};
-    scissors.offset = {0, 0};
-    scissors.extent = pState->swapchain.extent;
-
-    VkPipelineViewportStateCreateInfo viewportInfo = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-    viewportInfo.viewportCount  = 1;
-    viewportInfo.pViewports     = &viewport;
-    viewportInfo.scissorCount   = 1;
-    viewportInfo.pScissors      = &scissors;
-
-    VkPipelineRasterizationStateCreateInfo rasterizationInfo = {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-    rasterizationInfo.depthClampEnable          = VK_FALSE;
-    rasterizationInfo.rasterizerDiscardEnable   = VK_FALSE;
-    rasterizationInfo.polygonMode               = VK_POLYGON_MODE_FILL;
-    rasterizationInfo.cullMode                  = VK_CULL_MODE_FRONT_BIT;
-    rasterizationInfo.frontFace                 = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizationInfo.depthBiasEnable           = VK_FALSE;
-    rasterizationInfo.depthBiasConstantFactor   = 0.0f;
-    rasterizationInfo.depthBiasClamp            = 0.0f;
-    rasterizationInfo.depthBiasSlopeFactor      = 0.0f;
-    rasterizationInfo.lineWidth                 = 1.0f;
-
-    VkPipelineMultisampleStateCreateInfo multisampleInfo = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-    multisampleInfo.rasterizationSamples    = VK_SAMPLE_COUNT_1_BIT;
-    multisampleInfo.sampleShadingEnable     = VK_FALSE;
-    multisampleInfo.minSampleShading        = 0.0f;
-    multisampleInfo.pSampleMask             = nullptr;
-    multisampleInfo.alphaToCoverageEnable   = VK_FALSE;
-    multisampleInfo.alphaToOneEnable        = VK_FALSE;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-    depthStencilInfo.depthTestEnable    = VK_FALSE;
-    depthStencilInfo.stencilTestEnable  = VK_FALSE;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable    = VK_FALSE;
-
-    VkPipelineColorBlendStateCreateInfo colorBlendInfo = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-    colorBlendInfo.attachmentCount  = 1;
-    colorBlendInfo.pAttachments     = &colorBlendAttachment;
-    colorBlendInfo.logicOpEnable    = VK_FALSE;
-
-    std::vector<VkDynamicState> dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
-    VkPipelineDynamicStateCreateInfo dynamicStateInfo = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-    dynamicStateInfo.dynamicStateCount  = static_cast<u32>(dynamicStates.size());
-    dynamicStateInfo.pDynamicStates     = dynamicStates.data();
-
-    // TODO Implement push constants for entity model matrix.
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.size          = sizeof(mat4);
-    pushConstantRange.offset        = 0;
-    pushConstantRange.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
-
-    VkPipelineLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    layoutInfo.pushConstantRangeCount   = 1;
-    layoutInfo.pPushConstantRanges      = &pushConstantRange;
-    layoutInfo.setLayoutCount           = 1;
-    layoutInfo.pSetLayouts              = &state.descriptorLayout;
-
-    VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &pState->graphicsPipeline.layout));
-
-    VkGraphicsPipelineCreateInfo info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-    info.stageCount             = static_cast<u32>(shaderStages.size());
-    info.pStages                = shaderStages.data();
-    info.pVertexInputState      = &vertexInputStateInfo;
-    info.pInputAssemblyState    = &inputAssemblyInfo;
-    info.pViewportState         = &viewportInfo;
-    info.pRasterizationState    = &rasterizationInfo;
-    info.pMultisampleState      = &multisampleInfo;
-    info.pDepthStencilState     = &depthStencilInfo;
-    info.pColorBlendState       = &colorBlendInfo;
-    info.pDynamicState          = &dynamicStateInfo;
-    info.pTessellationState     = nullptr;
-    info.layout                 = pState->graphicsPipeline.layout;
-    info.renderPass             = pState->renderpass.handle;
-    info.subpass                = 0;
-
-    VK_CHECK(vkCreateGraphicsPipelines(pState->device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &pState->graphicsPipeline.pipeline));
-
     return true;
 }
 
@@ -1197,78 +1167,6 @@ bool recreateSwapchain()
     
     createCommandBuffers();
 
-    //TODO is this necessary?
-    // Regenerate the ubo buffers.
-    for(size_t i = 0; i < state.uniformBuffers.size(); i++)
-    {
-        vulkanBufferDestroy(state, state.uniformBuffers.at(i));
-    }
-    state.uniformBuffers.clear();
-
-    // Destroy and regenerate the descriptor pool
-    vkDestroyDescriptorPool(state.device.handle, state.descriptorPool, nullptr);
-
-    VkDescriptorPoolSize descriptorPoolSize{};
-    descriptorPoolSize.descriptorCount  = static_cast<u32>(state.swapchain.images.size());
-    descriptorPoolSize.type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    descriptorPoolInfo.poolSizeCount    = 1;
-    descriptorPoolInfo.pPoolSizes       = &descriptorPoolSize;
-    descriptorPoolInfo.maxSets          = static_cast<u32>(state.swapchain.images.size());
-
-    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &state.descriptorPool));
-
-    vkDestroyDescriptorSetLayout(state.device.handle, state.descriptorLayout, nullptr);
-    vulkanCreateDescriptorSetLayout();
-    std::vector<VkDescriptorSetLayout> layouts(state.swapchain.images.size(), state.descriptorLayout);
-
-    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-    descriptorSetAllocInfo.descriptorPool       = state.descriptorPool;
-    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
-    descriptorSetAllocInfo.pSetLayouts          = layouts.data();
-    
-    state.descriptorSet.resize(state.swapchain.images.size());
-    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, state.descriptorSet.data()));
-
-    // Recreate each uniform buffer.
-    // TODO is this necessary?
-    for(size_t i = 0; i < state.swapchain.images.size(); i++)
-    {
-        VulkanBuffer buffer;
-
-        vulkanBufferCreate(
-            &state,
-            sizeof(ViewProjectionBuffer),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &buffer);
-        
-        state.uniformBuffers.push_back(buffer);
-    }
-
-    // Re-Update each descriptor set.
-    // TODO is this necessary?
-    for(size_t i = 0; i < state.swapchain.images.size(); i++)
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer   = state.uniformBuffers.at(i).handle;
-        bufferInfo.offset   = 0;
-        bufferInfo.range    = sizeof(ViewProjectionBuffer);
-
-        VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        descriptorWrite.dstSet              = state.descriptorSet.at(i);
-        descriptorWrite.dstBinding          = 0;
-        descriptorWrite.dstArrayElement     = 0;
-        descriptorWrite.descriptorType      = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount     = 1;
-        descriptorWrite.pBufferInfo         = &bufferInfo;
-        descriptorWrite.pImageInfo          = nullptr;
-        descriptorWrite.pTexelBufferView    = nullptr;
-
-        vkUpdateDescriptorSets(state.device.handle, 1, &descriptorWrite, 0, nullptr);
-    }
-
     // TODO Change viewport ans scissor from render pipeline
 
     state.recreatingSwapchain = false;
@@ -1300,11 +1198,11 @@ void vulkanCreateShaderModule(
 }
 
 /**
- * TODO Revise if it should be Destroy ShaderObject
+ * TODO Revise if it should be DestroyShaderObject
  */
 void vulkanDestroyShaderModule(
     VulkanState& state,
-    ShaderObject& module)
+    VulkanShaderObject& module)
 {
     vkDestroyShaderModule(
         state.device.handle,
@@ -1343,8 +1241,8 @@ bool vulkanBufferCreate(
     allocInfo.allocationSize    = requirements.size;
     allocInfo.memoryTypeIndex   = index;
 
-    vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory);
-    vkBindBufferMemory(pState->device.handle, buffer->handle, buffer->memory, 0);
+    VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
+    VK_CHECK(vkBindBufferMemory(pState->device.handle, buffer->handle, buffer->memory, 0));
 
     return true;
 }
