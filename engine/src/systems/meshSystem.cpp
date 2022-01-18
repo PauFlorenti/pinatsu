@@ -69,6 +69,7 @@ Mesh* meshSystemGetTriangle()
     MeshData* meshData = (MeshData*)memAllocate(sizeof(MeshData), MEMORY_TAG_ENTITY);
     Mesh* mesh = (Mesh*)memAllocate(sizeof(Mesh*), MEMORY_TAG_ENTITY);
     mesh->id = INVALID_ID;
+    mesh->rendererId = INVALID_ID;
     char* name = "Triangle";
     std::memcpy(&meshData->name, name, 8);
     std::memcpy(&mesh->name, name, 8);
@@ -79,6 +80,8 @@ Mesh* meshSystemGetTriangle()
     meshData->vertices[0] = {{-0.5f, -0.5f, 0.0f}, glm::vec4(1), {0, 0}};
     meshData->vertices[1] = {{ 0.5f, -0.5f, 0.0f}, glm::vec4(1), {0, 0}};
     meshData->vertices[2] = {{ 0.0f,  0.5f, 0.0f}, glm::vec4(1), {0, 0}};
+
+    //u32 index[3] = {0, 1, 2};
 
     meshSystemSetMesh(mesh);
     renderCreateMesh(mesh, meshData->vertexCount, meshData->vertices, 0, nullptr);

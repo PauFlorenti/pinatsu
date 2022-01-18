@@ -372,11 +372,11 @@ vulkanDestroyForwardShader(VulkanState* pState)
     // TO free the descriptor sets -> descriptor pool should have been created with VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
     // Otherwise, descriptor sets are freed when descriptor pool is destroyed.
     //vkFreeDescriptorSets(pState->device.handle, pState->forwardShader.globalDescriptorPool, 3, pState->forwardShader.globalDescriptorSet);
-    vkDestroyDescriptorSetLayout(pState->device.handle, pState->forwardShader.globalDescriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(pState->device.handle, pState->forwardShader.globalDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(pState->device.handle, pState->forwardShader.globalDescriptorSetLayout, nullptr);
 
-    vkDestroyPipelineLayout(pState->device.handle, pState->forwardShader.pipeline.layout, nullptr);
     vkDestroyPipeline(pState->device.handle, pState->forwardShader.pipeline.pipeline, nullptr);
+    vkDestroyPipelineLayout(pState->device.handle, pState->forwardShader.pipeline.layout, nullptr);
 }
 
 void vulkanBindForwardMaterial()
@@ -403,6 +403,7 @@ void vulkanCommandBufferAllocateAndBeginSingleUse(
 void vulkanCommandBufferEndSingleUse(
     VulkanState* pState,
     VkCommandPool pool,
+    VkQueue queue,
     VkCommandBuffer& cmd);
 
 i32 findMemoryIndex(u32 typeFilter, VkMemoryPropertyFlags memFlags)
@@ -437,35 +438,52 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
         return false;
     }
 
-    VulkanMesh* auxiliarMesh = (VulkanMesh*)memAllocate(sizeof(VulkanMesh), MEMORY_TAG_ENTITY);
+    bool alreadyUploaded = mesh->rendererId != INVALID_ID;
 
-    for(u32 i = 0; i < VULKAN_MAX_MESHES; ++i) {
-        if(state.vulkanMeshes[i].id == INVALID_ID){
-            mesh->rendererId = i;
-            state.vulkanMeshes[i].id = i;
-            auxiliarMesh = &state.vulkanMeshes[i];
-            break;
+    // This pointer will point to the internal render mesh.
+    VulkanMesh* renderMesh = nullptr;
+
+    if(alreadyUploaded)
+    {
+        // TODO check old data.
+    } 
+    else
+    {
+        // If mesh has not been previously uploaded, assign a slot to it.
+        for(u32 i = 0; i < VULKAN_MAX_MESHES; ++i) {
+            if(state.vulkanMeshes[i].id == INVALID_ID){
+                mesh->rendererId = i;
+                state.vulkanMeshes[i].id = i;
+                renderMesh = &state.vulkanMeshes[i];
+                break;
+            }
         }
     }
 
-    u64 size = vertexCount * sizeof(VulkanVertex);
+    // Check if a slot was available, otherwise return false.
+    if(!renderMesh)
+    {
+        PFATAL("vulkanCreateMesh - failed to assign an index. No slot available.");
+        return false;
+    }
 
-    auxiliarMesh->vertexCount   = vertexCount;
-    auxiliarMesh->vertexOffset  = 0;
-    auxiliarMesh->vertexSize    = size;
+
+    renderMesh->vertexCount   = vertexCount;
+    renderMesh->vertexOffset  = 0;
+    renderMesh->vertexSize    = sizeof(VulkanVertex);
+    u64 totalVertexSize = renderMesh->vertexCount * renderMesh->vertexSize;
 
     u32 flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    vulkanBufferCreate(&state, size, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->vertexBuffer);
-    u32 offset = 0;
-    vulkanUploadDataToGPU(auxiliarMesh->vertexBuffer, offset, size, vertices);
+    vulkanBufferCreate(&state, totalVertexSize, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->vertexBuffer);
+    vulkanUploadDataToGPU(renderMesh->vertexBuffer, 0, totalVertexSize, vertices);
 
     // TODO indices
     if(indexCount > 0 && indices)
     {
         u64 indexSize = indexCount * sizeof(u32);
         u32 indexFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &auxiliarMesh->indexBuffer);
-        vulkanUploadDataToGPU(auxiliarMesh->indexBuffer, offset, indexSize, indices);
+        vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->indexBuffer);
+        vulkanUploadDataToGPU(renderMesh->indexBuffer, 0, indexSize, indices);
     }
 
     return true;
@@ -550,7 +568,7 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, temporalCommand);
 
-    vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, temporalCommand);
+    vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, state.device.graphicsQueue, temporalCommand);
 
     vulkanBufferDestroy(state, staging);
 
@@ -809,25 +827,38 @@ void vulkanBackendShutdown(void)
     vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
     vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
 
+    PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);
 
+    PDEBUG("Destroying Vulkan Render passes ...");
     vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
 
     for(auto framebuffer : state.swapchain.framebuffers)
     {
         vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
     }
+
+    PDEBUG("Destroying Vulkan Swapchain ...");
     vulkanSwapchainDestroy(&state);
 
-
-    vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
+    PDEBUG("Destroying Vulkan Logical device ...");
     destroyLogicalDevice(state);
+    if(state.surface)
+    {
+        PDEBUG("Destroying Vulkan Surface ...");
+        vkDestroySurfaceKHR(state.instance, state.surface, nullptr);
+        state.surface = 0;
+    }
 
     // Debug Messenger
 #ifdef DEBUG
-    vulkanDestroyDebugMessenger(state);
+    if(state.debugMessenger){
+        PDEBUG("Destroying Vulkan Debug Messenger ...");
+        vulkanDestroyDebugMessenger(state);
+    }
 #endif
 
+    PDEBUG("Destroying Vulkan instance ...");
     vkDestroyInstance(state.instance, nullptr);
 }
 
@@ -968,7 +999,6 @@ void vulkanDrawGeometry(const RenderMeshData* data)
         &state.forwardShader.globalDescriptorSet[state.imageIndex],
         0, nullptr);
 
-    glm::mat4 mat = glm::mat4(1);
     vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
 
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
@@ -1220,8 +1250,8 @@ bool vulkanBufferCreate(
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize    = requirements.size;
     allocInfo.memoryTypeIndex   = index;
-
-    VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
+    VkResult result = vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory);
+    //VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
     VK_CHECK(vkBindBufferMemory(pState->device.handle, buffer->handle, buffer->memory, 0));
 
     return true;
@@ -1279,19 +1309,8 @@ void vulkanTransferBuffer(
     VkDeviceSize size
 )
 {
-    // TODO may be useful to create a specific command pool for such commands.
-    VkCommandBufferAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    allocInfo.commandBufferCount = 1;
-    allocInfo.commandPool = state.device.transferCmdPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
     VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(state.device.handle, &allocInfo, &cmd);
-
-    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd, &beginInfo);
+    vulkanCommandBufferAllocateAndBeginSingleUse(&state, state.device.transferCmdPool, cmd);
 
     VkBufferCopy region;
     region.srcOffset    = 0;
@@ -1299,17 +1318,7 @@ void vulkanTransferBuffer(
     region.size         = size;
     vkCmdCopyBuffer(cmd, src, dst, 1, &region);
 
-    vkEndCommandBuffer(cmd);
-
-    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
-    
-    // We want the app to wait until transfer is completed.
-    vkQueueSubmit(state.device.transferQueue, 1, &submitInfo, nullptr);
-    vkQueueWaitIdle(state.device.transferQueue);
-
-    vkFreeCommandBuffers(state.device.handle, state.device.transferCmdPool, 1, &cmd);
+    vulkanCommandBufferEndSingleUse(&state, state.device.transferCmdPool, state.device.transferQueue, cmd);
 }
 
 /**
@@ -1374,6 +1383,7 @@ internal void vulkanBufferCopyToImage(
     vulkanCommandBufferEndSingleUse(
         pState,
         pState->device.commandPool,
+        pState->device.graphicsQueue,
         temporalCommandBuffer);
 }
 
@@ -1534,6 +1544,7 @@ void vulkanCommandBufferAllocateAndBeginSingleUse(
 void vulkanCommandBufferEndSingleUse(
     VulkanState* pState,
     VkCommandPool pool,
+    VkQueue queue,
     VkCommandBuffer& cmd)
 {
     vkEndCommandBuffer(cmd);
@@ -1542,9 +1553,9 @@ void vulkanCommandBufferEndSingleUse(
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
 
-    VK_CHECK(vkQueueSubmit(pState->device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE));
 
-    VK_CHECK(vkQueueWaitIdle(pState->device.graphicsQueue));
+    VK_CHECK(vkQueueWaitIdle(queue));
 
     vkFreeCommandBuffers(pState->device.handle, pool, 1, &cmd);
 }

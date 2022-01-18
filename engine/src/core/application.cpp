@@ -217,7 +217,7 @@ bool applicationRun()
             // TEMP
             for(auto& ent : pState->scene->entities)
             {
-                ent.model = glm::rotate(ent.model, glm::radians((f32)deltaTime * 10), glm::vec3(0, 1, 0));
+                ent.model = glm::rotate(ent.model, glm::radians((f32)deltaTime) * 20, glm::vec3(0, 1, 0));
             }
             // END TEMP
 
