@@ -85,7 +85,8 @@ bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount
 
 bool renderCreateTexture(void* data, Texture* texture)
 {
-    return pState->renderBackend.onCreateTexture(data, texture);
+    return true;
+    //return pState->renderBackend.onCreateTexture(data, texture);
 }
 
 void setView(const glm::mat4 view, const glm::mat4 proj)

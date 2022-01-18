@@ -166,13 +166,13 @@ bool applicationInit(Game* pGameInst)
     Resource cube;
     resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
     MeshData* data = (MeshData*)cube.data;
-    //Mesh* tri = meshSystemCreateFromData(data);
+    Mesh* cubeMesh = meshSystemCreateFromData(data);
 
     //PDEBUG("Loading scene ...");
-    //Mesh* plane = meshSystemGetPlane(1, 1);
+    Mesh* plane = meshSystemGetPlane(1, 1);
     Mesh* tri = meshSystemGetTriangle();
     Entity ent;
-    ent.mesh = tri;
+    ent.mesh = cubeMesh;
     ent.model = glm::mat4(1);
     pState->scene = new Scene();
     pState->scene->entities.emplace_back(ent);

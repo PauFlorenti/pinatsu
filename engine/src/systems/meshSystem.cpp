@@ -82,8 +82,43 @@ Mesh* meshSystemGetTriangle()
     v[1].color = glm::vec4(1);
     v[2].color = glm::vec4(1);
 
+    u32 i[3];
+    memZero(i, sizeof(u32) * 3);
+    i[0] = 0;
+    i[1] = 1;
+    i[2] = 2;
+
     meshSystemSetMesh(m);
-    if(!renderCreateMesh(m, 3, v, 0, nullptr)){
+    if(!renderCreateMesh(m, 3, v, 3, i)){
+        return nullptr;
+    }
+
+    return m;
+}
+
+Mesh* meshSystemGetPlane(u32 width, u32 height)
+{
+        Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    m->id = INVALID_ID;
+    m->rendererId = INVALID_ID;
+
+    Vertex v[4];
+    memZero(v, sizeof(Vertex) * 4);
+
+    v[0].position = {-0.5f, -0.5f, 0.0f};
+    v[1].position = { 0.5f, -0.5f, 0.0f};
+    v[2].position = {-0.5f,  0.5f, 0.0f};
+    v[3].position = { 0.5f,  0.5f, 0.0f};
+
+    v[0].color = glm::vec4(1);
+    v[1].color = glm::vec4(1);
+    v[2].color = glm::vec4(1);
+    v[3].color = glm::vec4(1);
+
+    u32 i[6] = {0, 1, 2, 1, 3, 2};
+    
+    meshSystemSetMesh(m);
+    if(!renderCreateMesh(m, 4, v, 4, i)){
         return nullptr;
     }
 

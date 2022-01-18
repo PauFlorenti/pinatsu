@@ -96,8 +96,9 @@ bool meshLoaderLoad(struct ResourceLoader* self, const char* name, Resource* out
     meshResource->vertices = (Vertex*)memAllocate(sizeof(Vertex) * nFaces, MEMORY_TAG_ENTITY);
     meshResource->vertexCount = nFaces;
     for(u32 i = 0; i < nFaces; ++i) {
-        meshResource->vertices[i].position = vertices[(u32)faces[i].x - 1];
-        meshResource->vertices[i].color = glm::vec4(1);
+        meshResource->vertices[i].position  = vertices[(u32)faces[i].x - 1];
+        meshResource->vertices[i].color     = glm::vec4(normals[(u32)faces[i].z - 1], 1);
+        meshResource->vertices[i].uv        = uvs[(u32)faces[i].y - 1];
     }
 
     linearAllocatorDestroy(&alloc);
