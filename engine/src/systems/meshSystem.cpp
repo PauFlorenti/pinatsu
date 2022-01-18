@@ -66,54 +66,28 @@ static void meshSystemSetMesh(Mesh* mesh)
 
 Mesh* meshSystemGetTriangle()
 {
-    MeshData* meshData = (MeshData*)memAllocate(sizeof(MeshData), MEMORY_TAG_ENTITY);
-    Mesh* mesh = (Mesh*)memAllocate(sizeof(Mesh*), MEMORY_TAG_ENTITY);
-    mesh->id = INVALID_ID;
-    mesh->rendererId = INVALID_ID;
-    char* name = "Triangle";
-    std::memcpy(&meshData->name, name, 8);
-    std::memcpy(&mesh->name, name, 8);
 
-    meshData->vertexCount = 3;
-    meshData->vertices = (Vertex*)memAllocate(sizeof(Vertex) * meshData->vertexCount, MEMORY_TAG_ENTITY);
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    m->id = INVALID_ID;
+    m->rendererId = INVALID_ID;
 
-    meshData->vertices[0] = {{-0.5f, -0.5f, 0.0f}, glm::vec4(1), {0, 0}};
-    meshData->vertices[1] = {{ 0.5f, -0.5f, 0.0f}, glm::vec4(1), {0, 0}};
-    meshData->vertices[2] = {{ 0.0f,  0.5f, 0.0f}, glm::vec4(1), {0, 0}};
+    Vertex v[3];
+    memZero(v, sizeof(Vertex) * 3);
 
-    //u32 index[3] = {0, 1, 2};
+    v[0].position = {-0.5f, -0.5f, 0.0f};
+    v[1].position = { 0.5f, -0.5f, 0.0f};
+    v[2].position = { 0.0f,  0.5f, 0.0f};
 
-    meshSystemSetMesh(mesh);
-    renderCreateMesh(mesh, meshData->vertexCount, meshData->vertices, 0, nullptr);
-    return mesh;
-}
+    v[0].color = glm::vec4(1);
+    v[1].color = glm::vec4(1);
+    v[2].color = glm::vec4(1);
 
-// TODO  add the functionality to create segments and make it more customizable
-Mesh* meshSystemGetPlane(u32 width, u32 height)
-{
-    MeshData* mesh = (MeshData*)memAllocate(sizeof(MeshData), MEMORY_TAG_ENTITY);
-    Mesh* meshref = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
-    meshref->id = INVALID_ID;
-    char* name = "Plane";
-    std::memcpy(&meshref->name, name, 5);
+    meshSystemSetMesh(m);
+    if(!renderCreateMesh(m, 3, v, 0, nullptr)){
+        return nullptr;
+    }
 
-    std::memcpy(&mesh->name, name, 5);
-    mesh->vertexCount = 4;
-    mesh->vertices = (Vertex*)memAllocate(sizeof(Vertex) * mesh->vertexCount, MEMORY_TAG_UNKNOWN);
-
-    mesh->vertices[0] = {{-0.5f, -0.5f,  0.0f}, glm::vec4(1), {0, 0}};
-    mesh->vertices[1] = {{ 0.5f, -0.5f,  0.0f}, glm::vec4(1), {0, 0}};
-    mesh->vertices[2] = {{-0.5f,  0.5f,  0.0f}, glm::vec4(1), {0, 0}};
-    mesh->vertices[4] = {{ 0.5f,  0.5f,  0.0f}, glm::vec4(1), {0, 0}};
-
-    u32 array[3] = {1, 2, 3};
-    mesh->indices = array;
-    mesh->indexCount = 3;
-
-    meshSystemSetMesh(meshref);
-    renderCreateMesh(meshref, mesh->vertexCount, mesh->vertices, mesh->indexCount, mesh->indices);
-
-    return meshref;
+    return m;
 }
 
 Mesh* meshSystemCreateFromData(const MeshData* data)
@@ -126,6 +100,7 @@ Mesh* meshSystemCreateFromData(const MeshData* data)
 
     Mesh* mesh = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
     mesh->id = INVALID_ID;
+    mesh->rendererId = INVALID_ID;
     
     meshSystemSetMesh(mesh);
     if(!renderCreateMesh(mesh, data->vertexCount, data->vertices, data->indexCount, data->indices)) {

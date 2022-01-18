@@ -163,12 +163,12 @@ bool applicationInit(Game* pGameInst)
 
     // Register resource systems.
     // MESH Loader
-    //Resource cube;
-    //resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
-    //MeshData* data = (MeshData*)cube.data;
-    //Mesh* cubeMesh = meshSystemCreateFromData(data);
+    Resource cube;
+    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
+    MeshData* data = (MeshData*)cube.data;
+    //Mesh* tri = meshSystemCreateFromData(data);
 
-    PDEBUG("Loading scene ...");
+    //PDEBUG("Loading scene ...");
     //Mesh* plane = meshSystemGetPlane(1, 1);
     Mesh* tri = meshSystemGetTriangle();
     Entity ent;
@@ -176,7 +176,7 @@ bool applicationInit(Game* pGameInst)
     ent.model = glm::mat4(1);
     pState->scene = new Scene();
     pState->scene->entities.emplace_back(ent);
-    PDEBUG("Loading scene finished.");
+    //PDEBUG("Loading scene finished.");
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
