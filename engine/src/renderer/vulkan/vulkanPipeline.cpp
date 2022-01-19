@@ -42,7 +42,7 @@ void vulkanCreateGraphicsPipeline(
     rasterizationInfo.depthClampEnable          = VK_FALSE;
     rasterizationInfo.rasterizerDiscardEnable   = VK_FALSE;
     rasterizationInfo.polygonMode               = wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
-    rasterizationInfo.cullMode                  = VK_CULL_MODE_FRONT_BIT;
+    rasterizationInfo.cullMode                  = VK_CULL_MODE_BACK_BIT;
     rasterizationInfo.frontFace                 = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizationInfo.depthBiasEnable           = VK_FALSE;
     rasterizationInfo.depthBiasConstantFactor   = 0.0f;

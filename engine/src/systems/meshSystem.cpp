@@ -3,8 +3,12 @@
 #include "defines.h"
 #include "core/logger.h"
 #include "memory/pmemory.h"
-#include "external/glm/glm.hpp"
 #include "renderer/rendererFrontend.h"
+
+// TODO make own library
+//#include "math_types.h"
+#include "external/glm/gtc/constants.hpp"
+#include "external/glm/glm.hpp"
 
 typedef struct MeshSystemState
 {
@@ -96,9 +100,10 @@ Mesh* meshSystemGetTriangle()
     return m;
 }
 
+// TODO  make it configurable. Currently drawing at length 1.
 Mesh* meshSystemGetPlane(u32 width, u32 height)
 {
-        Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
     m->id = INVALID_ID;
     m->rendererId = INVALID_ID;
 
@@ -119,6 +124,48 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     
     meshSystemSetMesh(m);
     if(!renderCreateMesh(m, 4, v, 4, i)){
+        return nullptr;
+    }
+
+    return m;
+}
+
+// TODO make it configurable. Currently drawing at length 1 and 12 segments.
+// TODO fix circle creation.
+Mesh* meshSystemGetCircle(f32 r)
+{
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    m->id = INVALID_ID;
+    m->rendererId = INVALID_ID;
+
+    const u32 nSegments = 6;
+    const f32 radius = 1.0f;
+    const u32 nVertices = nSegments + 1; // Include the center vertex
+
+    Vertex v[nVertices];
+    memZero(v, sizeof(Vertex) * nVertices);
+
+    f32 angleDeg = (2.0f * glm::pi<f32>() * radius) / nSegments;
+    f32 angleRad = angleDeg / 180.0f;
+    for(u32 i = 0; i < nSegments; ++i)
+    {
+        f32 x = cos(i * angleRad) * radius;
+        f32 y = sin(i * angleRad) * radius;
+        v[i].position = {x, y, 0.0f};
+        v[i].color = glm::vec4(1);
+    }
+    v[nVertices - 1].position = {0.0f, 0.0f, 0.0f};
+    v[nVertices - 1].color = glm::vec4(1);
+
+    u32 i[18] = { 0, 1, 7, 
+                  1, 2, 7,
+                  2, 3, 7,
+                  3, 4, 7,
+                  4, 5, 7,
+                  5, 6, 7 };
+
+    meshSystemSetMesh(m);
+    if(!renderCreateMesh(m, nVertices, v, 18, i)){
         return nullptr;
     }
 

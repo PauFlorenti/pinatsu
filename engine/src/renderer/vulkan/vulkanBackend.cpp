@@ -243,6 +243,22 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+
+    VkDescriptorBufferInfo globalUboInfo = {};
+    globalUboInfo.buffer = state.forwardShader.globalUbo.handle;
+    globalUboInfo.offset = {0};
+    globalUboInfo.range = sizeof(ViewProjectionBuffer);
+
+    // Write global shader descriptor
+    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.pBufferInfo = &globalUboInfo;
+    write.dstSet = state.forwardShader.globalDescriptorSet[state.imageIndex];
+
+    vkUpdateDescriptorSets(state.device.handle, 1, &write, 0, nullptr);
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -790,22 +806,6 @@ void vulkanDrawGeometry(const RenderMeshData* data)
 
     // Get Material, set shaders, update, write and bind descriptors.
     // TODO Func should create shader modules??
-
-    VkDescriptorBufferInfo globalUboInfo = {};
-    globalUboInfo.buffer = state.forwardShader.globalUbo.handle;
-    globalUboInfo.offset = {0};
-    globalUboInfo.range = sizeof(ViewProjectionBuffer);
-
-    // Write global shader descriptor
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.pBufferInfo = &globalUboInfo;
-    write.dstSet = state.forwardShader.globalDescriptorSet[state.imageIndex];
-
-    vkUpdateDescriptorSets(state.device.handle, 1, &write, 0, nullptr);
 
     // Bind pipeline and mesh data
 

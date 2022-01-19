@@ -167,12 +167,13 @@ bool applicationInit(Game* pGameInst)
     resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
     MeshData* data = (MeshData*)cube.data;
     Mesh* cubeMesh = meshSystemCreateFromData(data);
+    Mesh* circle = meshSystemGetCircle(1);
 
     //PDEBUG("Loading scene ...");
     Mesh* plane = meshSystemGetPlane(1, 1);
     Mesh* tri = meshSystemGetTriangle();
     Entity ent;
-    ent.mesh = cubeMesh;
+    ent.mesh = circle;
     ent.model = glm::mat4(1);
     pState->scene = new Scene();
     pState->scene->entities.emplace_back(ent);
@@ -211,15 +212,6 @@ bool applicationRun()
             clockUpdate(&pState->clock);
             f64 currentTime = pState->clock.elapsedTime; // convert to seconds
             f64 deltaTime = currentTime - pState->lastTime;
-            // TODO store delta time in game instance state.
-
-            // TODO This logic should be given by the game itself.
-            // TEMP
-            for(auto& ent : pState->scene->entities)
-            {
-                ent.model = glm::rotate(ent.model, glm::radians((f32)deltaTime) * 20, glm::vec3(0, 1, 0));
-            }
-            // END TEMP
 
             platformUpdate();
             inputSystemUpdate((f32)deltaTime);
@@ -234,21 +226,6 @@ bool applicationRun()
                 PERROR("Game failed to render.");
                 pState->m_isRunning = false;
             }
-
-            // Draw
-            // TODO Create a struct Game with its own function pointers to
-            // Update and render
-            // At the moment update the scene is done in renderBeginFrame and it shouldn't
-
-            RenderMeshData testData{};
-            testData.mesh = pState->scene->entities[0].mesh;
-            testData.model = pState->scene->entities[0].model;
-
-            RenderPacket packet{};
-            packet.deltaTime = deltaTime;
-            packet.renderMeshDataCount = 1;
-            packet.meshes = &testData;
-            renderDrawFrame(packet);
 
             pState->lastTime = currentTime;
         }
