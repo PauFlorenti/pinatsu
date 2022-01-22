@@ -4,6 +4,7 @@
 #include "core\assert.h"
 #include "core\logger.h"
 #include "math_types.h"
+
 #include <external\glm\glm.hpp>
 #include <external\glm\gtc\matrix_transform.hpp>
 #include <vector>
@@ -146,6 +147,39 @@ typedef struct VulkanShaderObject
     VkShaderModule shaderModule;
 } VulkanShaderObject;
 
+// Used to determine if a descriptor need updating or not.
+typedef struct VulkanDescriptorState
+{
+    u32 generations[3]; // one per frame
+} VulkanDescriptorState;
+
+#define VULKAN_MAX_MATERIAL_COUNT 512
+
+// At the moment just one for the Material info.
+// May grow later for textures
+#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 1
+
+// Holding the descriptors (3 per frame) for each material instance.
+typedef struct VulkanMaterialInstance
+{
+    VkDescriptorSet descriptorSets[3];
+    VulkanDescriptorState descriptorState;
+} VulkanMaterialInstance;
+
+/**
+ * @note Due to  requirements from some GPU (NVidia I guess...) this
+ * should be padded to 256 bytes.
+ */
+typedef struct VulkanMaterialShaderUBO{
+    glm::vec4 diffuseColor; // 16 bytes
+    glm::vec4 reserved01;   // 16 bytes
+    glm::vec4 reserved02;   // 16 bytes
+    glm::vec4 reserved03;   // 16 bytes
+    glm::mat4 matReserved01; // 64 bytes
+    glm::mat4 matReserved02; // 64 bytes
+    glm::mat4 matReserved03; // 64 bytes
+} VulkanMaterialShaderUBO;
+
 /** Vulkan Material Shader
  * This object should hold all information related to
  * the shader pass.
@@ -170,8 +204,19 @@ typedef struct VulkanForwardShader
     // Buffer holding the data from globalUboData to be uploaded to the gpu.
     VulkanBuffer globalUbo;
 
-    VulkanPipeline pipeline;
+    // Mesh instance objects
+    VkDescriptorPool meshInstanceDescriptorPool;
+    VkDescriptorSet meshInstanceDescriptorSet;
+    VkDescriptorSetLayout meshInstanceDescriptorSetLayout;
 
+    // This will grow
+    VulkanMaterialShaderUBO objectMaterialData;
+    u32 meshInstanceBufferIndex;
+    VulkanBuffer meshInstanceBuffer;
+
+    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
+
+    VulkanPipeline pipeline;
 } VulkanForwardShader;
 
 typedef struct VulkanState

@@ -89,6 +89,11 @@ bool renderCreateTexture(void* data, Texture* texture)
     //return pState->renderBackend.onCreateTexture(data, texture);
 }
 
+bool renderCreateMaterial(Material* m)
+{
+    return pState->renderBackend.onCreateMaterial(m);
+}
+
 void setView(const glm::mat4 view, const glm::mat4 proj)
 {
     pState->view        = view;

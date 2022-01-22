@@ -107,13 +107,16 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     m->id = INVALID_ID;
     m->rendererId = INVALID_ID;
 
-    Vertex v[4];
-    memZero(v, sizeof(Vertex) * 4);
+    u32 vertexSize = sizeof(Vertex);
+    u32 indexSize = sizeof(u32);
 
-    v[0].position = {-0.5f, -0.5f, 0.0f};
-    v[1].position = { 0.5f, -0.5f, 0.0f};
-    v[2].position = {-0.5f,  0.5f, 0.0f};
-    v[3].position = { 0.5f,  0.5f, 0.0f};
+    Vertex v[4];
+    memZero(v, vertexSize * 4);
+
+    v[0].position = {-1.0f * (f32)width, -1.0f * (f32)height, 0.0f};
+    v[1].position = { 1.0f * (f32)width, -1.0f * (f32)height, 0.0f};
+    v[2].position = {-1.0f * (f32)width,  1.0f * (f32)height, 0.0f};
+    v[3].position = { 1.0f * (f32)width,  1.0f * (f32)height, 0.0f};
 
     v[0].color = glm::vec4(1);
     v[1].color = glm::vec4(1);

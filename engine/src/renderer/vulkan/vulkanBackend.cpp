@@ -243,22 +243,7 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
-
-    VkDescriptorBufferInfo globalUboInfo = {};
-    globalUboInfo.buffer = state.forwardShader.globalUbo.handle;
-    globalUboInfo.offset = {0};
-    globalUboInfo.range = sizeof(ViewProjectionBuffer);
-
-    // Write global shader descriptor
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.pBufferInfo = &globalUboInfo;
-    write.dstSet = state.forwardShader.globalDescriptorSet[state.imageIndex];
-
-    vkUpdateDescriptorSets(state.device.handle, 1, &write, 0, nullptr);
+    vulkanForwardShaderUpdateGlobalData(&state);
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -434,6 +419,28 @@ bool vulkanCreateTexture(void* data, Texture* texture)
 void vulkanDestroyTexture(const Texture* texture)
 {
     // TODO destroy specific texture
+}
+
+bool vulkanCreateMaterial(Material* m)
+{
+    if(m)
+    {
+        switch (m->type)
+        {
+        case MATERIAL_TYPE_FORWARD:
+            if(!vulkanForwardShaderGetMaterial(&state, &state.forwardShader, m))
+            {
+                PERROR("vulkanCreateMaterial - could not create material '%s'.", m->name);
+            }
+            break;
+        case MATERIAL_TYPE_UI:
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -706,8 +713,6 @@ void vulkanBackendShutdown(void)
  * @return bool if succeded.
  */
 
-static bool done = false;
-
 bool vulkanBeginFrame(f32 delta)
 {
     // Wait for the device to finish recreating the swapchain.
@@ -802,26 +807,23 @@ void vulkanDrawGeometry(const RenderMeshData* data)
 {
     // TODO make material specify the type to render
     Material* m = data->mesh->material;
-    VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
+    if(!m){
+        Material mat;
+        mat.diffuseColor = glm::vec4(1);
+        m = &mat;
+    }
 
     // Get Material, set shaders, update, write and bind descriptors.
-    // TODO Func should create shader modules??
-
     // Bind pipeline and mesh data
-
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
-    VkDeviceSize offset = {0};
-    vkCmdBindDescriptorSets(
-        state.commandBuffers[state.imageIndex].handle, 
-        VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        state.forwardShader.pipeline.layout,
-        0,
-        1,
-        &state.forwardShader.globalDescriptorSet[state.imageIndex],
-        0, nullptr);
 
+    // Bind material data.
+    vulkanForwardShaderSetMaterial(&state, &state.forwardShader, m);
+
+    VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
+
+    VkDeviceSize offset = 0;
     vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
     if(geometry->indexCount > 0)
     {

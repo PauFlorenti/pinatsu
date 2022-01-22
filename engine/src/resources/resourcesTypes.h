@@ -45,10 +45,29 @@ typedef struct Texture
 
 #define MATERIAL_NAME_MAX_LENGHT 256
 
+typedef enum MaterialType
+{
+    MATERIAL_TYPE_FORWARD,
+    MATERIAL_TYPE_UI
+} MaterialType;
+
+typedef struct MaterialData
+{
+    char name[MATERIAL_NAME_MAX_LENGHT];
+    glm::vec4 diffuseColor;
+    MaterialType type;
+    char diffuseTextureName[TEXTURE_NAME_MAX_LENGTH];
+} MaterialData;
+
 typedef struct Material
 {
-    u32 id;
+    u32 id; // Material id
+    u32 rendererId; // Used by the renderer to map to its own resources.
     char name[MATERIAL_NAME_MAX_LENGHT];
+    MaterialType type;
+    glm::vec4 diffuseColor;
+    u32 generation; // Check if material has been changed at runtime
+    // TODO texture
 } Material;
 
 #define MESH_MAX_LENGTH 256
@@ -68,8 +87,10 @@ typedef struct Mesh {
 
 typedef struct MeshData {
     char name[MESH_MAX_LENGTH];
+    u32 vertexSize;
     u32 vertexCount;
     Vertex* vertices;
+    u32 indexSize;
     u32 indexCount;
     u32* indices;
 } MeshData;

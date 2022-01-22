@@ -15,6 +15,7 @@
 #include "systems/resourceSystem.h"
 #include "systems/meshSystem.h"
 #include "systems/textureSystem.h"
+#include "systems/materialSystem.h"
 
 // TODO temp
 #include "scene/scene.h"
@@ -56,6 +57,9 @@ typedef struct ApplicationState
 
     u64 textureSystemMemoryRequirements;
     void* textureSystem;
+
+    u64 materialSystemMemoryRequirements;
+    void* materialSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -161,23 +165,15 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
-    // Register resource systems.
-    // MESH Loader
-    Resource cube;
-    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
-    MeshData* data = (MeshData*)cube.data;
-    Mesh* cubeMesh = meshSystemCreateFromData(data);
-    Mesh* circle = meshSystemGetCircle(1);
-
-    //PDEBUG("Loading scene ...");
-    Mesh* plane = meshSystemGetPlane(1, 1);
-    Mesh* tri = meshSystemGetTriangle();
-    Entity ent;
-    ent.mesh = circle;
-    ent.model = glm::mat4(1);
-    pState->scene = new Scene();
-    pState->scene->entities.emplace_back(ent);
-    //PDEBUG("Loading scene finished.");
+    // Init material system
+    MaterialSystemConfig materialSystemConfig{512};
+    materialSystemInit(&pState->materialSystemMemoryRequirements, nullptr, materialSystemConfig);
+    pState->materialSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->materialSystemMemoryRequirements);
+    if(!materialSystemInit(&pState->materialSystemMemoryRequirements, pState->materialSystem, materialSystemConfig))
+    {
+        PFATAL("Material system could not be initialized! Shutting down now.");
+        return false;
+    }
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
@@ -237,6 +233,7 @@ bool applicationRun()
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
+    materialSystemShutdown(pState->materialSystem);
     meshSystemShutdown(pState->meshSystem);
     resourceSystemShutdown(pState->resourceSystem);
     renderSystemShutdown(pState->renderSystem);
