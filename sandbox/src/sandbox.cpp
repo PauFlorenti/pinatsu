@@ -2,12 +2,48 @@
 
 #include "core/input.h"
 #include "core/logger.h"
+#include "core/pstring.h"
 #include "systems/meshSystem.h"
 #include "systems/materialSystem.h"
 #include "memory/pmemory.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
+
+typedef struct Ball
+{
+    bool stuck;
+    f32 radius;
+    glm::vec2 position;
+    glm::vec2 velocity;
+} Ball;
+
+void moveBall(GameState* state, Ball& b, f32 dt)
+{
+    if(!b.stuck)
+    {
+        b.position += b.velocity * dt;
+
+        if(b.position.x <= -400.0f){
+            b.velocity.x = -b.velocity.x;
+            b.position.x = -400.0f;
+        }
+        else if(b.position.x >= 400.0f)
+        {
+            b.velocity.x = -b.velocity.x;
+            b.position.x = 400.0f;
+        }
+        else if(b.position.y <= -400.0f)
+        {
+            b.velocity.y = -b.velocity.y;
+            b.position.y = -400.0f;
+        }
+
+        state->entities[state->nEntities - 1].model = glm::translate(state->entities[state->nEntities - 1].model, glm::vec3(b.position, 0.0f));
+    }
+}
+
+static Ball* ball = nullptr;
 
 bool gameInitialize(Game* pGameInst)
 {
@@ -34,7 +70,9 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 
     // TODO make own camera class.
 
-    f32 vel = 100.0f;
+    moveBall(state, *ball, deltaTime);
+
+    f32 vel = 200.0f;
     if(isKeyDown(KEY_A))
     {
         f32 speed = vel * deltaTime;
@@ -62,6 +100,12 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
         glm::vec3 movement = speed * glm::vec3(0, -1, 0);
         //state->view = glm::translate(state->view, movement);
         state->entities[0].model = glm::translate(state->entities[0].model, movement);
+    }
+
+    if(isKeyDown(KEY_SPACE))
+    {
+        ball->stuck = false;
+        ball->velocity = glm::vec2(0.0f, 1.0f);
     }
 
     /*
@@ -114,9 +158,10 @@ void gameOnResize(Game* pGameInst, u32 width, u32 height)
 
 static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
 {
-    const u32 size = 2;
-    u32 w = (levelWidth) / size;
-    u32 h = (levelHeight) / size;
+    const u32 cols = 6;
+    const u32 rows = 4;
+    u32 w = (levelWidth) / cols;
+    u32 h = 130.0f; //(levelHeight) / rows;
 
     MaterialData playerMaterial{};
     playerMaterial.diffuseColor = glm::vec4(1, 0, 0, 1);
@@ -130,21 +175,50 @@ static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
     blueMaterial.diffuseColor   = glm::vec4(0, 0, 1, 1);
     blueMaterial.type           = MATERIAL_TYPE_FORWARD;
 
-    Material* red = materialSystemCreateFromData(playerMaterial);
+    Material* red   = materialSystemCreateFromData(playerMaterial);
     Material* green = materialSystemCreateFromData(brickMaterial);
-    Material* blue = materialSystemCreateFromData(blueMaterial);
+    Material* blue  = materialSystemCreateFromData(blueMaterial);
 
     Entity player;
-    player.mesh             = meshSystemGetPlane(100, 50);
+    player.mesh             = meshSystemGetPlane(50, 20);
     player.mesh->material   = red;
-    player.model            = glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, 0.0f));
+    player.model            = glm::translate(glm::mat4(1), glm::vec3(0.0f, -300.0f, 0.0f));
 
-    u32 nEntities = 2;
+    ball = (Ball*)memAllocate(sizeof(Ball), MEMORY_TAG_ENTITY);
+    ball->stuck = true;
+    ball->position = glm::vec2(glm::vec3(player.model[3]).x, glm::vec3(player.model[3]).y + 10);
+
+    u32 nEntities = (cols * rows) + 2;
     pGameState->nEntities       = nEntities;
     pGameState->entities        = (Entity*)memAllocate(sizeof(Entity) * nEntities, MEMORY_TAG_GAME);
     pGameState->entities[0]     = player;
 
-    pGameState->entities[1].mesh            = meshSystemGetTriangle();
-    pGameState->entities[1].mesh->material  = blue;
-    pGameState->entities[1].model           = glm::scale(glm::translate(glm::mat4(1), glm::vec3(100.0f, 100.0f, 0.0f)), glm::vec3(50));
+    Mesh* blueBrick         = meshSystemGetPlane(w, h);
+    blueBrick->material     = blue;
+    stringCopy("BlueBrick", blueBrick->name);
+    Mesh* greenBrick        = meshSystemGetPlane(w, h);
+    greenBrick->material    = green;
+    stringCopy("GreenBrick", greenBrick->name);
+
+    u32 index = 1;
+    for(u32 i = 0; i < rows; ++i)
+    {
+        for(u32 j = 0; j < cols; ++j)
+        {
+            pGameState->entities[index].mesh = (j%2) == 0 ? blueBrick : greenBrick;
+            pGameState->entities[index].model = glm::translate(glm::mat4(1), glm::vec3((j * w) - levelWidth / 2.0f, i * h, 0.0f));
+            index++;
+        }
+    }
+
+    MaterialData ballMat;
+    ballMat.diffuseColor = glm::vec4(1);
+    ballMat.type = MATERIAL_TYPE_FORWARD;
+    stringCopy("Ball Material", ballMat.name);
+
+    Entity ballEntity{};
+    ballEntity.model = glm::translate(glm::mat4(1), glm::vec3(ball->position, 0.0f));
+    ballEntity.mesh = meshSystemGetPlane(10, 10);
+    ballEntity.mesh->material = materialSystemCreateFromData(ballMat);
+    pGameState->entities[nEntities - 1] = ballEntity;
 }

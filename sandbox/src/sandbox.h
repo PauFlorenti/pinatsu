@@ -16,6 +16,11 @@ typedef struct GameState
     Entity* entities;
 } GameState;
 
+// TODO Game status ??
+// Active
+// MENU
+// WIN/LOSE Condition
+
 bool gameInitialize(Game* pGameInst);
 bool gameUpdate(Game* pGameInst, f32 deltaTime);
 bool gameRender(Game* pGameInst, f32 deltaTime);
