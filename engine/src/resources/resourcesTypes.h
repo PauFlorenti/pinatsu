@@ -39,6 +39,7 @@ typedef struct Texture
     u32 height;
     u32 channels;
     bool hasTransparency;
+    u32 generation;
     char name[TEXTURE_NAME_MAX_LENGTH];
     void* data;
 } Texture;
@@ -68,6 +69,7 @@ typedef struct Material
     glm::vec4 diffuseColor;
     u32 generation; // Check if material has been changed at runtime
     // TODO texture
+    Texture* diffuseTexture;
 } Material;
 
 #define MESH_MAX_LENGTH 256

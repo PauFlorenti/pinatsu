@@ -9,9 +9,15 @@ layout(set = 1, binding = 0) uniform Material
     vec4 diffuse;
 } mat;
 
+layout(set = 1, binding = 1) uniform sampler2D diffuseSampler;
+
 layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-    fragColor = mat.diffuse;
+    vec4 diffuse = texture(diffuseSampler, inUV);
+    if(diffuse.w < 1.0)
+        discard;
+
+    fragColor = mat.diffuse * diffuse;
 }

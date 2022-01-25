@@ -39,5 +39,4 @@ void vulkanBufferCopyToImage(
     VulkanState* pState,
     VulkanBuffer* buffer,
     VulkanImage* image,
-    u32 width,
-    u32 height);
+    VkCommandBuffer& cmd);

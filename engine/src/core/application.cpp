@@ -134,7 +134,7 @@ bool applicationInit(Game* pGameInst)
 
     // Init resource system
     resourceSystemConfig resourceConfig;
-    resourceConfig.assetsBasePath = "data";
+    resourceConfig.assetsBasePath = "sandbox/assets";
     resourceConfig.maxLoaderCount = 10;
 
     resourceSystemInit(&pState->resourceSystemMemoryRequirements, nullptr, resourceConfig);
@@ -146,7 +146,8 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Mesh system
-    MeshSystemConfig meshSystemConfig{10};
+    MeshSystemConfig meshSystemConfig;
+    meshSystemConfig.maxMeshesCount = 512;
     meshSystemInit(&pState->meshSystemMemoryRequirements, nullptr, meshSystemConfig);
     pState->meshSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->meshSystemMemoryRequirements);
     if(!meshSystemInit(&pState->meshSystemMemoryRequirements, pState->meshSystem, meshSystemConfig))
@@ -156,7 +157,8 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Texture system.
-    TextureSystemConfig textureSystemConfig{10};
+    TextureSystemConfig textureSystemConfig;
+    textureSystemConfig.maxTextureCount = 512;
     textureSystemInit(&pState->textureSystemMemoryRequirements, nullptr, textureSystemConfig);    
     pState->textureSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->textureSystemMemoryRequirements);
     if(!textureSystemInit(&pState->textureSystemMemoryRequirements, pState->textureSystem, textureSystemConfig))
@@ -166,7 +168,8 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init material system
-    MaterialSystemConfig materialSystemConfig{512};
+    MaterialSystemConfig materialSystemConfig;
+    materialSystemConfig.maxMaterialCount = 512;
     materialSystemInit(&pState->materialSystemMemoryRequirements, nullptr, materialSystemConfig);
     pState->materialSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->materialSystemMemoryRequirements);
     if(!materialSystemInit(&pState->materialSystemMemoryRequirements, pState->materialSystem, materialSystemConfig))
@@ -234,6 +237,7 @@ bool applicationRun()
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
     materialSystemShutdown(pState->materialSystem);
+    textureSystemShutdown(pState->textureSystem);
     meshSystemShutdown(pState->meshSystem);
     resourceSystemShutdown(pState->resourceSystem);
     renderSystemShutdown(pState->renderSystem);

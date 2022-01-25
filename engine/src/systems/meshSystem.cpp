@@ -19,18 +19,18 @@ typedef struct MeshSystemState
 
 static MeshSystemState* pState;
 
-bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig config)
+bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig configuration)
 {
     u64 stateMemoryRequirement = sizeof(MeshSystemState);
-    u64 meshesMemoryRequirement = sizeof(Mesh) * config.maxMeshesCount;
-    *memoryRequirements = stateMemoryRequirement + meshesMemoryRequirement;
+    u64 meshesMemoryRequirement = sizeof(Mesh) * configuration.maxMeshesCount;
 
-    if(!state) {
+    if(state == nullptr) {
+        *memoryRequirements = stateMemoryRequirement + meshesMemoryRequirement;
         return true;
     }
 
     pState = static_cast<MeshSystemState*>(state);
-    pState->config = config;
+    pState->config = configuration;
     pState->meshes = (Mesh*)(pState + stateMemoryRequirement);
 
     for(u32 i = 0; i < pState->config.maxMeshesCount; ++i) {
@@ -122,6 +122,11 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     v[1].color = glm::vec4(1);
     v[2].color = glm::vec4(1);
     v[3].color = glm::vec4(1);
+
+    v[0].uv = glm::vec2(0, 0);
+    v[1].uv = glm::vec2(1, 0);
+    v[2].uv = glm::vec2(0, 1);
+    v[3].uv = glm::vec2(1, 1);
 
     u32 i[6] = {0, 1, 2, 1, 3, 2};
     

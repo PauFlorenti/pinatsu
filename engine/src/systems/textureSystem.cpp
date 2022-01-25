@@ -1,8 +1,10 @@
 #include "textureSystem.h"
 
 #include "core/logger.h"
+#include "core/pstring.h"
 #include "memory/pmemory.h"
 #include "resources/resourcesTypes.h"
+#include "resourceSystem.h"
 #include "renderer/rendererFrontend.h"
 
 typedef struct TextureSystemState
@@ -16,6 +18,8 @@ typedef struct TextureSystemState
 } TextureSystemState;
 
 static TextureSystemState* pState;
+
+static void textureCreateDefaultTexture();
 
 bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig config)
 {
@@ -44,9 +48,8 @@ bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig
         pState->textures[i].id = INVALID_ID;
     }
 
-    pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture*), MEMORY_TAG_TEXTURE);
-    pState->defaultTexture->id = INVALID_ID;
-    // TODO create default texture.
+    pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
+    textureCreateDefaultTexture();
 
     return true;
 }
@@ -60,13 +63,13 @@ void textureSystemShutdown(void* state)
             ++i)
         {
             Texture* t = &pState->textures[i];
-            // TODO renderDestroyTexture - free all GPU memory from updated textures.
+            textureSystemDestroyTexture(t);
         }
         state = 0;
     }
 }
 
-Texture* textureSystemGetDefaultTexture()
+static void textureCreateDefaultTexture()
 {
     // Create a default 256x256 texture with a checkered pattern.
     PDEBUG("Creating default texture.");
@@ -103,11 +106,113 @@ Texture* textureSystemGetDefaultTexture()
     pState->defaultTexture->height = textureDimension;
     pState->defaultTexture->hasTransparency = false;
     pState->defaultTexture->channels = 4;
-    pState->defaultTexture->data = &pixels;
     pState->defaultTexture->id = INVALID_ID;
+    pState->defaultTexture->generation = INVALID_ID;
 
     // TODO renderer create texture
-    renderCreateTexture(pixels, pState->defaultTexture);
+    if(!renderCreateTexture(pixels, pState->defaultTexture, nullptr))
+    {
+        PFATAL("textureCreateDefaultTexture - failed to create default texture!");
+    }
+}
 
+Texture* textureSystemGetDefaultTexture()
+{
+    if(!pState->defaultTexture)
+        textureCreateDefaultTexture();
     return pState->defaultTexture;
+}
+
+static bool 
+loadTexture(const char* name, Texture* t)
+{
+    Resource txt;
+    if(!resourceSystemLoad(name, RESOURCE_TYPE_TEXTURE, &txt)){
+        PERROR("loadTexture - Could not load resource '%s'.", name);
+        return false;
+    }
+
+    TextureResource* textureData = (TextureResource*)txt.data;
+
+    Texture tempTexture;
+    tempTexture.width = textureData->width;
+    tempTexture.height = textureData->height;
+    tempTexture.channels = textureData->channels;
+    
+    // Save old generation
+    u32 currentGeneration = t->generation;
+    t->generation = INVALID_ID;
+
+    u64 totalSize = tempTexture.width * tempTexture.height * tempTexture.channels;
+    bool hasTransparency = false;
+    for(u64 i = 0; i < totalSize; i += tempTexture.channels)
+    {
+        if(textureData->pixels[i + 3] < 255){
+            hasTransparency = true;
+            break;
+        }
+    }
+
+    tempTexture.hasTransparency = hasTransparency;
+    stringCopy(name, tempTexture.name);
+
+    renderCreateTexture(textureData->pixels, &tempTexture, &txt);
+
+    Texture oldTexture = *t;
+    *t = tempTexture;
+
+    renderDestroyTexture(&oldTexture);
+    
+    // Assign the generation
+    if(currentGeneration == INVALID_ID){
+        t->generation = 0;
+    } else {
+        t->generation = currentGeneration + 1;
+    }
+
+    resourceSystemUnload(&txt);
+    return true;
+
+}
+
+Texture* 
+textureSystemGet(const char* name)
+{
+    if(stringEquals(name, DEFAULT_TEXTURE_NAME)){
+        return pState->defaultTexture;
+    }
+
+    for(u32 i = 0; i < pState->config.maxTextureCount; ++i)
+    {
+        if(stringEquals(pState->textures[i].name, name)){
+            return &pState->textures[i];
+        }
+    }
+
+    Texture* t = 0;
+    for (u32 i = 0; i < pState->config.maxTextureCount; ++i)
+    {
+        if (pState->textures[i].id == INVALID_ID) {
+            t = &pState->textures[i];
+            break;
+        }
+    }
+    // If texture was not there, load it
+    if(!loadTexture(name, t)){
+        PERROR("textureSystemGet - Could not load texture '%s'.", name);
+        return nullptr;
+    }
+
+    return t;
+}
+
+void 
+textureSystemDestroyTexture(Texture* t)
+{
+    renderDestroyTexture(t);
+
+    memZero(t->name, sizeof(char) * TEXTURE_NAME_MAX_LENGTH);
+    memZero(t, sizeof(Texture));
+    t->id = INVALID_ID;
+    t->generation = INVALID_ID;
 }

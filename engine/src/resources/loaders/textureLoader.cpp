@@ -21,7 +21,7 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
     char fullPath[512];
     const char* format = "%s/%s/%s";
     stringFormat(&fullPath[0], format, resourceSystemPath(), "textures", name);
-    outResource->name = fullPath;
+    outResource->path = fullPath;
 
     TextureResource* textureResource = (TextureResource*)memAllocate(sizeof(TextureResource), MEMORY_TAG_TEXTURE);
 
@@ -65,6 +65,22 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
 
 bool textureLoaderUnload(ResourceLoader* self, Resource* resource)
 {
+    if(!self || !resource){
+        PWARN("textureLoaderUnload - called with self or resource as nullptr.");
+        return false;
+    }
+
+    u32 length = stringLength(resource->path);
+    if(length){
+        //memFree(resource->path, sizeof(char) * length, MEMORY_TAG_STRING);
+    }
+
+    if(resource->data){
+        memFree(resource->data, resource->dataSize, MEMORY_TAG_TEXTURE);
+        resource->dataSize = 0;
+        resource->data = nullptr;
+        resource->loaderId = INVALID_ID;
+    }
     return true;
 }
 

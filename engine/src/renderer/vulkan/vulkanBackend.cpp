@@ -6,6 +6,7 @@
 #include "vulkanFramebuffer.h"
 #include "vulkanBuffer.h"
 #include "vulkanCommandBuffer.h"
+#include "vulkanUtils.h"
 
 #include "shaders/vulkanForwardShader.h"
 
@@ -190,7 +191,6 @@ void vulkanDestroyShaderModule(
 //
 // * Texture functions
 //
-/*
 internal void vulkanCreateImage(
     VulkanState* pState,
     VkImageType type,
@@ -217,7 +217,7 @@ internal void vulkanImageTransitionLayout(
     VkImageLayout oldLayout,
     VkImageLayout newLayout,
     VkCommandBuffer& cmd);
-*/
+
 // TODO make configurable depending on the shader.
 // Get standard attribute description.
 std::vector<VkVertexInputAttributeDescription>
@@ -327,15 +327,17 @@ void vulkanDestroyMesh(const Mesh* mesh)
     }
 }
 
-bool vulkanCreateTexture(void* data, Texture* texture)
+bool vulkanCreateTexture(void* pixels, Texture* texture, Resource* t)
 {
-    if(!data || !texture) {
+    if(!pixels || !texture) {
         PERROR("vulkanCreateTexture - Unable to create the texture given the inputs.");
         return false;
     }
-/*
-    //VulkanTexture* texture = (VulkanTexture*)texture->data;
 
+    state.aux = t;
+
+    texture->data = memAllocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+    VulkanTexture* data = (VulkanTexture*)texture->data;
     VkDeviceSize textureSize = texture->width * texture->height * texture->channels;
 
     // ! Assume 8 bit per channel
@@ -344,10 +346,10 @@ bool vulkanCreateTexture(void* data, Texture* texture)
     // Staging buffer, load data into it.
     VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags memPropsFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
     VulkanBuffer staging;
     vulkanBufferCreate(&state, textureSize, usageFlags, memPropsFlags, &staging);
-
-    vulkanBufferLoadData(&state, &staging, 0, textureSize, 0, texture->data);
+    vulkanBufferLoadData(&state, staging, 0, textureSize, 0, pixels);
 
     vulkanCreateImage(
         &state,
@@ -360,7 +362,7 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         true,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        &state.texture.image
+        &data->image
     );
 
     VkCommandBuffer temporalCommand;
@@ -370,21 +372,26 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         temporalCommand);
 
     vulkanImageTransitionLayout(
-        &state, &state.texture.image, 
-        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, 
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, temporalCommand);
+        &state, 
+        &data->image, 
+        format, 
+        VK_IMAGE_LAYOUT_UNDEFINED, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        temporalCommand);
 
     vulkanBufferCopyToImage(
         &state,
         &staging, 
-        &state.texture.image, 
-        state.texture.image.width, 
-        state.texture.image.height);
+        &data->image, 
+        temporalCommand);
     
     vulkanImageTransitionLayout(
-        &state, &state.texture.image, 
-        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, temporalCommand);
+        &state, 
+        &data->image, 
+        format, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        temporalCommand);
 
     vulkanCommandBufferEndSingleUse(
         &state, 
@@ -411,14 +418,24 @@ bool vulkanCreateTexture(void* data, Texture* texture)
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    VK_CHECK(vkCreateSampler(state.device.handle, &samplerInfo, nullptr, &state.texture.sampler));
-*/
+    VK_CHECK(vkCreateSampler(state.device.handle, &samplerInfo, nullptr, &data->sampler));
+    texture->generation++;
     return true;
 }
 
-void vulkanDestroyTexture(const Texture* texture)
+void vulkanDestroyTexture(Texture* texture)
 {
-    // TODO destroy specific texture
+    vkDeviceWaitIdle(state.device.handle);
+
+    VulkanTexture* data = (VulkanTexture*)texture->data;
+    if(data)
+    {
+        vkDestroyImage(state.device.handle, data->image.handle, nullptr);
+        vkDestroyImageView(state.device.handle, data->image.view, nullptr);
+        memZero(&data->image, sizeof(VulkanTexture));;
+        vkDestroySampler(state.device.handle, data->sampler, nullptr);
+    }
+    memZero(texture, sizeof(Texture));
 }
 
 bool vulkanCreateMaterial(Material* m)
@@ -667,9 +684,9 @@ void vulkanBackendShutdown(void)
     }
 
     // Destroy all images.
-    vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
-    vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
-    vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
+    // vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
+    // vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
+    // vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
 
     PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);
@@ -1046,7 +1063,6 @@ void vulkanDestroyShaderModule(
 /**
  * Function to create an image in vulkan.
  */
-/*
 internal void vulkanCreateImage(
     VulkanState* pState,
     VkImageType type,
@@ -1088,7 +1104,7 @@ internal void vulkanCreateImage(
 
     VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(memoryRequirements.memoryTypeBits, memoryProperties);
+    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(pState, memoryRequirements.memoryTypeBits, memoryProperties);
 
     VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
 
@@ -1177,7 +1193,7 @@ internal void vulkanImageTransitionLayout(
         0, nullptr,
         1, &barrier);
 }
-*/
+
 /**
  * @brief returns a vector containing the standard input attribute
  * description for this engine. The attributes description is as follows:

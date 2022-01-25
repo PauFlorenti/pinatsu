@@ -24,7 +24,8 @@ typedef struct RendererBackend
     void (*onResize)(u32 width, u32 height);
     void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);
     bool (*onCreateMesh)(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
-    bool (*onCreateTexture)(void* data, Texture* texture);
+    bool (*onCreateTexture)(void* data, Texture* texture, Resource* t);
+    void (*onDestroyTexture)(Texture* t);
     bool (*onCreateMaterial)(Material* m);
 
 } RendererBackend;

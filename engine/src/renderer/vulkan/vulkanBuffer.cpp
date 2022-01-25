@@ -1,22 +1,7 @@
 #include "vulkanBuffer.h"
 
 #include "vulkanCommandBuffer.h"
-
-static i32 findMemoryIndex(
-    VulkanState* pState,
-    u32 typeFilter, 
-    VkMemoryPropertyFlags memFlags)
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(pState->device.physicalDevice, &memProperties);
-    for(u32 i = 0; i < memProperties.memoryTypeCount; ++i)
-    {
-        if(typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & memFlags) == memFlags){
-            return i;
-        }
-    }
-    return -1;
-}
+#include "vulkanUtils.h"
 
 bool vulkanBufferCreate(
     VulkanState* pState,
@@ -44,8 +29,7 @@ bool vulkanBufferCreate(
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize    = requirements.size;
     allocInfo.memoryTypeIndex   = index;
-    VkResult result = vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory);
-    //VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
+    VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
     VK_CHECK(vkBindBufferMemory(pState->device.handle, buffer->handle, buffer->memory, 0));
 
     return true;
@@ -155,37 +139,24 @@ void vulkanBufferCopyToImage(
     VulkanState* pState,
     VulkanBuffer* buffer,
     VulkanImage* image,
-    u32 width,
-    u32 height)
-{
-    VkCommandBuffer temporalCommandBuffer;
-    vulkanCommandBufferAllocateAndBeginSingleUse(
-        pState, 
-        pState->device.commandPool, 
-        temporalCommandBuffer);
-    
+    VkCommandBuffer& cmd)
+{    
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
     region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
+    region.imageExtent = {image->width, image->height, 1};
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.layerCount = 1;
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.mipLevel = 0;
 
     vkCmdCopyBufferToImage(
-        temporalCommandBuffer, 
+        cmd, 
         buffer->handle, 
         image->handle, 
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
         1, 
         &region);
-
-    vulkanCommandBufferEndSingleUse(
-        pState,
-        pState->device.commandPool,
-        pState->device.graphicsQueue,
-        temporalCommandBuffer);
 }

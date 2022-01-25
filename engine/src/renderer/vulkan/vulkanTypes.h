@@ -9,6 +9,9 @@
 #include <external\glm\gtc\matrix_transform.hpp>
 #include <vector>
 
+// TEMP
+#include "resources/resourcesTypes.h"
+
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
 
 typedef struct VulkanDevice
@@ -151,19 +154,20 @@ typedef struct VulkanShaderObject
 typedef struct VulkanDescriptorState
 {
     u32 generations[3]; // one per frame
+    u32 ids[3]; // Used for samplers
 } VulkanDescriptorState;
 
 #define VULKAN_MAX_MATERIAL_COUNT 512
 
 // At the moment just one for the Material info.
 // May grow later for textures
-#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 1
+#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 2
 
 // Holding the descriptors (3 per frame) for each material instance.
 typedef struct VulkanMaterialInstance
 {
     VkDescriptorSet descriptorSets[3];
-    VulkanDescriptorState descriptorState;
+    VulkanDescriptorState descriptorState[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
 } VulkanMaterialInstance;
 
 /**
@@ -235,7 +239,7 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    VulkanTexture texture;
+    Resource* aux;
     VulkanMesh* vulkanMeshes;
 
     // Forward rendering

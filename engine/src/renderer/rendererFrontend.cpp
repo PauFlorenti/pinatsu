@@ -83,10 +83,14 @@ bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount
     return pState->renderBackend.onCreateMesh(m, vertexCount, vertices, indexCount, indices);
 }
 
-bool renderCreateTexture(void* data, Texture* texture)
+bool renderCreateTexture(void* data, Texture* texture, Resource* txt)
 {
-    return true;
-    //return pState->renderBackend.onCreateTexture(data, texture);
+    return pState->renderBackend.onCreateTexture(data, texture, txt);
+}
+
+void renderDestroyTexture(Texture* t)
+{
+    pState->renderBackend.onDestroyTexture(t);
 }
 
 bool renderCreateMaterial(Material* m)

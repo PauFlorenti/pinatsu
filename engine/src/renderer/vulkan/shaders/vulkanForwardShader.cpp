@@ -2,6 +2,7 @@
 
 #include "../vulkanBuffer.h"
 #include "../vulkanPipeline.h"
+#include "memory/pmemory.h"
 
 /**
  * * Vulkan Shader creation functions
@@ -56,27 +57,39 @@ bool vulkanCreateForwardShader(
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         &outShader->meshInstanceBuffer);
 
-    VkDescriptorPoolSize objectDescriptorPoolSize;
-    objectDescriptorPoolSize.descriptorCount    = VULKAN_MAX_MATERIAL_COUNT;
-    objectDescriptorPoolSize.type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    VkDescriptorPoolSize objectDescriptorPoolSize[2];
+    objectDescriptorPoolSize[0].descriptorCount    = VULKAN_MAX_MATERIAL_COUNT;
+    objectDescriptorPoolSize[0].type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    objectDescriptorPoolSize[1].descriptorCount    = VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT * VULKAN_MAX_MATERIAL_COUNT;
+    objectDescriptorPoolSize[1].type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
     VkDescriptorPoolCreateInfo objectDescriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    objectDescriptorPoolInfo.poolSizeCount  = 1;
-    objectDescriptorPoolInfo.pPoolSizes     = &objectDescriptorPoolSize;
+    objectDescriptorPoolInfo.poolSizeCount  = 2;
+    objectDescriptorPoolInfo.pPoolSizes     = objectDescriptorPoolSize;
     objectDescriptorPoolInfo.maxSets        = VULKAN_MAX_MATERIAL_COUNT;
     objectDescriptorPoolInfo.flags          = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     VK_CHECK(vkCreateDescriptorPool(pState->device.handle, &objectDescriptorPoolInfo, nullptr, &outShader->meshInstanceDescriptorPool));
 
-    VkDescriptorSetLayoutBinding objectBinding{};
-    objectBinding.binding           = 0;
-    objectBinding.descriptorCount   = 1;
-    objectBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    objectBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding bindings[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
+
+    VkDescriptorType descriptorTypes[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT] = {
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    };
+
+    memZero(bindings, sizeof(VkDescriptorSetLayoutBinding) * VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT);
+    for(u32 i = 0; i < VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT; ++i)
+    {
+        bindings[i].binding = i;
+        bindings[i].descriptorCount = 1;
+        bindings[i].descriptorType = descriptorTypes[i];
+        bindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
 
     VkDescriptorSetLayoutCreateInfo objectBindingInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    objectBindingInfo.bindingCount  = 1;
-    objectBindingInfo.pBindings     = &objectBinding;
+    objectBindingInfo.bindingCount  = VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT;
+    objectBindingInfo.pBindings     = bindings;
 
     VK_CHECK(vkCreateDescriptorSetLayout(pState->device.handle, &objectBindingInfo, nullptr, &outShader->meshInstanceDescriptorSetLayout));
 
@@ -229,7 +242,8 @@ bool vulkanForwardShaderGetMaterial(
     {
         for(u32 j = 0; j < 3; ++j)
         {
-            matInstance->descriptorState.generations[j] = INVALID_ID;
+            matInstance->descriptorState[i].generations[j] = INVALID_ID;
+            matInstance->descriptorState[i].ids[j] = INVALID_ID;
         }
     }
 
@@ -253,6 +267,7 @@ vulkanForwardShaderSetMaterial(
     VulkanForwardShader* shader,
     Material* m)
 {
+    // Helpers for the index and the command buffer to write to.
     u32 index = pState->imageIndex;
     VkCommandBuffer cmd = pState->commandBuffers[index].handle;
 
@@ -260,26 +275,31 @@ vulkanForwardShaderSetMaterial(
     VulkanMaterialInstance* materialInstance = &shader->materialInstances[m->rendererId];
     VkDescriptorSet descriptorSet = materialInstance->descriptorSets[index];
 
+    // Init writes variables.
+    // TODO check if needs update
+    VkWriteDescriptorSet writes[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
+    memZero(writes, sizeof(VkWriteDescriptorSet) * 2);
+    u32 descriptorCount = 0;
+    u32 descriptorIndex = 0;
+
+    // Descriptor 0 - Material UBO
     u32 range = sizeof(VulkanMaterialShaderUBO);
     u32 offset = sizeof(VulkanMaterialShaderUBO) * m->rendererId;
 
+    // Upload the data to the ubo.
     VulkanMaterialShaderUBO ubo{};
     ubo.diffuseColor = m->diffuseColor;
-
-    //vulkanUploadDataToGPU(pState, shader->meshInstanceBuffer, offset, range, &ubo);
     vulkanBufferLoadData(pState, shader->meshInstanceBuffer, offset, range, 0, &ubo);
 
-    u32 descriptorCount = 0;
-    VkWriteDescriptorSet writes[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
-
-    if(materialInstance->descriptorState.generations[index] == INVALID_ID || materialInstance->descriptorState.generations[index] != m->generation)
+    // If descriptor has not been updated, generate the writes.
+    if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)
     {
         VkDescriptorBufferInfo bufferInfo;
         bufferInfo.buffer   = shader->meshInstanceBuffer.handle;
         bufferInfo.offset   = offset;
         bufferInfo.range    = range;
 
-        VkWriteDescriptorSet objectWrite {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        VkWriteDescriptorSet objectWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         objectWrite.pBufferInfo     = &bufferInfo;
         objectWrite.descriptorCount = 1;
         objectWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -287,9 +307,43 @@ vulkanForwardShaderSetMaterial(
         objectWrite.dstBinding      = 0;
         objectWrite.dstSet          = descriptorSet;
 
-        materialInstance->descriptorState.generations[index]++;
         writes[descriptorCount] = objectWrite;
         descriptorCount++;
+
+        // Update the generation. 
+        materialInstance->descriptorState[descriptorIndex].generations[index] = m->generation;
+    }
+    descriptorIndex++;
+
+    // Descriptor 1 - Material Sampler ... only diffuse at the moment
+    VkDescriptorImageInfo imageInfo;
+    Texture* t = m->diffuseTexture;
+    u32* descriptorGeneration = &materialInstance->descriptorState[descriptorIndex].generations[index];
+    u32* descriptorId = &materialInstance->descriptorState[descriptorIndex].ids[index];
+    // If descriptor sampler has not been updated.
+    if(t && (*descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
+    {
+        VulkanTexture* vulkanTexture = (VulkanTexture*)t->data;
+
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = vulkanTexture->image.view;
+        imageInfo.sampler = vulkanTexture->sampler;
+
+        VkWriteDescriptorSet textWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        textWrite.descriptorCount = 1;
+        textWrite.pImageInfo = &imageInfo;
+        textWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textWrite.dstArrayElement = 0;
+        textWrite.dstBinding = 1;
+        textWrite.dstSet = descriptorSet;
+
+        writes[descriptorCount] = textWrite;
+        descriptorCount++;
+
+        if(t->generation != INVALID_ID) {
+            *descriptorGeneration = t->generation;
+        }
+        descriptorIndex++;
     }
 
     if(descriptorCount > 0)

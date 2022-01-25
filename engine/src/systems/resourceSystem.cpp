@@ -16,13 +16,6 @@ static ResourceSystemState* pState = nullptr;
 
 bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConfig config)
 {
-    // If system not init yet, return memory requirements to be initialized.
-    if(state == nullptr)
-    {
-        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(ResourceLoader) * config.maxLoaderCount);
-        return true;
-    }
-
     // Check the config is valid.
     if(config.maxLoaderCount < 1){
         PERROR("Maximum loaders allowed is below 1. That is an error, shutting down.");
@@ -33,17 +26,24 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
         return false;
     }
 
+    // If system not init yet, return memory requirements to be initialized.
+    if(state == nullptr)
+    {
+        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(ResourceLoader) * config.maxLoaderCount);
+        return true;
+    }
+
     pState = static_cast<ResourceSystemState*>(state);
     pState->config = config;
 
-    void* resourceLoaderPtr = pState + sizeof(resourceSystemConfig);
-    pState->loaders = (ResourceLoader*)(pState + sizeof(pState->config));
+    void* resourceLoaderPtr = pState + sizeof(ResourceSystemState);
+    pState->loaders = (ResourceLoader*)(resourceLoaderPtr);
 
-    for(u32 i = 0; i < pState->config.maxLoaderCount; i++)
-    {
+    for(u32 i = 0; i < pState->config.maxLoaderCount; i++) {
         pState->loaders[i].id = INVALID_ID;
     }
 
+    // Register default known loaders.
     resourceSystemRegisterLoader(meshLoaderCreate());
     resourceSystemRegisterLoader(textureLoaderCreate());
 
