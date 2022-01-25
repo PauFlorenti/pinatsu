@@ -13,3 +13,6 @@ C++ Game Engine in Vulkan.
 * Make game pausable.
 * Add particles system.
 * Render text on screen.
+
+## PROBLEMS
+* VkFunctions in vulkanCreateBuffer modifies Resource path. This creates a problem when unloading.
