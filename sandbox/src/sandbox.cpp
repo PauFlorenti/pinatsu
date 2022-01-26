@@ -102,11 +102,18 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
         //state->view = glm::translate(state->view, movement);
         state->entities[0].model = glm::translate(state->entities[0].model, movement);
     }
-
+/*
     if(isKeyDown(KEY_SPACE))
     {
         ball->stuck = false;
         ball->velocity = glm::vec2(0.0f, 1.0f);
+    }
+*/
+
+    if(isKeyUp(KEY_T) && wasKeyDown(KEY_T))
+    {
+        textureSystemRelease(state->entities[0].mesh->material->diffuseTexture->name);
+        state->entities[0].mesh->material->diffuseTexture = textureSystemGet("cobblestone.png");
     }
 
     /*

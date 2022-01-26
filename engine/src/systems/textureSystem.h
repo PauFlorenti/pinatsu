@@ -15,5 +15,6 @@ void textureSystemShutdown(void* state);
 
 Texture* textureSystemGet(const char* name);
 Texture* textureSystemGetDefaultTexture();
+void textureSystemRelease(const char* name);
 void textureSystemDestroyTexture(Texture* t);
 

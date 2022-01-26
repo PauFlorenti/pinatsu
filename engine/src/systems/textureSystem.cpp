@@ -138,7 +138,7 @@ loadTexture(const char* name, Texture* t)
     tempTexture.width = textureData->width;
     tempTexture.height = textureData->height;
     tempTexture.channels = textureData->channels;
-    
+
     // Save old generation
     u32 currentGeneration = t->generation;
     t->generation = INVALID_ID;
@@ -160,6 +160,7 @@ loadTexture(const char* name, Texture* t)
 
     Texture oldTexture = *t;
     *t = tempTexture;
+    t->id = oldTexture.id;
 
     renderDestroyTexture(&oldTexture);
     
@@ -194,6 +195,7 @@ textureSystemGet(const char* name)
     {
         if (pState->textures[i].id == INVALID_ID) {
             t = &pState->textures[i];
+            t->id = i;
             break;
         }
     }
@@ -204,6 +206,24 @@ textureSystemGet(const char* name)
     }
 
     return t;
+}
+
+void 
+textureSystemRelease(const char* name)
+{
+    if(stringEquals(name, DEFAULT_TEXTURE_NAME)){
+        return;
+    }
+
+    Texture* t;
+    for(u32 i = 0; i < pState->config.maxTextureCount; i++){
+        if(stringEquals(pState->textures[i].name, name)){
+            t = &pState->textures[i];
+            break;
+        }
+    }
+
+    textureSystemDestroyTexture(t);
 }
 
 void 

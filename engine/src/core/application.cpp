@@ -213,7 +213,6 @@ bool applicationRun()
             f64 deltaTime = currentTime - pState->lastTime;
 
             platformUpdate();
-            inputSystemUpdate((f32)deltaTime);
             if(!pState->pGameInst->update(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to update.");
@@ -226,8 +225,10 @@ bool applicationRun()
                 pState->m_isRunning = false;
             }
 
+            inputSystemUpdate((f32)deltaTime);
             pState->lastTime = currentTime;
         }
+        
         frameCount++;
     }
 
@@ -297,7 +298,6 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
 
 bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
 {
-    PDEBUG("App on key.");
     if(code == EVENT_CODE_BUTTON_PRESSED)
     {
         u16 keyCode = data.data.u16[0];
@@ -311,11 +311,7 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
             return true;
         }
         // TODO temp information.
-        else if(keyCode == KEY_A)
-        {
-            PDEBUG("Key A is being pressed!");
-        }
-        else {
+        else{
             PDEBUG("A key %c is being pressed!", (keys)keyCode);
         }
         // TODO end temp information.
@@ -325,12 +321,7 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
     {
         u16 keyCode = data.data.u16[0];
         // TODO temp information.
-        if(keyCode == KEY_B)
-        {
-            PDEBUG("Key B has been released!");
-        } else {
-            PDEBUG("A key has been released!");
-        }
+        PDEBUG("A key has been released!");
         // TODO end temp information.
         return true;
     }
