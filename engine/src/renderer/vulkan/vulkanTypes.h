@@ -120,7 +120,7 @@ typedef struct VulkanImage
 } VulkanImage;
 
 // TODO make configurable
-#define VULKAN_MAX_TEXTURES 10
+#define VULKAN_MAX_TEXTURES 512
 
 typedef struct VulkanTexture
 {
@@ -129,7 +129,7 @@ typedef struct VulkanTexture
 } VulkanTexture;
 
 // TODO make configurable
-#define VULKAN_MAX_MESHES 10
+#define VULKAN_MAX_MESHES 512
 
 typedef struct VulkanMesh
 {
@@ -239,7 +239,6 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    Resource* aux;
     VulkanMesh* vulkanMeshes;
 
     // Forward rendering

@@ -327,14 +327,12 @@ void vulkanDestroyMesh(const Mesh* mesh)
     }
 }
 
-bool vulkanCreateTexture(void* pixels, Texture* texture, Resource* t)
+bool vulkanCreateTexture(void* pixels, Texture* texture)
 {
     if(!pixels || !texture) {
         PERROR("vulkanCreateTexture - Unable to create the texture given the inputs.");
         return false;
     }
-
-    state.aux = t;
 
     texture->data = memAllocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
     VulkanTexture* data = (VulkanTexture*)texture->data;

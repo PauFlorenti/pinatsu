@@ -113,10 +113,10 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     Vertex v[4];
     memZero(v, vertexSize * 4);
 
-    v[0].position = {-1.0f * (f32)width, -1.0f * (f32)height, 0.0f};
-    v[1].position = { 1.0f * (f32)width, -1.0f * (f32)height, 0.0f};
-    v[2].position = {-1.0f * (f32)width,  1.0f * (f32)height, 0.0f};
-    v[3].position = { 1.0f * (f32)width,  1.0f * (f32)height, 0.0f};
+    v[0].position = {-1.0f * (f32)width / 2.0f, -1.0f * (f32)height / 2.0f, 0.0f};
+    v[1].position = { 1.0f * (f32)width / 2.0f, -1.0f * (f32)height / 2.0f, 0.0f};
+    v[2].position = {-1.0f * (f32)width / 2.0f,  1.0f * (f32)height / 2.0f, 0.0f};
+    v[3].position = { 1.0f * (f32)width / 2.0f,  1.0f * (f32)height / 2.0f, 0.0f};
 
     v[0].color = glm::vec4(1);
     v[1].color = glm::vec4(1);

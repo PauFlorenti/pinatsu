@@ -13,7 +13,7 @@ bool renderDrawFrame(const RenderPacket& packet);
 void renderOnResize(u16 width, u16 height);
 
 bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
-bool renderCreateTexture(void* data, Texture* texture, Resource* txt);
+bool renderCreateTexture(void* data, Texture* texture);
 void renderDestroyTexture(Texture* t);
 bool renderCreateMaterial(Material* m);
 

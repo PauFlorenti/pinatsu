@@ -21,6 +21,6 @@ void vulkanEndFrame();
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
 void vulkanDestroyMesh(const Mesh* mesh);
-bool vulkanCreateTexture(void* data, Texture* texture, Resource* t);
+bool vulkanCreateTexture(void* data, Texture* texture);
 void vulkanDestroyTexture(Texture* texture);
 bool vulkanCreateMaterial(Material* m);

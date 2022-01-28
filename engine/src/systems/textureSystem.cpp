@@ -21,6 +21,36 @@ static TextureSystemState* pState;
 
 static void textureCreateDefaultTexture();
 
+static void textureCreateBasicTextures()
+{
+    // White texture
+    const u32 textureDimension = 256;
+    const u32 channels = 4;
+    const u32 pixelCount = textureDimension * textureDimension;
+    u8 pixels[pixelCount * channels];
+    // Write white pixels
+    memSet(&pixels, 255, sizeof(u8) * pixelCount * channels);
+
+    Texture* t;
+    for(u32 i = 0; i < pState->config.maxTextureCount; i++){
+        if(pState->textures[i].id == INVALID_ID){
+            t = &pState->textures[i];
+            t->id = i;
+            break;
+        }
+    }
+
+    t->width = textureDimension;
+    t->height = textureDimension;
+    t->channels = channels;
+    t->hasTransparency = false;
+    stringCopy("white", t->name);
+    if(!renderCreateTexture(pixels, t)){
+        PERROR("textureCreateBasicTextures - renderer could not create the texture.");
+    }
+
+}
+
 bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig config)
 {
     if(config.maxTextureCount < 1)
@@ -51,6 +81,7 @@ bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig
 
     pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
     textureCreateDefaultTexture();
+    textureCreateBasicTextures();
 
     return true;
 }
@@ -110,8 +141,7 @@ static void textureCreateDefaultTexture()
     pState->defaultTexture->id = INVALID_ID;
     pState->defaultTexture->generation = INVALID_ID;
 
-    // TODO renderer create texture
-    if(!renderCreateTexture(pixels, pState->defaultTexture, nullptr))
+    if(!renderCreateTexture(pixels, pState->defaultTexture))
     {
         PFATAL("textureCreateDefaultTexture - failed to create default texture!");
     }
@@ -158,7 +188,7 @@ loadTexture(const char* name, Texture* t)
     tempTexture.generation = INVALID_ID;
     stringCopy(name, tempTexture.name);
 
-    renderCreateTexture(textureData->pixels, &tempTexture, &txt);
+    renderCreateTexture(textureData->pixels, &tempTexture);
 
     Texture oldTexture = *t;
     *t = tempTexture;
