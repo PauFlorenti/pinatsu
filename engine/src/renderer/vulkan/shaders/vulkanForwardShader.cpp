@@ -321,7 +321,7 @@ vulkanForwardShaderSetMaterial(
     u32* descriptorGeneration = &materialInstance->descriptorState[descriptorIndex].generations[index];
     u32* descriptorId = &materialInstance->descriptorState[descriptorIndex].ids[index];
     // If descriptor sampler has not been updated.
-    if(t && (*descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
+    if(t && (*descriptorId != t->id || *descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
     {
         VulkanTexture* vulkanTexture = (VulkanTexture*)t->data;
 
@@ -342,6 +342,7 @@ vulkanForwardShaderSetMaterial(
 
         if(t->generation != INVALID_ID) {
             *descriptorGeneration = t->generation;
+            *descriptorId = t->id;
         }
         descriptorIndex++;
     }

@@ -46,6 +46,7 @@ bool textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig
         ++i)
     {
         pState->textures[i].id = INVALID_ID;
+        pState->textures[i].generation = INVALID_ID;
     }
 
     pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture), MEMORY_TAG_TEXTURE);
@@ -154,6 +155,7 @@ loadTexture(const char* name, Texture* t)
     }
 
     tempTexture.hasTransparency = hasTransparency;
+    tempTexture.generation = INVALID_ID;
     stringCopy(name, tempTexture.name);
 
     renderCreateTexture(textureData->pixels, &tempTexture, &txt);

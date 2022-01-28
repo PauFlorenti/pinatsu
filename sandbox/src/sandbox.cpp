@@ -110,10 +110,22 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
     }
 */
 
+    static i32 choice = 0;
+
     if(isKeyUp(KEY_T) && wasKeyDown(KEY_T))
     {
-        textureSystemRelease(state->entities[0].mesh->material->diffuseTexture->name);
-        state->entities[0].mesh->material->diffuseTexture = textureSystemGet("cobblestone.png");
+        const char* names[4] = {
+            "paving.png",
+            "paving2.png",
+            "texture.png",
+            "cobblestone.png"
+        };
+
+        choice++;
+        choice %= 4;
+
+        //textureSystemRelease(state->entities[0].mesh->material->diffuseTexture->name);
+        state->entities[0].mesh->material->diffuseTexture = textureSystemGet(names[choice]);
     }
 
     /*
@@ -171,10 +183,10 @@ static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
     playerMaterial.type         = MATERIAL_TYPE_FORWARD;
 
     Material* red = materialSystemCreateFromData(playerMaterial);
-    red->diffuseTexture = textureSystemGet("paddle.png"); //textureSystemGetDefaultTexture();
+    red->diffuseTexture = textureSystemGet("cobblestone.png"); //textureSystemGetDefaultTexture();
 
     Entity player;
-    player.mesh             = meshSystemGetPlane(100, 25);
+    player.mesh             = meshSystemGetPlane(256, 256);
     player.mesh->material   = red;
     player.model            = glm::translate(glm::mat4(1), glm::vec3(0.0f, -300.0f, 0.0f));
 

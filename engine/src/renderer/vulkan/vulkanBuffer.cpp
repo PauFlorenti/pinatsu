@@ -60,8 +60,7 @@ void vulkanBufferLoadData(
  */
 void vulkanBufferDestroy(
     VulkanState* pState,
-    VulkanBuffer& buffer
-)
+    VulkanBuffer& buffer)
 {
     vkFreeMemory(
         pState->device.handle, 
@@ -85,8 +84,7 @@ void vulkanTransferBuffer(
     VulkanState* pState,
     VkBuffer& src,
     VkBuffer& dst,
-    VkDeviceSize size
-)
+    VkDeviceSize size)
 {
     VkCommandBuffer cmd;
     vulkanCommandBufferAllocateAndBeginSingleUse(
@@ -118,9 +116,9 @@ void vulkanUploadDataToGPU(
     const void* data)
 {
     VulkanBuffer stagingBuffer;
-    
+
     vulkanBufferCreate(
-        pState, 
+        pState,
         size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -140,7 +138,7 @@ void vulkanBufferCopyToImage(
     VulkanBuffer* buffer,
     VulkanImage* image,
     VkCommandBuffer& cmd)
-{    
+{
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
     region.bufferRowLength = 0;

@@ -32,8 +32,9 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
         return false;
     }
 
+    const i32 requiredChannels = 4;
     i32 width = 0, height = 0, channels = 0;
-    u8* data = stbi_load(fullPath, &width, &height, &channels, 0);
+    u8* data = stbi_load(fullPath, &width, &height, &channels, requiredChannels);
 
     const char* fail = stbi_failure_reason();
     if(fail) {
@@ -52,7 +53,7 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
     textureResource->pixels     = data;
     textureResource->width      = width;
     textureResource->height     = height;
-    textureResource->channels   = channels;
+    textureResource->channels   = requiredChannels;
 
     outResource->dataSize   = sizeof(TextureResource);
     outResource->data       = (void*)textureResource;
