@@ -15,6 +15,7 @@ typedef struct RenderMeshData
 {
     glm::mat4 model;
     Mesh* mesh;
+    Material* material;
 } RenderMeshData;
 
 typedef struct RenderPacket

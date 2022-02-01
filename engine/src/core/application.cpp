@@ -16,9 +16,8 @@
 #include "systems/meshSystem.h"
 #include "systems/textureSystem.h"
 #include "systems/materialSystem.h"
-
-// TODO temp
-#include "scene/scene.h"
+#include "systems/entitySystem.h"
+//#include "systems/entityComponentSystem.h"
 
 typedef struct ApplicationState
 {
@@ -31,8 +30,6 @@ typedef struct ApplicationState
 
     Clock clock;
     f64 lastTime;
-
-    Scene* scene;
 
     u64 memorySystemMemoryRequirements;
     void* memorySystem;
@@ -60,6 +57,9 @@ typedef struct ApplicationState
 
     u64 materialSystemMemoryRequirements;
     void* materialSystem;
+
+    u64 entitySystemMemoryRequirements;
+    void* entitySystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -175,6 +175,15 @@ bool applicationInit(Game* pGameInst)
     if(!materialSystemInit(&pState->materialSystemMemoryRequirements, pState->materialSystem, materialSystemConfig))
     {
         PFATAL("Material system could not be initialized! Shutting down now.");
+        return false;
+    }
+
+    // Init Entity Component System
+    entitySystemInit(&pState->entitySystemMemoryRequirements, nullptr);
+    pState->entitySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->entitySystemMemoryRequirements);
+    if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
+    {
+        PFATAL("Entity system could not be initialized! Shutting down now.");
         return false;
     }
 

@@ -821,7 +821,7 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
 void vulkanDrawGeometry(const RenderMeshData* data)
 {
     // TODO make material specify the type to render
-    Material* m = data->mesh->material;
+    Material* m = data->material;
     if(!m){
         Material mat;
         mat.diffuseColor = glm::vec4(1);

@@ -40,8 +40,29 @@ void moveBall(GameState* state, Ball& b, f32 dt)
             b.position.y = -400.0f;
         }
 
-        state->entities[1].model = glm::translate(glm::mat4(1), glm::vec3(b.position, 0.0f));
+        //state->entities[1].model = glm::translate(glm::mat4(1), glm::vec3(b.position, 0.0f));
     }
+}
+
+void movePlayer(GameState* state)
+{
+    ControllerComponent* controller = (ControllerComponent*)entitySystemGetComponent(1, CONTROLLER);
+    TransformComponent* transform = (TransformComponent*)entitySystemGetComponent(1, TRANSFORM);
+
+    f32 speed = state->deltaTime * controller->velocity;
+    if(isKeyDown(KEY_A)) {
+        transform->position = transform->position + glm::vec3(1.0f, 0.0f, 0.0f) * speed;
+    }
+    if(isKeyDown(KEY_D)) {
+        transform->position = transform->position + glm::vec3(-1.0f, 0.0f, 0.0f) * speed;
+    }
+    if(isKeyDown(KEY_W)) {
+        transform->position = transform->position + glm::vec3(0.0f, 1.0f, 0.0f) * speed;
+    }
+    if(isKeyDown(KEY_S)) {
+        transform->position = transform->position + glm::vec3(0.0f, -1.0f, 0.0f) * speed;
+    }
+    
 }
 
 static Ball* ball = nullptr;
@@ -59,7 +80,43 @@ bool gameInitialize(Game* pGameInst)
     state->deltaTime    = 0.0f;
     state->cameraAxes   = glm::vec3(0);
 
-    createMap(state, pGameInst->appConfig.startWidth, pGameInst->appConfig.startHeight);
+    Entity player = entitySystemCreateEntity();
+    TransformComponent t{};
+    t.position = glm::vec3(0.0f);
+    t.rotation = glm::quat();
+    t.scale = glm::vec3(10.0f);
+
+    MaterialData playerMaterial{};
+    playerMaterial.diffuseColor = glm::vec4(1);
+    playerMaterial.type = MATERIAL_TYPE_FORWARD;
+
+    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
+    paddleMat->diffuseTexture = textureSystemGet("paddle.png");
+
+    RenderComponent r{};
+    r.material = paddleMat;
+    r.mesh = meshSystemGetPlane(10, 10);
+
+    ControllerComponent controller;
+    controller.velocity = 100.0f;
+    controller.active = true;
+
+    entitySystemAddComponent(player, TRANSFORM, &t);
+    entitySystemAddComponent(player, RENDER, &r);
+    entitySystemAddComponent(player, CONTROLLER, &controller);
+
+    TransformComponent t2{};
+    t2.position = glm::vec3(10.0f, 10.0f, 0.0f);
+    t2.rotation = glm::quat();
+    t2.scale = glm::vec3(10.0f);
+
+    Entity enemy = entitySystemCreateEntity();
+    entitySystemAddComponent(enemy, TRANSFORM, &t2);
+    entitySystemAddComponent(enemy, RENDER, &r);
+
+    state->nEntities = 2;
+
+    //createMap(state, pGameInst->appConfig.startWidth, pGameInst->appConfig.startHeight);
 
     return true;
 }
@@ -71,63 +128,9 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 
     // TODO make own camera class.
 
-    moveBall(state, *ball, deltaTime);
-
-    f32 vel = 200.0f;
-    if(isKeyDown(KEY_A))
-    {
-        f32 speed = vel * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(-1, 0, 0);
-        //state->view = glm::translate(state->view, movement);
-        state->entities[0].model = glm::translate(state->entities[0].model, movement);
-    }
-    else if(isKeyDown(KEY_D))
-    {
-        f32 speed = vel * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(1, 0, 0);
-        //state->view = glm::translate(state->view, movement);
-        state->entities[0].model = glm::translate(state->entities[0].model, movement);
-    }
-    else if(isKeyDown(KEY_W))
-    {
-        f32 speed = vel * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(0, 1, 0);
-        //state->view = glm::translate(state->view, movement);
-        state->entities[0].model = glm::translate(state->entities[0].model, movement);
-    }
-    else if(isKeyDown(KEY_S))
-    {
-        f32 speed = vel * deltaTime;
-        glm::vec3 movement = speed * glm::vec3(0, -1, 0);
-        //state->view = glm::translate(state->view, movement);
-        state->entities[0].model = glm::translate(state->entities[0].model, movement);
-    }
-
-    if(wasKeyDown(KEY_SPACE) && isKeyUp(KEY_SPACE))
-    {
-        ball->stuck = false;
-        ball->velocity = glm::vec2(0.0f, 1.0f) * 100.0f;
-        //ball->position = ball->position + ball->velocity * 100.0f * deltaTime;
-        //state->entities[1].model = glm::translate(glm::mat4(1), glm::vec3(ball->position, 0.0f));
-    }
-
+    movePlayer(state);
+    
     static i32 choice = 0;
-
-    if(isKeyUp(KEY_T) && wasKeyDown(KEY_T))
-    {
-        const char* names[4] = {
-            "paving.png",
-            "paving2.png",
-            "texture.png",
-            "cobblestone.png"
-        };
-
-        choice++;
-        choice %= 4;
-
-        //textureSystemRelease(state->entities[0].mesh->material->diffuseTexture->name);
-        state->entities[0].mesh->material->diffuseTexture = textureSystemGet(names[choice]);
-    }
 
 #if DEBUG
     if(isKeyDown(KEY_UP))
@@ -171,12 +174,19 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = (GameState*)pGameInst->state;
 
+    RenderComponent* renderComp = nullptr;
+    TransformComponent* transComp = nullptr;
     const u32 size = state->nEntities;
     RenderMeshData* gameMeshes = (RenderMeshData*)memAllocate(sizeof(RenderMeshData) * size, MEMORY_TAG_ENTITY);
+
     for(u32 i = 0; i < size; ++i)
     {
-        gameMeshes[i].mesh = state->entities[i].mesh;
-        gameMeshes[i].model = state->entities[i].model;
+        renderComp = (RenderComponent*)entitySystemGetComponent(i + 1, RENDER);
+        transComp = (TransformComponent*)entitySystemGetComponent(i + 1, TRANSFORM);
+
+        gameMeshes[i].mesh = renderComp->mesh;
+        gameMeshes[i].material = renderComp->material;
+        gameMeshes[i].model = glm::translate(glm::mat4(1), transComp->position) * glm::scale(glm::mat4(1), transComp->scale);
     }
 
     RenderPacket packet{};
@@ -196,7 +206,31 @@ void gameOnResize(Game* pGameInst, u32 width, u32 height)
 
 static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
 {
+/*
+    Entity player = pGameState->ecs.createEntity();
 
+    TransformComp transform;
+    transform.position = glm::vec3(0.0);
+    transform.rotation = glm::quat();
+    transform.scale = glm::vec3(10);
+    pGameState->ecs.addComponent(player, transform);
+
+    MaterialData playerMaterial{};
+    playerMaterial.diffuseColor = glm::vec4(1);
+    playerMaterial.type = MATERIAL_TYPE_FORWARD;
+
+    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
+    paddleMat->diffuseTexture = textureSystemGet("paddle.png");
+
+    RenderComp render;
+    render.mesh = meshSystemGetPlane(10, 10);
+    render.material = paddleMat;
+    pGameState->ecs.addComponent(player, render);
+
+    pGameState->nEntities = 1;
+*/
+
+/*
     const u32 cols = 6;
     const u32 rows = 3;
     u32 map[18] = {
@@ -236,6 +270,7 @@ static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
     ball = (Ball*)memAllocate(sizeof(Ball), MEMORY_TAG_ENTITY);
     ball->position = glm::vec3(0.0f, -250.0f, 0.0f);
     ball->stuck = true;
+    ball->init();
 
     const u32 w = (f32)levelWidth / (f32)cols;
     const u32 h = (f32)trueHeight / (f32)rows;
@@ -273,4 +308,5 @@ static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
             pGameState->entities[i + 2] = enemy;
         }
     }
+    */
 }

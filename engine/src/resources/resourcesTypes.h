@@ -84,7 +84,6 @@ typedef struct Mesh {
     u32 id;
     u32 rendererId;
     char name[MESH_MAX_LENGTH];
-    Material* material;
 } Mesh;
 
 typedef struct MeshData {

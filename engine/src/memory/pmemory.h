@@ -18,6 +18,8 @@ typedef enum memoryTag
     MEMORY_TAG_ENTITY,
     MEMORY_TAG_SCENE,
     MEMORY_TAG_STRING,
+    MEMORY_TAG_MANAGER,
+    MEMORY_TAG_SYSTEM,
 
     MEMORY_TAG_MAX_TAGS
 } memoryTag;

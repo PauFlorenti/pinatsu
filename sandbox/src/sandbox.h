@@ -3,7 +3,8 @@
 #include "game.h"
 #include "external/glm/glm.hpp"
 #include "external/glm/gtc/matrix_transform.hpp"
-#include "scene/scene.h"
+//#include "scene/scene.h"
+#include "systems/entitySystem.h"
 
 typedef struct GameState
 {
@@ -13,7 +14,8 @@ typedef struct GameState
     glm::vec3 cameraAxes; // Pitch x, yaw y, roll z
 
     u32 nEntities;
-    Entity* entities;
+
+    //Entity* entities;
 } GameState;
 
 // TODO Game status ??
