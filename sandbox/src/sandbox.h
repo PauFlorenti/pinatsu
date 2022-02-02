@@ -23,5 +23,3 @@ bool gameInitialize(Game* pGameInst);
 bool gameUpdate(Game* pGameInst, f32 deltaTime);
 bool gameRender(Game* pGameInst, f32 deltaTime);
 void gameOnResize(Game* pGameInst, u32 width, u32 height);
-
-static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight);
