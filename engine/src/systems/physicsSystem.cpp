@@ -72,6 +72,14 @@ boxColliderCheckCollision(const AABB& a, const AABB& b)
     return true;
 }
 
+enum Direction
+{
+    RIGHT,
+    LEFT,
+    UP,
+    DOWN
+};
+
 static bool
 checkCollision(Entity entity)
 {
@@ -81,13 +89,56 @@ checkCollision(Entity entity)
         
         if(entity == physicsState->rigidBodies[i])
             continue;
-            
+
         TransformComponent* tb = (TransformComponent*)entitySystemGetComponent(physicsState->rigidBodies[i], TRANSFORM);
         BoxCollisionComponent* b = (BoxCollisionComponent*)entitySystemGetComponent(physicsState->rigidBodies[i], BOXCOLLIDER);
 
         AABB boxA = {{ta->position.x - a->min.x, ta->position.y - a->min.y},{ta->position.x + a->max.x, ta->position.y + a->max.y}};
         AABB boxB = {{tb->position.x - b->min.x, tb->position.y - b->min.y},{tb->position.x + b->max.x, tb->position.y + b->max.y}};
-        return boxColliderCheckCollision(boxA, boxB);
+        bool collision = boxColliderCheckCollision(boxA, boxB);
+        if(collision) {
+            glm::vec2 compass[] = {
+                glm::vec2(1.0f, 0.0f),
+                glm::vec2(-1.0f, 0.0f),
+                glm::vec2(0.0f, 1.0f),
+                glm::vec2(0.0f, -1.0f)
+            };
+
+            glm::vec3 vector = glm::normalize(ta->position - tb->position);
+            f32 max = 0.0f;
+            u32 index = 0;
+            for(u32 i = 0; i < 4; ++i)
+            {
+                f32 dot = glm::dot(vector, glm::vec3(compass[i], 1.0f));
+                if(dot > max) {
+                    max = dot;
+                    index = i;
+                }
+            }
+
+            BrickComponent* brick = (BrickComponent*)entitySystemGetComponent(physicsState->rigidBodies[i], BRICK);
+            if(brick)
+                brick->health--;
+
+            PhysicsComponent* p = (PhysicsComponent*)entitySystemGetComponent(entity, PHYSICS);
+
+            switch (index)
+            {
+            case (u32)RIGHT:
+                p->velocity.x = -p->velocity.x;
+                break;
+            case (u32)LEFT:
+                p->velocity.x = -p->velocity.x;
+                break;
+            case (u32)UP:
+                p->velocity.y = -p->velocity.y;
+                break;
+            case (u32)DOWN:
+                p->velocity.y = -p->velocity.y;
+                break;
+            }
+            return collision;
+        }
     }
     return false;
 }
@@ -103,7 +154,7 @@ updateStep(Entity entity, f32 dt)
     if(p->gravity) gravity = glm::vec3(0.0f, -9.8f, 0.0f);
     p->acceleration = gravity * p->mass * dt;
     p->velocity += p->acceleration * dt;
-    t->position = t->position + p->velocity;
+    t->position = t->position + p->velocity * dt;
 }
 
 void
@@ -114,9 +165,7 @@ physicsSystemsUpdate(f32 dt)
         
         if(checkCollision(ent)) {
             PINFO("Collision detected!");
-            return;
         }
-
         updateStep(ent, dt);
     }
 }

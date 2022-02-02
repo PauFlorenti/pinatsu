@@ -1,4 +1,4 @@
-#include "sandbox.h"
+#include "breakout.h"
 
 #include "core/input.h"
 #include "core/logger.h"
@@ -164,7 +164,8 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 
     movePlayer(state);
     ballUpdate(state, (f32)pGameInst->appConfig.startWidth / 2.0f, (f32)pGameInst->appConfig.startHeight / 2.0f);
-
+    
+    /*
     for(u32 i = 1; i <= state->nEntities; i++)
     {
         BrickComponent* brick = (BrickComponent*)entitySystemGetComponent(i, BRICK);
@@ -172,6 +173,7 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
             entitySystemDestroyEntity(i);
         }
     }
+    */
 
     if(!stuck)
         physicsSystemsUpdate(deltaTime);

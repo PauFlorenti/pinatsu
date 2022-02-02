@@ -19,6 +19,7 @@ entitySystemInit(u64* memoryRequirements, void* state)
     pState->componentManager.controllerCompCount = 0;
     pState->componentManager.physicsCompCount = 0;
     pState->componentManager.boxCollisionCompCount = 0;
+    pState->componentManager.brickCompCount = 0;
 
     pState->entityManager.activeEntitiesCount = 0;
 
@@ -66,6 +67,13 @@ entitySystemDestroyEntity(Entity entity)
         PWARN("The entity received is not valid.");
         return;
     }
+
+    pState->componentManager.transformComponents[entity] = {};
+    pState->componentManager.renderComponents[entity] = {};
+    pState->componentManager.controllerComponent[entity] = {};
+    pState->componentManager.boxCollisionComponent[entity] = {};
+    pState->componentManager.physicsComponent[entity] = {};
+    pState->componentManager.brickComponent[entity] = nullptr;
 
     pState->entityManager.availableEntities[entity - 1] = entity;
     pState->entityManager.activeEntitiesCount--;
@@ -121,6 +129,13 @@ entitySystemAddComponent(Entity entity, ComponentType type, void* component)
         pState->componentManager.boxCollisionComponent[entity] = *comp;
         break;
     }
+    case BRICK:
+    {
+        pState->componentManager.brickCompCount++;
+        BrickComponent* comp = (BrickComponent*)component;
+        pState->componentManager.brickComponent[entity] = comp;
+        break;
+    }
     default:
         PWARN("entitySystemAddComponent - Non existant type. No component added.");
         break;
@@ -152,6 +167,10 @@ entitySystemRemoveComponent(Entity entity, ComponentType type)
         pState->componentManager.boxCollisionComponent[entity] = {};
         pState->componentManager.boxCollisionCompCount--;
         break;
+    case BRICK:
+        pState->componentManager.brickComponent[entity] = {};
+        pState->componentManager.brickCompCount--;
+        break;
     default:
         PWARN("entitySystemRemoveComponent - No available component type found.");
         break;
@@ -162,6 +181,12 @@ void
 entitySystemGetEntities(u32* counter, Entity* entities)
 {
     entities = (Entity*)memAllocate(sizeof(Entity) * pState->entityManager.activeEntitiesCount, MEMORY_TAG_ENTITY);
+
+    u32 index = 0;
+    for(u32 i = 0; i < MAX_ENTITIES_ALLOWED; i++)
+    {
+        //if(pState->entityManager.availableEntities[i] )
+    }
 
     // TODO check for available entities
 }
@@ -186,6 +211,9 @@ entitySystemGetComponent(Entity entity, ComponentType type)
         break;
     case BOXCOLLIDER:
         return &pState->componentManager.boxCollisionComponent[entity];
+        break;
+    case BRICK:
+        return pState->componentManager.brickComponent[entity];
         break;
     default:
         PWARN("entitySystemGetComponent - No available type found.");

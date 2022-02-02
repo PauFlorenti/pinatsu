@@ -21,7 +21,8 @@ typedef enum ComponentType
     RENDER,
     CONTROLLER,
     PHYSICS,
-    BOXCOLLIDER
+    BOXCOLLIDER,
+    BRICK
 } ComponentType;
 
 // Transform component
@@ -63,6 +64,12 @@ struct PhysicsComponent
     bool gravity = false;
 };
 
+struct BrickComponent
+{
+    bool isSolid = false;
+    i8 health = 1;
+};
+
 typedef struct ComponentManager
 {
     u32 transformCompCount;
@@ -75,6 +82,8 @@ typedef struct ComponentManager
     PhysicsComponent physicsComponent[MAX_ENTITIES_ALLOWED];
     u32 boxCollisionCompCount;
     BoxCollisionComponent boxCollisionComponent[MAX_ENTITIES_ALLOWED];
+    u32 brickCompCount;
+    BrickComponent* brickComponent[MAX_ENTITIES_ALLOWED];
 } ComponentManager;
 
 // Manager
