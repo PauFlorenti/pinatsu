@@ -6,21 +6,20 @@
 #include "systems/meshSystem.h"
 #include "systems/materialSystem.h"
 #include "systems/textureSystem.h"
+#include "systems/entitySystem.h"
+#include "systems/physicsSystem.h"
+
 #include "memory/pmemory.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
 
-typedef struct Ball
-{
-    bool stuck;
-    f32 radius;
-    glm::vec2 position;
-    glm::vec2 velocity;
-} Ball;
+static Entity ball;
+static Entity player;
 
-void moveBall(GameState* state, Ball& b, f32 dt)
+void moveBall(GameState* state)
 {
+    /*
     if(!b.stuck)
     {
         b.position += b.velocity * dt;
@@ -42,6 +41,7 @@ void moveBall(GameState* state, Ball& b, f32 dt)
 
         //state->entities[1].model = glm::translate(glm::mat4(1), glm::vec3(b.position, 0.0f));
     }
+    */
 }
 
 void movePlayer(GameState* state)
@@ -51,10 +51,10 @@ void movePlayer(GameState* state)
 
     f32 speed = state->deltaTime * controller->velocity;
     if(isKeyDown(KEY_A)) {
-        transform->position = transform->position + glm::vec3(1.0f, 0.0f, 0.0f) * speed;
+        transform->position = transform->position + glm::vec3(-1.0f, 0.0f, 0.0f) * speed;
     }
     if(isKeyDown(KEY_D)) {
-        transform->position = transform->position + glm::vec3(-1.0f, 0.0f, 0.0f) * speed;
+        transform->position = transform->position + glm::vec3(1.0f, 0.0f, 0.0f) * speed;
     }
     if(isKeyDown(KEY_W)) {
         transform->position = transform->position + glm::vec3(0.0f, 1.0f, 0.0f) * speed;
@@ -62,10 +62,8 @@ void movePlayer(GameState* state)
     if(isKeyDown(KEY_S)) {
         transform->position = transform->position + glm::vec3(0.0f, -1.0f, 0.0f) * speed;
     }
-    
 }
 
-static Ball* ball = nullptr;
 
 bool gameInitialize(Game* pGameInst)
 {
@@ -76,15 +74,15 @@ bool gameInitialize(Game* pGameInst)
     //state->projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
 
     state->view         = glm::mat4(1);
-    state->projection   = glm::ortho(0.0f, (f32)pGameInst->appConfig.startWidth, 0.0f, (f32)pGameInst->appConfig.startHeight, -1.0f, 1.0f); 
+    state->projection   = glm::ortho(0.0f, (f32)pGameInst->appConfig.startWidth, 0.0f, (f32)pGameInst->appConfig.startHeight, -1.0f, 1.0f);
     state->deltaTime    = 0.0f;
     state->cameraAxes   = glm::vec3(0);
 
-    Entity player = entitySystemCreateEntity();
+    player = entitySystemCreateEntity();
     TransformComponent t{};
     t.position = glm::vec3(0.0f);
     t.rotation = glm::quat();
-    t.scale = glm::vec3(10.0f);
+    t.scale = glm::vec3(1.0f);
 
     MaterialData playerMaterial{};
     playerMaterial.diffuseColor = glm::vec4(1);
@@ -95,25 +93,53 @@ bool gameInitialize(Game* pGameInst)
 
     RenderComponent r{};
     r.material = paddleMat;
-    r.mesh = meshSystemGetPlane(10, 10);
+    r.mesh = meshSystemGetPlane(128, 32);
+
+    BoxCollisionComponent boxcol = {{64, 16}, {64, 16}};
 
     ControllerComponent controller;
     controller.velocity = 100.0f;
     controller.active = true;
 
+    PhysicsComponent playerPhysics{};
+    playerPhysics.gravity = false;
+
     entitySystemAddComponent(player, TRANSFORM, &t);
     entitySystemAddComponent(player, RENDER, &r);
     entitySystemAddComponent(player, CONTROLLER, &controller);
+    entitySystemAddComponent(player, PHYSICS, &playerPhysics);
+    entitySystemAddComponent(player, BOXCOLLIDER, &boxcol);
+
+    physicsSystemAddEntity(player);
 
     TransformComponent t2{};
-    t2.position = glm::vec3(10.0f, 10.0f, 0.0f);
+    t2.position = glm::vec3(10.0f, 300.0f, 0.0f);
     t2.rotation = glm::quat();
-    t2.scale = glm::vec3(10.0f);
+    t2.scale = glm::vec3(1.0f);
 
-    Entity enemy = entitySystemCreateEntity();
-    entitySystemAddComponent(enemy, TRANSFORM, &t2);
-    entitySystemAddComponent(enemy, RENDER, &r);
+    MaterialData ballMaterial{};
+    ballMaterial.diffuseColor = glm::vec4(1.0f);
+    ballMaterial.type = MATERIAL_TYPE_FORWARD;
+    stringCopy("white", ballMaterial.diffuseTextureName);
+    
+    RenderComponent r2{};
+    r2.material = materialSystemCreateFromData(ballMaterial);
+    r2.mesh = meshSystemGetPlane(20, 20);
 
+    BoxCollisionComponent ballboxcol = {{10, 10}, {10, 10}};
+
+    PhysicsComponent ballPhysics{};
+    ballPhysics.gravity = true;
+    ballPhysics.mass = 5.0f;
+
+    ball = entitySystemCreateEntity();
+    entitySystemAddComponent(ball, TRANSFORM, &t2);
+    entitySystemAddComponent(ball, RENDER, &r2);
+    entitySystemAddComponent(ball, PHYSICS, &ballPhysics);
+    entitySystemAddComponent(ball, BOXCOLLIDER, &ballboxcol);
+
+    physicsSystemAddEntity(ball);
+    
     state->nEntities = 2;
 
     //createMap(state, pGameInst->appConfig.startWidth, pGameInst->appConfig.startHeight);
@@ -126,11 +152,9 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
     GameState* state = static_cast<GameState*>(pGameInst->state);
     state->deltaTime = deltaTime;
 
-    // TODO make own camera class.
-
     movePlayer(state);
-    
-    static i32 choice = 0;
+
+    physicsSystemsUpdate(deltaTime);    
 
 #if DEBUG
     if(isKeyDown(KEY_UP))
@@ -206,29 +230,6 @@ void gameOnResize(Game* pGameInst, u32 width, u32 height)
 
 static void createMap(GameState* pGameState, u32 levelWidth, u32 levelHeight)
 {
-/*
-    Entity player = pGameState->ecs.createEntity();
-
-    TransformComp transform;
-    transform.position = glm::vec3(0.0);
-    transform.rotation = glm::quat();
-    transform.scale = glm::vec3(10);
-    pGameState->ecs.addComponent(player, transform);
-
-    MaterialData playerMaterial{};
-    playerMaterial.diffuseColor = glm::vec4(1);
-    playerMaterial.type = MATERIAL_TYPE_FORWARD;
-
-    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
-    paddleMat->diffuseTexture = textureSystemGet("paddle.png");
-
-    RenderComp render;
-    render.mesh = meshSystemGetPlane(10, 10);
-    render.material = paddleMat;
-    pGameState->ecs.addComponent(player, render);
-
-    pGameState->nEntities = 1;
-*/
 
 /*
     const u32 cols = 6;

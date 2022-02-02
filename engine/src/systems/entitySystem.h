@@ -19,7 +19,9 @@ typedef enum ComponentType
     NONE = 0,
     TRANSFORM,
     RENDER,
-    CONTROLLER
+    CONTROLLER,
+    PHYSICS,
+    BOXCOLLIDER
 } ComponentType;
 
 // Transform component
@@ -45,6 +47,22 @@ struct ControllerComponent
     bool active;
 };
 
+struct BoxCollisionComponent
+{
+    glm::vec2 min;
+    glm::vec2 max;
+};
+
+// Physics component
+struct PhysicsComponent
+{
+    glm::vec3 velocity = glm::vec3(0.0f);
+    glm::vec3 acceleration = glm::vec3(0.0f);
+    glm::vec3 direction;
+    f32 mass = 1.0f;
+    bool gravity = false;
+};
+
 typedef struct ComponentManager
 {
     u32 transformCompCount;
@@ -53,6 +71,10 @@ typedef struct ComponentManager
     RenderComponent renderComponents[MAX_ENTITIES_ALLOWED];
     u32 controllerCompCount;
     ControllerComponent controllerComponent[MAX_ENTITIES_ALLOWED];
+    u32 physicsCompCount;
+    PhysicsComponent physicsComponent[MAX_ENTITIES_ALLOWED];
+    u32 boxCollisionCompCount;
+    BoxCollisionComponent boxCollisionComponent[MAX_ENTITIES_ALLOWED];
 } ComponentManager;
 
 // Manager

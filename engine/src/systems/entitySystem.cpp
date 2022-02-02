@@ -16,6 +16,9 @@ entitySystemInit(u64* memoryRequirements, void* state)
     pState = (EntitySystem*)state;
     pState->componentManager.renderCompCount = 0;
     pState->componentManager.transformCompCount = 0;
+    pState->componentManager.controllerCompCount = 0;
+    pState->componentManager.physicsCompCount = 0;
+    pState->componentManager.boxCollisionCompCount = 0;
 
     pState->entityManager.activeEntitiesCount = 0;
 
@@ -64,7 +67,7 @@ entitySystemDestroyEntity(Entity entity)
         return;
     }
 
-    pState->entityManager.availableEntities[entity] = entity + 1;
+    pState->entityManager.availableEntities[entity - 1] = entity;
     pState->entityManager.activeEntitiesCount--;
 }
 
@@ -104,6 +107,20 @@ entitySystemAddComponent(Entity entity, ComponentType type, void* component)
         pState->componentManager.controllerComponent[entity] = *comp;
         break;
     }
+    case PHYSICS:
+    {
+        pState->componentManager.physicsCompCount++;
+        PhysicsComponent* comp = (PhysicsComponent*)component;
+        pState->componentManager.physicsComponent[entity] = *comp;
+        break;
+    }
+    case BOXCOLLIDER:
+    {
+        pState->componentManager.boxCollisionCompCount++;
+        BoxCollisionComponent* comp = (BoxCollisionComponent*)component;
+        pState->componentManager.boxCollisionComponent[entity] = *comp;
+        break;
+    }
     default:
         PWARN("entitySystemAddComponent - Non existant type. No component added.");
         break;
@@ -126,6 +143,14 @@ entitySystemRemoveComponent(Entity entity, ComponentType type)
     case CONTROLLER:
         pState->componentManager.controllerComponent[entity] = {};
         pState->componentManager.controllerCompCount--;
+        break;
+    case PHYSICS:
+        pState->componentManager.physicsComponent[entity] = {};
+        pState->componentManager.physicsCompCount--;
+        break;
+    case BOXCOLLIDER:
+        pState->componentManager.boxCollisionComponent[entity] = {};
+        pState->componentManager.boxCollisionCompCount--;
         break;
     default:
         PWARN("entitySystemRemoveComponent - No available component type found.");
@@ -155,6 +180,12 @@ entitySystemGetComponent(Entity entity, ComponentType type)
         break;
     case CONTROLLER:
         return &pState->componentManager.controllerComponent[entity];
+        break;
+    case PHYSICS:
+        return &pState->componentManager.physicsComponent[entity];
+        break;
+    case BOXCOLLIDER:
+        return &pState->componentManager.boxCollisionComponent[entity];
         break;
     default:
         PWARN("entitySystemGetComponent - No available type found.");

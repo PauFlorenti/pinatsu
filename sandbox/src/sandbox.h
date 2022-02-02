@@ -4,7 +4,6 @@
 #include "external/glm/glm.hpp"
 #include "external/glm/gtc/matrix_transform.hpp"
 //#include "scene/scene.h"
-#include "systems/entitySystem.h"
 
 typedef struct GameState
 {

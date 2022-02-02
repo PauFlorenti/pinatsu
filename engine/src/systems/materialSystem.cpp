@@ -5,6 +5,8 @@
 #include "memory/pmemory.h"
 #include "renderer/rendererFrontend.h"
 
+#include "systems/textureSystem.h"
+
 typedef struct MaterialSystemState
 {
     Material* defaultMaterial;
@@ -87,6 +89,7 @@ Material* materialSystemCreateFromData(MaterialData data)
 
     mat->type = data.type;
     mat->diffuseColor = data.diffuseColor;
+    mat->diffuseTexture = textureSystemGet(data.diffuseTextureName);
     // TODO copy name
 
     if(!renderCreateMaterial(mat)){

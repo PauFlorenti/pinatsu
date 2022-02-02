@@ -17,6 +17,7 @@
 #include "systems/textureSystem.h"
 #include "systems/materialSystem.h"
 #include "systems/entitySystem.h"
+#include "systems/physicsSystem.h"
 //#include "systems/entityComponentSystem.h"
 
 typedef struct ApplicationState
@@ -60,6 +61,9 @@ typedef struct ApplicationState
 
     u64 entitySystemMemoryRequirements;
     void* entitySystem;
+
+    u64 physicsSystemMemoryRequirements;
+    void* physicsSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -184,6 +188,15 @@ bool applicationInit(Game* pGameInst)
     if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
     {
         PFATAL("Entity system could not be initialized! Shutting down now.");
+        return false;
+    }
+
+    // Simple 2D physics system
+    physicsSystemInit(&pState->physicsSystemMemoryRequirements, nullptr);
+    pState->physicsSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->physicsSystemMemoryRequirements);
+    if(!physicsSystemInit(&pState->physicsSystemMemoryRequirements, pState->physicsSystem))
+    {
+        PFATAL("Physiscs system could not be initialized! Shutting down now.");
         return false;
     }
 
