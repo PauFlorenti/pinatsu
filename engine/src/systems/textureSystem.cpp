@@ -90,6 +90,7 @@ void textureSystemShutdown(void* state)
 {
     if(pState)
     {
+        textureSystemDestroyTexture(pState->defaultTexture);
         for(u32 i = 0;
             i < pState->config.maxTextureCount;
             ++i)

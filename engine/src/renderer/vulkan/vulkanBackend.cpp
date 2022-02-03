@@ -430,6 +430,7 @@ void vulkanDestroyTexture(Texture* texture)
     VulkanTexture* data = (VulkanTexture*)texture->data;
     if(data)
     {
+        vkFreeMemory(state.device.handle, data->image.memory, nullptr);
         vkDestroyImage(state.device.handle, data->image.handle, nullptr);
         vkDestroyImageView(state.device.handle, data->image.view, nullptr);
         vkDestroySampler(state.device.handle, data->sampler, nullptr);

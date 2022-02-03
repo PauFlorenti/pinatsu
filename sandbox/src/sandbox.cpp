@@ -42,10 +42,6 @@ bool gameInitialize(Game* pGameInst)
 
     Material* paddleMat = materialSystemCreateFromData(playerMaterial);
     paddleMat->diffuseTexture = textureSystemGet("paving.png");
-    Resource data;
-    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &data);
-
-    MeshData* mData = (MeshData*)data.data;
 
     Resource gltf;
     resourceSystemLoad("glTF/AnimatedCube.gltf", RESOURCE_TYPE_GLTF, &gltf);
@@ -64,7 +60,6 @@ bool gameInitialize(Game* pGameInst)
     t1.position = glm::vec3(3.0f, 0.0f, 0.0f);
     t1.rotation = glm::quat();
     t1.scale = glm::vec3(1.0f);
-
     RenderComponent r1{};
     r1.material = paddleMat;
     r1.mesh = meshSystemGetPlane(1, 1);
@@ -82,7 +77,6 @@ bool gameInitialize(Game* pGameInst)
     r2.mesh = node->mesh;
     entitySystemAddComponent(cube, TRANSFORM, &t2);
     entitySystemAddComponent(cube, RENDER, &r2);
-
     state->nEntities = 3;
 
     rot = 0.0f;
