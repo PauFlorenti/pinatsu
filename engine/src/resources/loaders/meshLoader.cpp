@@ -121,6 +121,7 @@ bool meshLoaderUnload(ResourceLoader* self, Resource* resource)
 ResourceLoader meshLoaderCreate()
 {
     ResourceLoader loader;
+    loader.id           = INVALID_ID;
     loader.load         = meshLoaderLoad;
     loader.unload       = meshLoaderUnload;
     loader.customType   = nullptr;

@@ -10,6 +10,7 @@ typedef enum resourceTypes
     RESOURCE_TYPE_MESH,
     RESOURCE_TYPE_BINARY,
     RESOURCE_TYPE_MATERIAL,
+    RESOURCE_TYPE_GLTF,
     RESOURCE_TYPE_CUSTOM
 } resourceTypes;
 
@@ -95,3 +96,10 @@ typedef struct MeshData {
     u32 indexCount;
     u32* indices;
 } MeshData;
+
+struct Node {
+    Node* parent;
+    Node* child;
+    Mesh* mesh;
+    Material* material;
+};

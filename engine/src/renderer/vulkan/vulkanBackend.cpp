@@ -297,6 +297,7 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     {
         u64 indexSize = indexCount * sizeof(u32);
         u32 indexFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        renderMesh->indexCount = indexCount;
         vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->indexBuffer);
         vulkanUploadDataToGPU(&state, renderMesh->indexBuffer, 0, indexSize, indices);
     }

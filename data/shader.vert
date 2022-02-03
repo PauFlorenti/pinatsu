@@ -20,6 +20,7 @@ layout(location = 1) out vec2 textCoord;
 void main()
 {
     gl_Position = ubo.proj * ubo.view * constant.model * vec4(position, 1.0);
+    //gl_Position = vec4(position, 1.0);
     fragColor = color;
     textCoord = uv;
 }

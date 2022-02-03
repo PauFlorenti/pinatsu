@@ -155,7 +155,7 @@ bool vulkanCreateForwardShader(
         shaderStages.data(),
         descriptorSetLayoutCount,
         layouts,
-        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         viewport,
         scissors,
         false,

@@ -1,3 +1,6 @@
 [submodule "engine/src/external/stb"]
 	path = engine/src/external/stb
 	url = https://github.com/nothings/stb.git
+[submodule "engine/src/external/tinygltf"]
+	path = engine/src/external/tinygltf
+	url = https://github.com/syoyo/tinygltf.git

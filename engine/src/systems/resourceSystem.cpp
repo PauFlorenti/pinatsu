@@ -3,6 +3,7 @@
 #include "core/logger.h"
 #include "resources/loaders/meshLoader.h"
 #include "resources/loaders/textureLoader.h"
+#include "resources/loaders/gltfLoader.h"
 
 // TODO Make own string container funcs.
 #include <cstring>
@@ -29,7 +30,7 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
     // If system not init yet, return memory requirements to be initialized.
     if(state == nullptr)
     {
-        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(ResourceLoader) * config.maxLoaderCount);
+        *memoryRequirements = sizeof(ResourceSystemState) + (sizeof(ResourceLoader) * (config.maxLoaderCount + 1));
         return true;
     }
 
@@ -46,6 +47,7 @@ bool resourceSystemInit(u64* memoryRequirements, void* state, resourceSystemConf
     // Register default known loaders.
     resourceSystemRegisterLoader(meshLoaderCreate());
     resourceSystemRegisterLoader(textureLoaderCreate());
+    resourceSystemRegisterLoader(gltfLoaderCreate());
 
     PINFO("Resource system initialized with base path %s.", config.assetsBasePath);
 
