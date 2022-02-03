@@ -102,4 +102,5 @@ struct Node {
     Node* child;
     Mesh* mesh;
     Material* material;
+    glm::mat4 model;
 };

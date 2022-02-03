@@ -53,11 +53,8 @@ bool gameInitialize(Game* pGameInst)
     Node* node = (Node*)gltf.data;
 
     RenderComponent r{};
-    r.material = paddleMat;
-    //r.mesh = node->mesh;
-    r.mesh = meshSystemCreateFromData(mData);
-    //r.mesh = meshSystemGetTriangle();
-    //r.mesh = meshSystemGetCube();
+    r.material = node->material;
+    r.mesh = node->mesh;
 
     entitySystemAddComponent(player, TRANSFORM, &t);
     entitySystemAddComponent(player, RENDER, &r);

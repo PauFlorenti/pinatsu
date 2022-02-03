@@ -261,6 +261,7 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     if(alreadyUploaded)
     {
         // TODO check old data.
+        return true;
     } 
     else
     {
@@ -431,8 +432,8 @@ void vulkanDestroyTexture(Texture* texture)
     {
         vkDestroyImage(state.device.handle, data->image.handle, nullptr);
         vkDestroyImageView(state.device.handle, data->image.view, nullptr);
-        memZero(&data->image, sizeof(VulkanTexture));;
         vkDestroySampler(state.device.handle, data->sampler, nullptr);
+        memZero(&data->image, sizeof(VulkanTexture));
     }
     memZero(texture, sizeof(Texture));
 }
@@ -681,11 +682,6 @@ void vulkanBackendShutdown(void)
             }
         }
     }
-
-    // Destroy all images.
-    // vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
-    // vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
-    // vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
 
     PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);

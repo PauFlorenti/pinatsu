@@ -95,7 +95,8 @@ void textureSystemShutdown(void* state)
             ++i)
         {
             Texture* t = &pState->textures[i];
-            textureSystemDestroyTexture(t);
+            if(t->id != INVALID_ID)
+                textureSystemDestroyTexture(t);
         }
         state = 0;
     }
