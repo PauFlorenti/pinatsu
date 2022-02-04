@@ -3,6 +3,8 @@
 
 layout(location = 0) in vec4 inColor;
 layout(location = 1) in vec2 inUV;
+layout(location = 2) in vec3 inWorldPos;
+layout(location = 3) in vec3 inWorldNormal;
 
 layout(set = 1, binding = 0) uniform Material
 {
@@ -15,9 +17,22 @@ layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-    vec4 diffuse = texture(diffuseSampler, inUV);
-    if(diffuse.w < 1.0)
+
+    vec3 wPos = inWorldPos;
+    vec3 wNorm = inWorldNormal;
+
+    vec3 lightPos = vec3(1, 1, 1);
+    vec3 L = (lightPos - wPos);
+    float distanceToLight = length(L);
+    L = normalize(L);
+
+    float NdotL = dot(wNorm, L);
+
+    vec4 diffuseTxt = texture(diffuseSampler, inUV);
+    if(diffuseTxt.w < 1.0)
         discard;
 
-    fragColor = mat.diffuse * diffuse;
+    vec4 diffuse = mat.diffuse * diffuseTxt;
+
+    fragColor = NdotL * diffuse;
 }

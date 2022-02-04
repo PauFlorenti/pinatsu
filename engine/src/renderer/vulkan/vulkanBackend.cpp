@@ -15,7 +15,7 @@
 #include "pmath.h"
 #include <vector>
 #include <string>
-#include <fstream>
+//#include <fstream>
 
 #define internal static
 
@@ -76,9 +76,6 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
         func(state.instance, state.debugMessenger, nullptr);
     }
 }
-
-// TODO revise this function.
-bool readShaderFile(std::string filename, std::vector<char>& buffer);
 
 void createCommandBuffers();
 
@@ -178,11 +175,6 @@ void vulkanRegenerateFramebuffers(
     VulkanRenderpass* renderpass);
 
 bool recreateSwapchain();
-
-void vulkanCreateShaderModule(
-    VulkanState* pState,
-    std::vector<char>& buffer,
-    VkShaderModule* module);
 
 void vulkanDestroyShaderModule(
     VulkanState& state,
@@ -612,21 +604,6 @@ bool vulkanBackendInit(const char* appName)
         state.vulkanMeshes[i].id = INVALID_ID;
     }
 
-// TODO TEMP
-    std::vector<char> vertexBuffer;
-    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
-        return false;
-    }
-
-    std::vector<char> fragBuffer;
-    if(!readShaderFile("./data/frag.spv", fragBuffer)){
-        return false;
-    }
-
-    vulkanCreateShaderModule(&state, vertexBuffer, &state.forwardShader.shaderStages[0].shaderModule);
-    vulkanCreateShaderModule(&state, fragBuffer, &state.forwardShader.shaderStages[1].shaderModule);
-
-// TODO END TEMP
     vulkanCreateForwardShader(&state, &state.forwardShader);
 
     return true;
@@ -903,30 +880,6 @@ void vulkanEndFrame(void)
     state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
 }
 
-// TODO create a function to read files and treat shaders accordingly.
-bool readShaderFile(std::string filename, std::vector<char>& buffer)
-{
-    std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
-
-    if(!file.is_open()){
-        PERROR("File %s could not be opened!", filename);
-        return false;
-    }
-
-    // Check if file has length and if it is multiple of 4.
-    // To be a valid binary file to be passed to the shader it must be multiple of 4.
-    size_t length = file.tellg();
-    if(length == 0 || length % 4 != 0) {
-        PERROR("File does not meet requirements.");
-        return false;
-    }
-    buffer.resize(length);
-    file.seekg(0);
-    file.read(buffer.data(), length);
-    file.close();
-    return true;
-}
-
 /**
  * @brief Regenerate the framebuffers given a new swapchain
  * @param VulkanSwapchain* swapchain
@@ -1017,30 +970,6 @@ bool recreateSwapchain()
 
     state.recreatingSwapchain = false;
     return true;
-}
-
-/**
- * @brief Creates a shader module given a valid buffer with the
- * shader binary data in it.
- * @param VulkanState* pState,
- * @param std::vector<char>& buffer conaining all spvr binary data
- * @param VkShaderModule* The shader module to be created.
- * @return void
- */
-void vulkanCreateShaderModule(
-    VulkanState* pState,
-    std::vector<char>& buffer,
-    VkShaderModule* module)
-{
-    VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    info.codeSize   = static_cast<u32>(buffer.size());
-    info.pCode      = reinterpret_cast<const u32*>(buffer.data());
-    
-    VK_CHECK(vkCreateShaderModule(
-        pState->device.handle, 
-        &info, 
-        nullptr, 
-        module));
 }
 
 /**

@@ -50,6 +50,13 @@ loadNode(const tinygltf::Model& tmodel, const tinygltf::Node& tnode, Node* paren
                     meshData.vertices = (Vertex*)memAllocate(sizeof(Vertex) * meshData.vertexCount, MEMORY_TAG_ENTITY);
                 }
 
+                if(tprim.attributes.find("NORMAL") != tprim.attributes.end())
+                {
+                    const tinygltf::Accessor& accessor = tmodel.accessors[tprim.attributes.find("NORMAL")->second];
+                    const tinygltf::BufferView& view = tmodel.bufferViews[accessor.bufferView];
+                    normalBuffer = (const f32*)(&(tmodel.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+                }
+
                 if(tprim.attributes.find("TEXCOORD_0") != tprim.attributes.end())
                 {
                     const tinygltf::Accessor& accessor = tmodel.accessors[tprim.attributes.find("TEXCOORD_0")->second];
@@ -65,6 +72,7 @@ loadNode(const tinygltf::Model& tmodel, const tinygltf::Node& tnode, Node* paren
                 vert.position   = glm::vec4(pos, 1.0f);
                 vert.color      = glm::vec4(1);
                 vert.uv         = glm::vec2(uvBuffer[v * 2], uvBuffer[v * 2 + 1]);
+                vert.normal     = glm::vec3(normalBuffer[v * 3], normalBuffer[v * 3 + 1], normalBuffer[v * 3 + 2]);
                 meshData.vertices[v] = vert;
             }
 

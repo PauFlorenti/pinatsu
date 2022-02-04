@@ -21,14 +21,15 @@ bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
 
-    //state->view         = glm::lookAt(glm::vec3(0.01f, 0.0f, -10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    // TODO make camera an entity
+    // Camera definition
     f32 ratio           = (f32)pGameInst->appConfig.startWidth / (f32)pGameInst->appConfig.startHeight;
     state->projection   = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
-
     state->view         = glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, -10.0f));
-    //state->projection   = glm::ortho(0.0f, (f32)pGameInst->appConfig.startWidth, 0.0f, (f32)pGameInst->appConfig.startHeight, -1.0f, 1.0f);
     state->deltaTime    = 0.0f;
     state->cameraAxes   = glm::vec3(0);
+
+    // Define the scene
 
     Entity player = entitySystemCreateEntity();
     TransformComponent t{};

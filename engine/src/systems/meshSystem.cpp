@@ -128,6 +128,11 @@ Mesh* meshSystemGetPlane(u32 width, u32 height)
     v[2].uv = glm::vec2(0, 1);
     v[3].uv = glm::vec2(1, 1);
 
+    v[0].normal = glm::vec3(0, 0, -1);
+    v[1].normal = glm::vec3(0, 0, -1);
+    v[2].normal = glm::vec3(0, 0, -1);
+    v[3].normal = glm::vec3(0, 0, -1);
+
     u32 i[6] = {0, 1, 2, 2, 3, 0};
     
     meshSystemSetMesh(m);

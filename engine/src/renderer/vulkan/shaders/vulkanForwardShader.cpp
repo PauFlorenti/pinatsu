@@ -2,6 +2,7 @@
 
 #include "../vulkanBuffer.h"
 #include "../vulkanPipeline.h"
+#include "../vulkanShaderModule.h"
 #include "memory/pmemory.h"
 
 /**
@@ -21,6 +22,19 @@ bool vulkanCreateForwardShader(
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
+
+    std::vector<char> vertexBuffer;
+    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
+        return false;
+    }
+
+    std::vector<char> fragBuffer;
+    if(!readShaderFile("./data/frag.spv", fragBuffer)){
+        return false;
+    }
+
+    vulkanCreateShaderModule(pState, vertexBuffer, &outShader->shaderStages[0].shaderModule);
+    vulkanCreateShaderModule(pState, fragBuffer, &outShader->shaderStages[1].shaderModule);
 
     // Create global descriptor pool
     VkDescriptorPoolSize descriptorPoolSize;
@@ -144,12 +158,19 @@ bool vulkanCreateForwardShader(
     uvs.format      = VK_FORMAT_R32G32_SFLOAT;
     uvs.offset      = sizeof(f32) * 7;
 
-    VkVertexInputAttributeDescription attributeDescription[3] = {vert, color, uvs};
+    VkVertexInputAttributeDescription normal{};
+    normal.binding  = 0;
+    normal.location = 3;
+    normal.format   = VK_FORMAT_R32G32B32_SFLOAT;
+    normal.offset   = sizeof(f32) * 9;
+
+    const u32 attributeSize = 4;
+    VkVertexInputAttributeDescription attributeDescription[attributeSize] = {vert, color, uvs, normal};
 
     vulkanCreateGraphicsPipeline(
         pState,
         &pState->renderpass,
-        3,
+        attributeSize,
         attributeDescription,
         shaderStages.size(),
         shaderStages.data(),
