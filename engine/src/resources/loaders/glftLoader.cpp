@@ -127,7 +127,12 @@ loadNode(const tinygltf::Model& tmodel, const tinygltf::Node& tnode, Node* paren
             tinygltf::Material material = tmodel.materials[tprim.material];
             const auto& tpbr = material.pbrMetallicRoughness;
             materialData.diffuseColor = glm::vec4(tpbr.baseColorFactor[0], tpbr.baseColorFactor[1], tpbr.baseColorFactor[2], tpbr.baseColorFactor[3]);
-            stringCopy(tmodel.images[tmodel.textures[tpbr.baseColorTexture.index].source].uri.c_str(), materialData.diffuseTextureName);
+            if(tpbr.baseColorTexture.index > -1)
+                stringCopy(tmodel.images[tmodel.textures[tpbr.baseColorTexture.index].source].uri.c_str(), materialData.diffuseTextureName);
+            if(tpbr.metallicRoughnessTexture.index > -1)
+                stringCopy(tmodel.images[tmodel.textures[tpbr.metallicRoughnessTexture.index].source].uri.c_str(), materialData.metallicRoughnessTextureName);
+            if(material.normalTexture.index > -1)
+                stringCopy(tmodel.images[tmodel.textures[material.normalTexture.index].source].uri.c_str(), materialData.normalTextureName);
         }
         node->mesh = meshSystemCreateFromData(&meshData);
         node->material = materialSystemCreateFromData(materialData);

@@ -50,13 +50,14 @@ bool gameInitialize(Game* pGameInst)
     resourceSystemLoad("avocado/Avocado.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* avocadoNode = (Node*)gltf.data;
 
+/*
+    */
     RenderComponent r{};
     r.material = cubeNode->material;
     r.mesh = cubeNode->mesh;
 
     entitySystemAddComponent(player, TRANSFORM, &t);
     entitySystemAddComponent(player, RENDER, &r);
-
     Entity plane = entitySystemCreateEntity();
     TransformComponent t1{};
     t1.position = glm::vec3(3.0f, 0.0f, 0.0f);
@@ -79,6 +80,7 @@ bool gameInitialize(Game* pGameInst)
     r2.mesh = avocadoNode->mesh;
     entitySystemAddComponent(cube, TRANSFORM, &t2);
     entitySystemAddComponent(cube, RENDER, &r2);
+
     state->nEntities = 3;
 
     rot = 0.0f;

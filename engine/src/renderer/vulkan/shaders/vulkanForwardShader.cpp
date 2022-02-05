@@ -23,6 +23,7 @@ bool vulkanCreateForwardShader(
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
 
+    // Shader modules creation
     std::vector<char> vertexBuffer;
     if(!readShaderFile("./data/vert.spv", vertexBuffer)){
         return false;
@@ -35,6 +36,11 @@ bool vulkanCreateForwardShader(
 
     vulkanCreateShaderModule(pState, vertexBuffer, &outShader->shaderStages[0].shaderModule);
     vulkanCreateShaderModule(pState, fragBuffer, &outShader->shaderStages[1].shaderModule);
+
+    // Set the samplers index
+    outShader->samplerUses[0] = TEXTURE_USE_DIFFUSE;
+    outShader->samplerUses[1] = TEXTURE_USE_NORMAL;
+    outShader->samplerUses[2] = TEXTURE_USE_METALLIC_ROUGHNESS;
 
     // Create global descriptor pool
     VkDescriptorPoolSize descriptorPoolSize;
@@ -74,7 +80,7 @@ bool vulkanCreateForwardShader(
     VkDescriptorPoolSize objectDescriptorPoolSize[2];
     objectDescriptorPoolSize[0].descriptorCount    = VULKAN_MAX_MATERIAL_COUNT;
     objectDescriptorPoolSize[0].type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    objectDescriptorPoolSize[1].descriptorCount    = VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT * VULKAN_MAX_MATERIAL_COUNT;
+    objectDescriptorPoolSize[1].descriptorCount    = VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT * VULKAN_MAX_MATERIAL_COUNT;
     objectDescriptorPoolSize[1].type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
     VkDescriptorPoolCreateInfo objectDescriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
@@ -89,6 +95,8 @@ bool vulkanCreateForwardShader(
 
     VkDescriptorType descriptorTypes[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT] = {
         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     };
 
@@ -337,33 +345,53 @@ vulkanForwardShaderSetMaterial(
     descriptorIndex++;
 
     // Descriptor 1 - Material Sampler ... only diffuse at the moment
-    VkDescriptorImageInfo imageInfo;
-    Texture* t = m->diffuseTexture;
-    u32* descriptorGeneration = &materialInstance->descriptorState[descriptorIndex].generations[index];
-    u32* descriptorId = &materialInstance->descriptorState[descriptorIndex].ids[index];
-    // If descriptor sampler has not been updated.
-    if(t && (*descriptorId != t->id || *descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
+    const u32 samplerCount = 3;
+    for(u32 samplerIdx = 0; samplerIdx < samplerCount; ++samplerIdx)
     {
-        VulkanTexture* vulkanTexture = (VulkanTexture*)t->data;
+        TextureUse use = shader->samplerUses[samplerIdx];
+        Texture* t = nullptr;
+        switch (use)
+        {
+        case TEXTURE_USE_DIFFUSE:
+            t = m->diffuseTexture;
+            break;
+        case TEXTURE_USE_NORMAL:
+            t = m->normalTexture;
+            break;
+        case TEXTURE_USE_METALLIC_ROUGHNESS:
+            t = m->metallicRoughnessTexture;
+            break;
+        default:
+            break;
+        }
 
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = vulkanTexture->image.view;
-        imageInfo.sampler = vulkanTexture->sampler;
+        VkDescriptorImageInfo imageInfo[VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
+        u32* descriptorGeneration = &materialInstance->descriptorState[descriptorIndex].generations[index];
+        u32* descriptorId = &materialInstance->descriptorState[descriptorIndex].ids[index];
+        // If descriptor sampler has not been updated.
+        if(t && (*descriptorId != t->id || *descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
+        {
+            VulkanTexture* vulkanTexture = (VulkanTexture*)t->data;
 
-        VkWriteDescriptorSet textWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        textWrite.descriptorCount = 1;
-        textWrite.pImageInfo = &imageInfo;
-        textWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        textWrite.dstArrayElement = 0;
-        textWrite.dstBinding = 1;
-        textWrite.dstSet = descriptorSet;
+            imageInfo[samplerIdx].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo[samplerIdx].imageView = vulkanTexture->image.view;
+            imageInfo[samplerIdx].sampler = vulkanTexture->sampler;
 
-        writes[descriptorCount] = textWrite;
-        descriptorCount++;
+            VkWriteDescriptorSet textWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            textWrite.descriptorCount   = 1;
+            textWrite.pImageInfo        = &imageInfo[samplerIdx];
+            textWrite.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            textWrite.dstArrayElement   = 0;
+            textWrite.dstBinding        = descriptorIndex;
+            textWrite.dstSet            = descriptorSet;
 
-        if(t->generation != INVALID_ID) {
-            *descriptorGeneration = t->generation;
-            *descriptorId = t->id;
+            writes[descriptorCount] = textWrite;
+            descriptorCount++;
+
+            if(t->generation != INVALID_ID) {
+                *descriptorGeneration = t->generation;
+                *descriptorId = t->id;
+            }
         }
         descriptorIndex++;
     }

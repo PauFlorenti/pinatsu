@@ -33,6 +33,14 @@ typedef struct TextureResource
 
 #define TEXTURE_NAME_MAX_LENGTH 256
 
+enum TextureUse
+{
+    TEXTURE_USE_UNKNOWN,
+    TEXTURE_USE_DIFFUSE,
+    TEXTURE_USE_NORMAL,
+    TEXTURE_USE_METALLIC_ROUGHNESS
+};
+
 typedef struct Texture
 {
     u32 id;
@@ -42,6 +50,7 @@ typedef struct Texture
     bool hasTransparency;
     u32 generation;
     char name[TEXTURE_NAME_MAX_LENGTH];
+    TextureUse use;
     void* data;
 } Texture;
 
@@ -59,6 +68,8 @@ typedef struct MaterialData
     glm::vec4 diffuseColor;
     MaterialType type;
     char diffuseTextureName[TEXTURE_NAME_MAX_LENGTH];
+    char metallicRoughnessTextureName[TEXTURE_NAME_MAX_LENGTH];
+    char normalTextureName[TEXTURE_NAME_MAX_LENGTH];
 } MaterialData;
 
 typedef struct Material
@@ -69,8 +80,9 @@ typedef struct Material
     MaterialType type;
     glm::vec4 diffuseColor;
     u32 generation; // Check if material has been changed at runtime
-    // TODO texture
     Texture* diffuseTexture;
+    Texture* metallicRoughnessTexture;
+    Texture* normalTexture;
 } Material;
 
 #define MESH_MAX_LENGTH 256

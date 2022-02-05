@@ -89,7 +89,12 @@ Material* materialSystemCreateFromData(MaterialData data)
 
     mat->type = data.type;
     mat->diffuseColor = data.diffuseColor;
-    mat->diffuseTexture = textureSystemGet(data.diffuseTextureName);
+    mat->diffuseTexture = stringLength(data.diffuseTextureName) > 0 ? textureSystemGet(data.diffuseTextureName) : nullptr;
+    if(mat->diffuseTexture) mat->diffuseTexture->use = TEXTURE_USE_DIFFUSE;
+    mat->normalTexture = stringLength(data.normalTextureName) > 0 ? textureSystemGet(data.normalTextureName) : nullptr;
+    if(mat->normalTexture) mat->normalTexture->use = TEXTURE_USE_NORMAL;
+    mat->metallicRoughnessTexture = stringLength(data.metallicRoughnessTextureName) > 0 ? textureSystemGet(data.metallicRoughnessTextureName) : nullptr;
+    if(mat->metallicRoughnessTexture) mat->metallicRoughnessTexture->use = TEXTURE_USE_METALLIC_ROUGHNESS;
     // TODO copy name
 
     if(!renderCreateMaterial(mat)){

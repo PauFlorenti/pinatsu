@@ -140,7 +140,7 @@ typedef struct VulkanMesh
     u32 vertexOffset;
     u32 indexCount;
     u32 indexOffset;
-    VulkanBuffer vertexBuffer;    // TODO rethink this when ECS
+    VulkanBuffer vertexBuffer;
     VulkanBuffer indexBuffer;
 } VulkanMesh;
 
@@ -162,7 +162,10 @@ typedef struct VulkanDescriptorState
 
 // At the moment just one for the Material info.
 // May grow later for textures
-#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 2
+#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 4
+
+// At the moment it can hold samplers for diffuse, normal and MetallicRoughness
+#define VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT 3
 
 // Holding the descriptors (3 per frame) for each material instance.
 typedef struct VulkanMaterialInstance
@@ -218,6 +221,8 @@ typedef struct VulkanForwardShader
     VulkanMaterialShaderUBO objectMaterialData;
     u32 meshInstanceBufferIndex;
     VulkanBuffer meshInstanceBuffer;
+
+    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
 
     VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
 

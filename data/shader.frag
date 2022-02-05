@@ -12,12 +12,13 @@ layout(set = 1, binding = 0) uniform Material
 } mat;
 
 layout(set = 1, binding = 1) uniform sampler2D diffuseSampler;
+layout(set = 1, binding = 2) uniform sampler2D normalSampler;
+layout(set = 1, binding = 3) uniform sampler2D metallicRoughnessSampler;
 
 layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-
     vec3 wPos = inWorldPos;
     vec3 wNorm = inWorldNormal;
 
@@ -35,4 +36,6 @@ void main()
     vec4 diffuse = mat.diffuse * diffuseTxt;
 
     fragColor = NdotL * diffuse;
+    //fragColor = texture(normalSampler, inUV);
+    //fragColor =  texture(metallicRoughnessSampler, inUV);
 }
