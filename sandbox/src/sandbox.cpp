@@ -45,13 +45,14 @@ bool gameInitialize(Game* pGameInst)
     paddleMat->diffuseTexture = textureSystemGet("paving.png");
 
     Resource gltf;
-    resourceSystemLoad("glTF/AnimatedCube.gltf", RESOURCE_TYPE_GLTF, &gltf);
-
-    Node* node = (Node*)gltf.data;
+    resourceSystemLoad("cube/AnimatedCube.gltf", RESOURCE_TYPE_GLTF, &gltf);
+    Node* cubeNode = (Node*)gltf.data;
+    resourceSystemLoad("avocado/Avocado.gltf", RESOURCE_TYPE_GLTF, &gltf);
+    Node* avocadoNode = (Node*)gltf.data;
 
     RenderComponent r{};
-    r.material = node->material;
-    r.mesh = node->mesh;
+    r.material = cubeNode->material;
+    r.mesh = cubeNode->mesh;
 
     entitySystemAddComponent(player, TRANSFORM, &t);
     entitySystemAddComponent(player, RENDER, &r);
@@ -71,11 +72,11 @@ bool gameInitialize(Game* pGameInst)
     TransformComponent t2{};
     t2.position = glm::vec3(-3.0f, 0.0f, 0.0f);
     t2.rotation = glm::quat();
-    t2.scale = glm::vec3(1.0f);
+    t2.scale = glm::vec3(15.0f);
 
     RenderComponent r2{};
-    r2.material = paddleMat;
-    r2.mesh = node->mesh;
+    r2.material = avocadoNode->material;
+    r2.mesh = avocadoNode->mesh;
     entitySystemAddComponent(cube, TRANSFORM, &t2);
     entitySystemAddComponent(cube, RENDER, &r2);
     state->nEntities = 3;

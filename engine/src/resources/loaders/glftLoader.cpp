@@ -93,9 +93,31 @@ loadNode(const tinygltf::Model& tmodel, const tinygltf::Node& tnode, Node* paren
                         memCopy((void*)(&buffer.data[accessor.byteOffset + view.byteOffset]), meshData.indices, meshData.indexSize * meshData.indexCount);
                         break;
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                    {
+                        meshData.indexCount = accessor.count;
+                        meshData.indexSize = sizeof(u16);
+                        u16* buf = (u16*)memAllocate(meshData.indexSize * meshData.indexCount, MEMORY_TAG_ENTITY);
+                        meshData.indices = (u32*)memAllocate(sizeof(u32) * meshData.indexCount, MEMORY_TAG_ENTITY);
+                        memCopy((void*)(&buffer.data[accessor.byteOffset + view.byteOffset]), buf, meshData.indexSize * meshData.indexCount);
+                        for(u32 i = 0; i < meshData.indexCount; i++)
+                        {
+                            meshData.indices[i] = buf[i];
+                        }
                         break;
+                    }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
+                    {
+                        meshData.indexCount = accessor.count;
+                        meshData.indexSize = sizeof(u16);
+                        u8* buf = (u8*)memAllocate(meshData.indexSize * meshData.indexCount, MEMORY_TAG_ENTITY);
+                        meshData.indices = (u32*)memAllocate(sizeof(u32) * meshData.indexCount, MEMORY_TAG_ENTITY);
+                        memCopy((void*)(&buffer.data[accessor.byteOffset + view.byteOffset]), buf, meshData.indexSize * meshData.indexCount);
+                        for (u32 i = 0; i < meshData.indexCount; i++)
+                        {
+                            meshData.indices[i] = buf[i];
+                        }
                         break;
+                    }
                     default:
                         break;
                     }

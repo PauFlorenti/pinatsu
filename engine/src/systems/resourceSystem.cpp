@@ -101,8 +101,8 @@ bool resourceSystemLoad(const char* name, resourceTypes type, Resource* outResou
         for(u32 i = 0; i < count; ++i)
         {
             ResourceLoader* loader = &pState->loaders[i];
-            PINFO("Loading %s ...", name);
             if(loader->id != INVALID_ID && pState->loaders[i].type == type) {
+                PINFO("Loading %s ...", name);
                 return loader->load(loader, name, outResource);
             }
         }
