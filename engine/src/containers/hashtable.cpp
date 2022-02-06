@@ -1,0 +1,87 @@
+#include "hashtable.h"
+
+#include "core/logger.h"
+#include "memory/pmemory.h"
+
+static u64
+makeHash(const char* name, u32 elementCount)
+{
+    static const u64 multiplier = 97;
+
+    const u8* us;
+    u64 hash = 0;
+    for(us = (const u8*)name; *us; us++)
+    {
+        hash = hash * multiplier + *us;
+    }
+
+    hash %= elementCount;
+    return hash;
+}
+
+void
+hashtableCreate(u64 elementSize, u32 elementCount, void* memory, Hashtable* outHashtable)
+{
+    if(!memory || !outHashtable) {
+        PERROR("hashtable creation failed! Memory or outHashtable pointers are not provided.");
+        return;
+    }
+
+    if(!elementCount || !elementSize) {
+        PERROR("hastable creation failed! elementCount or elementSize must be non-zero values.");
+        return;
+    }
+
+    outHashtable->memory = memory;
+    outHashtable->elementCount = elementCount;
+    outHashtable->elementSize = elementSize;
+    memZero(outHashtable->memory, elementSize * elementCount);
+}
+
+void
+hashtableDestroy(Hashtable* hashtable) 
+{
+    if(hashtable) {
+        memZero(hashtable, sizeof(hashtable));
+    }
+}
+
+bool 
+hashtableSetValue(Hashtable* hashtable, const char* name, void* value)
+{
+    if(!hashtable || !name || !value) {
+        PERROR("hashtableSetValue error! A valid hashtable, name and value must be provided.");
+        return false;
+    }
+
+    u64 hash = makeHash(name, hashtable->elementCount);
+    memCopy(value, (u64*)hashtable->memory + (hashtable->elementSize * hash), hashtable->elementSize);
+    return true;
+}
+
+bool
+hashtableGetValue(Hashtable* hashtable, const char* name, void* outValue)
+{
+    if(!hashtable || !name) {
+        PERROR("hashtableGetValue - a valid hashtable or name must be provided!");
+        return false;
+    }
+
+    u64 hash = makeHash(name, hashtable->elementCount);
+    outValue = (void*)((u64*)hashtable->memory + (hashtable->elementSize * hash));
+    return true;
+}
+
+bool
+hashtableFill(Hashtable* hashtable, void* value)
+{
+    if(!hashtable || !value) {
+        PERROR("Could not fill hashtable! Hashtable or value must be valid.");
+        return false;
+    }
+
+    for(u32 i = 0; i < hashtable->elementCount; i++) {
+        memCopy(value, (u64*)hashtable->memory + (hashtable->elementSize * i), hashtable->elementSize);
+    }
+    return true;
+}
