@@ -81,7 +81,14 @@ bool gameInitialize(Game* pGameInst)
     entitySystemAddComponent(cube, TRANSFORM, &t2);
     entitySystemAddComponent(cube, RENDER, &r2);
 
-    state->nEntities = 3;
+    Entity light = entitySystemCreateEntity();
+    LightPointComponent pointLight{};
+    pointLight.color = glm::vec3(1.0);
+    pointLight.enabled = true;
+    pointLight.position = glm::vec3(0.0f, 2.0f, 0.0f);
+    entitySystemAddComponent(light, LIGHT_POINT, &pointLight);
+
+    state->nEntities = 4;
 
     rot = 0.0f;
 
@@ -147,12 +154,12 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
     RenderComponent* renderComp = nullptr;
     TransformComponent* transComp = nullptr;
     const u32 size = state->nEntities;
-    RenderMeshData* gameMeshes = (RenderMeshData*)memAllocate(sizeof(RenderMeshData) * size, MEMORY_TAG_ENTITY);
+    RenderMeshData* gameMeshes = (RenderMeshData*)memAllocate(sizeof(RenderMeshData) * 3, MEMORY_TAG_ENTITY);
 
     rot = rot + 10 * deltaTime;
     f32 rotRad = glm::radians(rot);
 
-    for(u32 i = 0; i < size; ++i)
+    for(u32 i = 0; i < 3; ++i)
     {
         renderComp = (RenderComponent*)entitySystemGetComponent(i + 1, RENDER);
         transComp = (TransformComponent*)entitySystemGetComponent(i + 1, TRANSFORM);
@@ -164,10 +171,24 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
                                 glm::scale(glm::mat4(1), transComp->scale);
     }
 
+    LightData* lightData = (LightData*)memAllocate(sizeof(LightData) * 1, MEMORY_TAG_ENTITY);
+    
+    LightPointComponent* lightComp;
+    for(u32 i = 3; i < 4; i++) {
+        lightComp = (LightPointComponent*)entitySystemGetComponent(i + 1, LIGHT_POINT);
+
+        lightData[0].color      = lightComp->color;
+        lightData[0].position   = lightComp->position;
+        lightData[0].intensity  = lightComp->intensity;
+        lightData[0].radius     = lightComp->radius;
+    }
+
     RenderPacket packet{};
     packet.deltaTime            = deltaTime;
-    packet.renderMeshDataCount  = state->nEntities;
+    packet.renderMeshDataCount  = 3; //state->nEntities;
     packet.meshes               = gameMeshes;
+    packet.lightDataCount       = 1;
+    packet.lights               = lightData;
     renderDrawFrame(packet);
 
     return true;

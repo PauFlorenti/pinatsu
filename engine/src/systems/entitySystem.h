@@ -22,7 +22,9 @@ typedef enum ComponentType
     CONTROLLER,
     PHYSICS,
     BOXCOLLIDER,
-    BRICK
+    BRICK,
+    LIGHT_POINT,
+    LIGHT_SPOT
 } ComponentType;
 
 // Transform component
@@ -64,6 +66,22 @@ struct PhysicsComponent
     bool gravity = false;
 };
 
+struct LightPointComponent
+{
+    glm::vec3 color;
+    glm::vec3 position;
+    f32 intensity;
+    f32 radius;
+    bool enabled;
+};
+
+struct LightSpotComponent
+{
+    glm::vec3 color;
+    f32 intensity;
+    bool enabled;
+};
+
 struct BrickComponent
 {
     bool isSolid = false;
@@ -84,6 +102,10 @@ typedef struct ComponentManager
     BoxCollisionComponent boxCollisionComponent[MAX_ENTITIES_ALLOWED];
     u32 brickCompCount;
     BrickComponent* brickComponent[MAX_ENTITIES_ALLOWED];
+    u32 lightPointCompCount;
+    LightPointComponent lightPointComponent[MAX_ENTITIES_ALLOWED];
+    u32 lightSpotCompCount;
+    LightSpotComponent lightSpotComponent[MAX_ENTITIES_ALLOWED];
 } ComponentManager;
 
 // Manager

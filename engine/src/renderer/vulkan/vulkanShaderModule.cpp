@@ -50,3 +50,13 @@ void vulkanCreateShaderModule(
         nullptr, 
         module));
 };
+
+void vulkanDestroyShaderModule(
+    VulkanState& state,
+    VulkanShaderObject& module)
+{
+    vkDestroyShaderModule(
+        state.device.handle,
+        module.shaderModule,
+        nullptr);
+}

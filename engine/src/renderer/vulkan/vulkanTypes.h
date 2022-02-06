@@ -104,9 +104,16 @@ typedef struct VulkanVertex
     vec3 normal;
 }VulkanVertex;
 
+struct VulkanLightData
+{
+    glm::vec3 position;
+    f32 intensity;
+    glm::vec3 color;
+    f32 radius;
+};
+
 typedef struct ViewProjectionBuffer
 {
-    //glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
 } ViewProjectionBuffer;
@@ -211,6 +218,9 @@ typedef struct VulkanForwardShader
     ViewProjectionBuffer globalUboData;
     // Buffer holding the data from globalUboData to be uploaded to the gpu.
     VulkanBuffer globalUbo;
+
+    VulkanLightData lightData;
+    VulkanBuffer lightUbo;
 
     // Mesh instance objects
     VkDescriptorPool meshInstanceDescriptorPool;

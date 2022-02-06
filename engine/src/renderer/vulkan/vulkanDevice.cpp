@@ -261,6 +261,7 @@ bool pickPhysicalDevice(VulkanState* state)
     requirements.discrete   = false;
     requirements.samplerAnisotropy = true;
     requirements.extensionNames.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    //requirements.extensionNames.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
 
     QueueFamilyIndexInfo familyIndexInfo;
 
@@ -409,6 +410,10 @@ bool createLogicalDevice(VulkanState* state)
     // Should be config driven, depending on the requirements.
     deviceFeatures.samplerAnisotropy = VK_TRUE;
 
+    //VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
+    //extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+    //extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
+
     std::vector<const char*> extensionNames = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     VkDeviceCreateInfo deviceCreateInfo = {};
@@ -418,6 +423,7 @@ bool createLogicalDevice(VulkanState* state)
     deviceCreateInfo.pEnabledFeatures           = &deviceFeatures;
     deviceCreateInfo.enabledExtensionCount      = extensionNames.size();
     deviceCreateInfo.ppEnabledExtensionNames    = extensionNames.data();
+    //deviceCreateInfo.pNext = &extendedDynamicStateFeatures;
 
     VK_CHECK(vkCreateDevice(
         state->device.physicalDevice,

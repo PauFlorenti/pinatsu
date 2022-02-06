@@ -23,6 +23,13 @@ bool vulkanCreateForwardShader(
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
 
+    vulkanBufferCreate(
+        pState,
+        sizeof(VulkanLightData),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &outShader->lightUbo);
+
     // Shader modules creation
     std::vector<char> vertexBuffer;
     if(!readShaderFile("./data/vert.spv", vertexBuffer)){
@@ -54,15 +61,23 @@ bool vulkanCreateForwardShader(
 
     VK_CHECK(vkCreateDescriptorPool(pState->device.handle, &descriptorPoolInfo, nullptr, &outShader->globalDescriptorPool));
 
-    VkDescriptorSetLayoutBinding binding{};
-    binding.binding         = 0;
-    binding.descriptorCount = 1;
-    binding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    binding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
+    VkDescriptorSetLayoutBinding cameraBinding{};
+    cameraBinding.binding         = 0;
+    cameraBinding.descriptorCount = 1;
+    cameraBinding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraBinding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
+
+    VkDescriptorSetLayoutBinding lightBinding{};
+    lightBinding.binding = 1;
+    lightBinding.descriptorCount = 1;
+    lightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding globalBindings[2] = {cameraBinding, lightBinding};
 
     VkDescriptorSetLayoutCreateInfo info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    info.bindingCount   = 1;
-    info.pBindings      = &binding;
+    info.bindingCount   = 2;
+    info.pBindings      = globalBindings;
 
     VK_CHECK(vkCreateDescriptorSetLayout(pState->device.handle, &info, nullptr, &outShader->globalDescriptorSetLayout));
 
@@ -211,6 +226,7 @@ void
 vulkanDestroyForwardShader(VulkanState* pState)
 {
     vulkanBufferDestroy(pState, pState->forwardShader.globalUbo);
+    vulkanBufferDestroy(pState, pState->forwardShader.lightUbo);
     vulkanBufferDestroy(pState, pState->forwardShader.meshInstanceBuffer);
 
     vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[0].shaderModule, nullptr);
@@ -237,15 +253,30 @@ vulkanForwardShaderUpdateGlobalData(VulkanState* pState)
     globalUboInfo.range     = sizeof(ViewProjectionBuffer);
 
     // Write global shader descriptor
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.dstBinding        = 0;
-    write.dstArrayElement   = 0;
-    write.descriptorCount   = 1;
-    write.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.pBufferInfo       = &globalUboInfo;
-    write.dstSet            = pState->forwardShader.globalDescriptorSet[pState->imageIndex];
+    VkWriteDescriptorSet cameraWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    cameraWrite.dstBinding        = 0;
+    cameraWrite.dstArrayElement   = 0;
+    cameraWrite.descriptorCount   = 1;
+    cameraWrite.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraWrite.pBufferInfo       = &globalUboInfo;
+    cameraWrite.dstSet            = pState->forwardShader.globalDescriptorSet[pState->imageIndex];
 
-    vkUpdateDescriptorSets(pState->device.handle, 1, &write, 0, nullptr);
+    VkDescriptorBufferInfo lightUboInfo{};
+    lightUboInfo.buffer    = pState->forwardShader.lightUbo.handle;
+    lightUboInfo.offset    = 0;
+    lightUboInfo.range     = sizeof(VulkanLightData);
+
+    VkWriteDescriptorSet lightWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    lightWrite.dstBinding       = 1;
+    lightWrite.dstArrayElement  = 0;
+    lightWrite.descriptorCount  = 1;
+    lightWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightWrite.pBufferInfo      = &lightUboInfo;
+    lightWrite.dstSet           = pState->forwardShader.globalDescriptorSet[pState->imageIndex];
+
+    VkWriteDescriptorSet writes[2] = {cameraWrite, lightWrite};
+
+    vkUpdateDescriptorSets(pState->device.handle, 2, writes, 0, nullptr);
 
     VkDeviceSize offset = {0};
     vkCmdBindDescriptorSets(

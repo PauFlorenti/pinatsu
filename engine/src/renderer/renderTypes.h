@@ -18,10 +18,20 @@ typedef struct RenderMeshData
     Material* material;
 } RenderMeshData;
 
+struct LightData
+{
+    glm::vec3 position;
+    glm::vec3 color;
+    f32 radius;
+    f32 intensity;
+};
+
 typedef struct RenderPacket
 {
     f32 deltaTime;
 
     u32 renderMeshDataCount;
     RenderMeshData* meshes;
+    u32 lightDataCount;
+    LightData* lights;
 } RenderPacket;

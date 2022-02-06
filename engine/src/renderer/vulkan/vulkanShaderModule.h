@@ -9,3 +9,7 @@ void vulkanCreateShaderModule(
     VulkanState* pState,
     std::vector<char>& buffer,
     VkShaderModule* module);
+
+void vulkanDestroyShaderModule(
+    VulkanState& state,
+    VulkanShaderObject& module);

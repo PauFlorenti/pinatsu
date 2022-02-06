@@ -20,6 +20,8 @@ entitySystemInit(u64* memoryRequirements, void* state)
     pState->componentManager.physicsCompCount = 0;
     pState->componentManager.boxCollisionCompCount = 0;
     pState->componentManager.brickCompCount = 0;
+    pState->componentManager.lightPointCompCount = 0;
+    pState->componentManager.lightSpotCompCount = 0;
 
     pState->entityManager.activeEntitiesCount = 0;
 
@@ -74,6 +76,8 @@ entitySystemDestroyEntity(Entity entity)
     pState->componentManager.boxCollisionComponent[entity] = {};
     pState->componentManager.physicsComponent[entity] = {};
     pState->componentManager.brickComponent[entity] = nullptr;
+    pState->componentManager.lightPointComponent[entity] = {};
+    pState->componentManager.lightSpotComponent[entity] = {};
 
     pState->entityManager.availableEntities[entity - 1] = entity;
     pState->entityManager.activeEntitiesCount--;
@@ -136,6 +140,20 @@ entitySystemAddComponent(Entity entity, ComponentType type, void* component)
         pState->componentManager.brickComponent[entity] = comp;
         break;
     }
+    case LIGHT_POINT:
+    {
+        pState->componentManager.lightPointCompCount++;
+        LightPointComponent* comp = (LightPointComponent*)component;
+        pState->componentManager.lightPointComponent[entity] = *comp;
+        break;
+    }
+    case LIGHT_SPOT:
+    {
+        pState->componentManager.lightSpotCompCount++;
+        LightSpotComponent* comp = (LightSpotComponent*)component;
+        pState->componentManager.lightSpotComponent[entity] = *comp;
+        break;
+    }
     default:
         PWARN("entitySystemAddComponent - Non existant type. No component added.");
         break;
@@ -170,6 +188,14 @@ entitySystemRemoveComponent(Entity entity, ComponentType type)
     case BRICK:
         pState->componentManager.brickComponent[entity] = {};
         pState->componentManager.brickCompCount--;
+        break;
+    case LIGHT_POINT:
+        pState->componentManager.lightPointComponent[entity] = {};
+        pState->componentManager.lightPointCompCount--;
+        break;
+    case LIGHT_SPOT:
+        pState->componentManager.lightSpotComponent[entity] = {};
+        pState->componentManager.lightSpotCompCount--;
         break;
     default:
         PWARN("entitySystemRemoveComponent - No available component type found.");
@@ -214,6 +240,12 @@ entitySystemGetComponent(Entity entity, ComponentType type)
         break;
     case BRICK:
         return pState->componentManager.brickComponent[entity];
+        break;
+    case LIGHT_POINT:
+        return &pState->componentManager.lightPointComponent[entity];
+        break;
+    case LIGHT_SPOT:
+        return &pState->componentManager.lightSpotComponent[entity];
         break;
     default:
         PWARN("entitySystemGetComponent - No available type found.");

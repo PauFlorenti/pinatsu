@@ -6,7 +6,7 @@
 #include "vulkanFramebuffer.h"
 #include "vulkanBuffer.h"
 #include "vulkanCommandBuffer.h"
-#include "vulkanUtils.h"
+#include "vulkanImage.h"
 
 #include "shaders/vulkanForwardShader.h"
 
@@ -15,7 +15,6 @@
 #include "pmath.h"
 #include <vector>
 #include <string>
-//#include <fstream>
 
 #define internal static
 
@@ -176,49 +175,10 @@ void vulkanRegenerateFramebuffers(
 
 bool recreateSwapchain();
 
-void vulkanDestroyShaderModule(
-    VulkanState& state,
-    VulkanShaderObject& module);
-
-//
-// * Texture functions
-//
-internal void vulkanCreateImage(
-    VulkanState* pState,
-    VkImageType type,
-    u32 width,
-    u32 height,
-    VkFormat imageFormat,
-    VkImageTiling tiling,
-    VkImageUsageFlags,
-    VkMemoryPropertyFlags,
-    bool createView,
-    VkImageAspectFlags viewAspectFlags,
-    VulkanImage* outImage);
-
-internal void vulkanCreateImageView(
-    VulkanState* pState, 
-    VulkanImage* image,
-    VkFormat format,
-    VkImageAspectFlags aspectFlags);
-
-internal void vulkanImageTransitionLayout(
-    VulkanState* pState,
-    VulkanImage* image,
-    VkFormat format,
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout,
-    VkCommandBuffer& cmd);
-
 // TODO make configurable depending on the shader.
 // Get standard attribute description.
 std::vector<VkVertexInputAttributeDescription>
 getStandardAttributeDescription(void);
-
-void vulkanBindForwardMaterial()
-{
-
-}
 
 internal bool vulkanCreateUIShader(
     VulkanState* pState
@@ -226,7 +186,7 @@ internal bool vulkanCreateUIShader(
 );
 
 // TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData light)
 {
     gameTime += dt;
     f32 speed = 100.0f;
@@ -235,6 +195,12 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+
+    state.forwardShader.lightData.color = light.color;
+    state.forwardShader.lightData.intensity = light.intensity;
+    state.forwardShader.lightData.position = light.position;
+    state.forwardShader.lightData.radius = light.radius;
+    vulkanBufferLoadData(&state, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 
@@ -285,7 +251,6 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     vulkanBufferCreate(&state, totalVertexSize, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->vertexBuffer);
     vulkanUploadDataToGPU(&state, renderMesh->vertexBuffer, 0, totalVertexSize, vertices);
 
-    // TODO indices
     if(indexCount > 0 && indices)
     {
         u64 indexSize = indexCount * sizeof(u32);
@@ -468,7 +433,7 @@ bool vulkanBackendInit(const char* appName)
     appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName         = "Pinatsu Engine";
     appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion          = VK_API_VERSION_1_2;
+    appInfo.apiVersion          = VK_API_VERSION_1_3;
 
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -813,8 +778,10 @@ void vulkanDrawGeometry(const RenderMeshData* data)
     VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
 
     VkDeviceSize offset = 0;
+    
     vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
+    //vkCmdSetPrimitiveTopology(state.commandBuffers[state.imageIndex].handle, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     if(geometry->indexCount > 0)
     {
         vkCmdBindIndexBuffer(state.commandBuffers[state.imageIndex].handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
@@ -970,153 +937,6 @@ bool recreateSwapchain()
 
     state.recreatingSwapchain = false;
     return true;
-}
-
-/**
- * TODO Revise if it should be DestroyShaderObject
- */
-void vulkanDestroyShaderModule(
-    VulkanState& state,
-    VulkanShaderObject& module)
-{
-    vkDestroyShaderModule(
-        state.device.handle,
-        module.shaderModule,
-        nullptr);
-}
-
-/**
- * Function to create an image in vulkan.
- */
-internal void vulkanCreateImage(
-    VulkanState* pState,
-    VkImageType type,
-    u32 width,
-    u32 height,
-    VkFormat imageFormat,
-    VkImageTiling tiling,
-    VkImageUsageFlags imageUsage,
-    VkMemoryPropertyFlags memoryProperties,
-    bool createView,
-    VkImageAspectFlags viewAspectFlags,
-    VulkanImage* outImage)
-{
-
-    outImage->width = width;
-    outImage->height = height;
-
-    VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-    info.imageType = type;
-    info.format = imageFormat;
-    info.extent = {width, height, 1};
-    info.mipLevels = 1;
-    info.arrayLayers = 1;
-    info.tiling = tiling;
-    info.usage = imageUsage;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.samples = VK_SAMPLE_COUNT_1_BIT;
-    //info.queueFamilyIndexCount = 1;
-    //info.pQueueFamilyIndices = &pState->device.graphicsQueueIndex; ignored as it is not VK_SHARING_MODE_CONCURRENT
-    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    VK_CHECK(vkCreateImage(pState->device.handle, &info, nullptr, &outImage->handle));
-
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(
-        pState->device.handle, 
-        outImage->handle, 
-        &memoryRequirements);
-
-    VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-    memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(pState, memoryRequirements.memoryTypeBits, memoryProperties);
-
-    VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
-
-    VK_CHECK(vkBindImageMemory(pState->device.handle, outImage->handle, outImage->memory, 0));
-
-    if(createView)
-    {
-        outImage->view = 0;
-        vulkanCreateImageView(
-            pState, 
-            outImage, 
-            VK_FORMAT_R8G8B8A8_UNORM, 
-            viewAspectFlags);
-    }
-}
-
-internal void vulkanCreateImageView(
-    VulkanState* pState, 
-    VulkanImage* image,
-    VkFormat format,
-    VkImageAspectFlags aspectFlags)
-{
-    VkImageViewCreateInfo info {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    info.image = image->handle;
-    info.viewType = VK_IMAGE_VIEW_TYPE_2D;  // TODO make configurable
-    info.format = format;
-    info.subresourceRange.aspectMask = aspectFlags;
-
-    //TODO make configurable
-    info.subresourceRange.levelCount = 1;
-    info.subresourceRange.baseMipLevel = 0;
-    info.subresourceRange.layerCount = 1;
-    info.subresourceRange.baseArrayLayer = 0;
-
-    VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &image->view));
-}
-
-internal void vulkanImageTransitionLayout(
-    VulkanState* pState,
-    VulkanImage* image,
-    VkFormat format,
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout,
-    VkCommandBuffer& cmd)
-{
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.image = image->handle;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = pState->device.graphicsQueueIndex;
-    barrier.dstQueueFamilyIndex = pState->device.graphicsQueueIndex;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-
-    VkPipelineStageFlags srcStage;
-    VkPipelineStageFlags dstStage;
-
-    if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && 
-        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    }
-
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
 }
 
 /**
