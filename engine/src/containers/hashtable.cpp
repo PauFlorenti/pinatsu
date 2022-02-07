@@ -7,12 +7,12 @@ static u64
 makeHash(const char* name, u32 elementCount)
 {
     static const u64 multiplier = 97;
-
-    const u8* us;
     u64 hash = 0;
-    for(us = (const u8*)name; *us; us++)
-    {
-        hash = hash * multiplier + *us;
+
+    u32 length = strlen(name);
+
+    for(u32 i = 0; i < length; ++i) {
+        hash = hash * multiplier + name[i];
     }
 
     hash %= elementCount;
@@ -32,9 +32,9 @@ hashtableCreate(u64 elementSize, u32 elementCount, void* memory, Hashtable* outH
         return;
     }
 
-    outHashtable->memory = memory;
-    outHashtable->elementCount = elementCount;
-    outHashtable->elementSize = elementSize;
+    outHashtable->memory        = memory;
+    outHashtable->elementCount  = elementCount;
+    outHashtable->elementSize   = elementSize;
     memZero(outHashtable->memory, elementSize * elementCount);
 }
 
@@ -55,12 +55,12 @@ hashtableSetValue(Hashtable* hashtable, const char* name, void* value)
     }
 
     u64 hash = makeHash(name, hashtable->elementCount);
-    memCopy(value, (u64*)hashtable->memory + (hashtable->elementSize * hash), hashtable->elementSize);
+    memCopy(value, ((char*)hashtable->memory) + (hashtable->elementSize * hash), hashtable->elementSize);
     return true;
 }
 
 bool
-hashtableGetValue(Hashtable* hashtable, const char* name, void* outValue)
+hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue)
 {
     if(!hashtable || !name) {
         PERROR("hashtableGetValue - a valid hashtable or name must be provided!");
@@ -68,7 +68,18 @@ hashtableGetValue(Hashtable* hashtable, const char* name, void* outValue)
     }
 
     u64 hash = makeHash(name, hashtable->elementCount);
-    outValue = (void*)((u64*)hashtable->memory + (hashtable->elementSize * hash));
+    *outValue = ((char*)hashtable->memory) + (hashtable->elementSize * hash);
+    return true;
+}
+
+bool
+hashtableGetByPos(Hashtable* hashtable, u32 position, void* outValue)
+{
+    if(!hashtable) {
+        return false;
+    }
+
+    outValue = ((char*)hashtable->memory + (hashtable->elementSize * position));
     return true;
 }
 
@@ -81,7 +92,22 @@ hashtableFill(Hashtable* hashtable, void* value)
     }
 
     for(u32 i = 0; i < hashtable->elementCount; i++) {
-        memCopy(value, (u64*)hashtable->memory + (hashtable->elementSize * i), hashtable->elementSize);
+        memCopy(value, (u8*)hashtable->memory + (hashtable->elementSize * i), hashtable->elementSize);
     }
     return true;
+}
+
+
+// TODO make a way to dehash the value.
+void
+hashtablePrint(Hashtable* hashtable)
+{
+    if(!hashtable) {
+        PERROR("hashtablePrint - table passed is not valid.");
+        return;
+    }
+
+    for(u32 i = 0; i < hashtable->elementCount; ++i) {
+        //hashtable->
+    }
 }

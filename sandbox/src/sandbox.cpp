@@ -41,12 +41,11 @@ bool gameInitialize(Game* pGameInst)
     playerMaterial.diffuseColor = glm::vec4(1);
     playerMaterial.type = MATERIAL_TYPE_FORWARD;
 
-    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
-    paddleMat->diffuseTexture = textureSystemGet("paving.png");
-
     Resource gltf;
+    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
     resourceSystemLoad("cube/AnimatedCube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
+    paddleMat->diffuseTexture = textureSystemGet("paving.png");
     resourceSystemLoad("avocado/Avocado.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* avocadoNode = (Node*)gltf.data;
 
