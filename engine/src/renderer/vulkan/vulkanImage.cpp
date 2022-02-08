@@ -20,18 +20,18 @@ void vulkanCreateImage(
     outImage->height = height;
 
     VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-    info.imageType = type;
-    info.format = imageFormat;
-    info.extent = {width, height, 1};
-    info.mipLevels = 1;
-    info.arrayLayers = 1;
-    info.tiling = tiling;
-    info.usage = imageUsage;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.samples = VK_SAMPLE_COUNT_1_BIT;
+    info.imageType      = type;
+    info.format         = imageFormat;
+    info.extent         = {width, height, 1};
+    info.mipLevels      = 1;
+    info.arrayLayers    = 1;
+    info.tiling         = tiling;
+    info.usage          = imageUsage;
+    info.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
+    info.samples        = VK_SAMPLE_COUNT_1_BIT;
     //info.queueFamilyIndexCount = 1;
     //info.pQueueFamilyIndices = &pState->device.graphicsQueueIndex; ignored as it is not VK_SHARING_MODE_CONCURRENT
-    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    info.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VK_CHECK(vkCreateImage(pState->device.handle, &info, nullptr, &outImage->handle));
 
@@ -55,7 +55,7 @@ void vulkanCreateImage(
         vulkanCreateImageView(
             pState, 
             outImage, 
-            VK_FORMAT_R8G8B8A8_UNORM, 
+            imageFormat, 
             viewAspectFlags);
     }
 }
@@ -67,16 +67,16 @@ void vulkanCreateImageView(
     VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo info {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    info.image = image->handle;
-    info.viewType = VK_IMAGE_VIEW_TYPE_2D;  // TODO make configurable
-    info.format = format;
-    info.subresourceRange.aspectMask = aspectFlags;
+    info.image                          = image->handle;
+    info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;  // TODO make configurable
+    info.format                         = format;
+    info.subresourceRange.aspectMask    = aspectFlags;
 
     //TODO make configurable
-    info.subresourceRange.levelCount = 1;
-    info.subresourceRange.baseMipLevel = 0;
-    info.subresourceRange.layerCount = 1;
-    info.subresourceRange.baseArrayLayer = 0;
+    info.subresourceRange.levelCount        = 1;
+    info.subresourceRange.baseMipLevel      = 0;
+    info.subresourceRange.layerCount        = 1;
+    info.subresourceRange.baseArrayLayer    = 0;
 
     VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &image->view));
 }

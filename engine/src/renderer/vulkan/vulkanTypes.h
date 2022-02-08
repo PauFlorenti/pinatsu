@@ -59,19 +59,6 @@ typedef struct Framebuffer
     VulkanRenderpass* renderpass;
 } Framebuffer;
 
-typedef struct VulkanSwapchain
-{
-    VkSwapchainKHR      handle;
-    VkSurfaceFormatKHR  format;
-    VkPresentModeKHR    presentMode;
-    VkExtent2D          extent;
-    u32                 imageCount; // Number of images in the swapchain.
-    u32                 maxImageInFlight; // Number of images in flight.
-
-    std::vector<VkImage>        images;
-    std::vector<VkImageView>    imageViews;
-    std::vector<Framebuffer>    framebuffers;
-} VulkanSwapchain;
 
 typedef struct CommandBuffer
 {
@@ -238,6 +225,23 @@ typedef struct VulkanForwardShader
 
     VulkanPipeline pipeline;
 } VulkanForwardShader;
+
+typedef struct VulkanSwapchain
+{
+    VkSwapchainKHR      handle;
+    VkSurfaceFormatKHR  format;
+    VkPresentModeKHR    presentMode;
+    VkExtent2D          extent;
+    u32                 imageCount; // Number of images in the swapchain.
+    u32                 maxImageInFlight; // Number of images in flight.
+
+    VkFormat depthFormat;
+    VulkanImage depthImage;
+
+    std::vector<VkImage>        images;
+    std::vector<VkImageView>    imageViews;
+    std::vector<Framebuffer>    framebuffers;
+} VulkanSwapchain;
 
 typedef struct VulkanState
 {

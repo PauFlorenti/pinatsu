@@ -60,6 +60,8 @@ void vulkanCreateGraphicsPipeline(
 
     VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
     depthStencilInfo.depthTestEnable    = depthTest ? VK_TRUE : VK_FALSE;
+    depthStencilInfo.depthWriteEnable   = VK_TRUE;
+    depthStencilInfo.depthCompareOp     = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencilInfo.stencilTestEnable  = VK_FALSE;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};

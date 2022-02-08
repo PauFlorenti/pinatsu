@@ -84,13 +84,24 @@ entitySystemDestroyEntity(Entity entity)
 }
 
 void
-entitySystemUpdate(f32 dt)
+entitySystemSetSignature(Entity entity, Signature signature)
 {
-    // Transform component
+    if(entity > MAX_ENTITIES_ALLOWED) {
+        PWARN("setSignature - Non-valid entity received.")
+        return;
+    }
     
+    pState->entityManager.signature[entity] = signature;
+}
 
-    // Render component
-
+Signature
+entitySystemGetSignature(Entity entity)
+{
+    if(entity > MAX_ENTITIES_ALLOWED) {
+        PWARN("getSignature - Non-valid entity received.");
+        return 0;
+    }
+    return pState->entityManager.signature[entity];
 }
 
 void 
@@ -211,7 +222,9 @@ entitySystemGetEntities(u32* counter, Entity* entities)
     u32 index = 0;
     for(u32 i = 0; i < MAX_ENTITIES_ALLOWED; i++)
     {
-        //if(pState->entityManager.availableEntities[i] )
+        if(pState->entityManager.availableEntities[i] == 0) {
+            
+        }
     }
 
     // TODO check for available entities
@@ -255,4 +268,7 @@ entitySystemGetComponent(Entity entity, ComponentType type)
 }
 
 void 
-entitySystemGetByComponent(u32* counter, ComponentType type, void* outComponents);
+entitySystemGetByComponent(u32* counter, ComponentType type, void* outComponents)
+{
+
+}

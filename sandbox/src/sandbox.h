@@ -11,7 +11,9 @@ typedef struct GameState
     glm::mat4 projection;
     glm::vec3 cameraAxes; // Pitch x, yaw y, roll z
 
+    // this should be given by the entity system.
     u32 nEntities;
+    u32 nLights;
 } GameState;
 
 // TODO Game status ??

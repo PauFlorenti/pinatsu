@@ -192,6 +192,9 @@
          "uri" : "AnimatedCube_BaseColor.png"
       },
       {
+         "uri" : "AnimatedCube_Normal.png"
+      },
+      {
          "uri" : "AnimatedCube_MetallicRoughness.png"
       }
    ],
@@ -202,8 +205,11 @@
             "baseColorTexture" : {
                "index" : 0
             },
-            "metallicRoughnessTexture" : {
+            "normalTexture" : {
                "index" : 1
+            },
+            "metallicRoughnessTexture" : {
+               "index" : 2
             }
          }
       }
@@ -257,6 +263,10 @@
       {
          "sampler" : 0,
          "source" : 1
+      },
+      {
+         "sampler" : 0,
+         "source" : 2
       }
    ]
 }

@@ -738,15 +738,18 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
             // Forward render pass
         case 0:
         {
-            VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            VkClearValue clearColors[2];
+            clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            clearColors[1].depthStencil.depth = 1.0f;
+            clearColors[1].depthStencil.stencil = 0;
 
             VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
             info.renderPass         = state.renderpass.handle;
             info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
             info.renderArea.offset  = {0, 0};
             info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 1;
-            info.pClearValues       = &clearColor;
+            info.clearValueCount    = 2;
+            info.pClearValues       = clearColors;
             
             vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
             return true;
@@ -860,7 +863,7 @@ void vulkanRegenerateFramebuffers(
     for(u32 i = 0; i < swapchain->imageViews.size(); ++i){
 
         // TODO Make modular
-        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i)};
+        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i), swapchain->depthImage.view};
 
         vulkanFramebufferCreate(
             &state,

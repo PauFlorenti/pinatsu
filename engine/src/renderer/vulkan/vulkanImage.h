@@ -10,8 +10,8 @@ void vulkanCreateImage(
     u32 height,
     VkFormat imageFormat,
     VkImageTiling tiling,
-    VkImageUsageFlags,
-    VkMemoryPropertyFlags,
+    VkImageUsageFlags imageUsage,
+    VkMemoryPropertyFlags memoryProperties,
     bool createView,
     VkImageAspectFlags viewAspectFlags,
     VulkanImage* outImage);

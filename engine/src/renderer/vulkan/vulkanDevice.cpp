@@ -487,3 +487,40 @@ void destroyLogicalDevice(VulkanState& pState)
     vkDeviceWaitIdle(pState.device.handle);
     vkDestroyDevice(pState.device.handle, nullptr);
 }
+
+static VkFormat
+findSupportedFormat(
+    const VkPhysicalDevice& physicalDevice, 
+    VkFormat* candidates, 
+    VkImageTiling tiling, 
+    VkFormatFeatureFlags features)
+{
+    for(u32 i = 0; i < 3; ++i)
+    {
+        VkFormatProperties properties;
+        vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &properties);
+        if( tiling == VK_IMAGE_TILING_LINEAR && 
+            (properties.linearTilingFeatures & features ) == features)
+        {
+            return candidates[i];
+        }
+        else if(tiling == VK_IMAGE_TILING_OPTIMAL && 
+                (properties.linearTilingFeatures & features) == features)
+        {
+            return candidates[i];
+        }
+    }
+    PERROR("Not valid depth format found!");
+    return VK_FORMAT_D32_SFLOAT;
+}
+
+void
+vulkanDeviceGetDepthFormat(VulkanState& state)
+{
+    VkFormat candidates[3] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+    state.swapchain.depthFormat = findSupportedFormat(
+            state.device.physicalDevice, 
+            candidates, 
+            VK_IMAGE_TILING_OPTIMAL, 
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}

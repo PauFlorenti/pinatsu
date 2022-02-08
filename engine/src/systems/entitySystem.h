@@ -115,8 +115,6 @@ typedef struct EntityManager
     Signature signature[MAX_ENTITIES_ALLOWED];
     u32 activeEntitiesCount;
 
-    Entity createEntity();
-    void destroyEntity(Entity entity);
     void setSignature(Entity entity, Signature signature);
     Signature getSignature(Entity entity);
 } EntityManager;
@@ -133,14 +131,17 @@ entitySystemInit(u64* memoryRequirements, void* state);
 void
 entitySystemShutdown(void* state);
 
-void
-entitySystemUpdate(f32 dt);
-
 Entity
 entitySystemCreateEntity();
 
 void
 entitySystemDestroyEntity(Entity entity);
+
+void
+entitySystemSetSignature(Entity entity, Signature signature);
+
+Signature
+entitySystemGetSignature(Entity entity);
 
 void 
 entitySystemAddComponent(Entity entity, ComponentType type, void* component);

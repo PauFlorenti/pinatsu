@@ -35,7 +35,8 @@ void main()
     float distanceToLight = length(L);
     L = normalize(L);
 
-    float NdotL = dot(wNorm, L);
+    vec3 N = texture(normalSampler, inUV).xyz;
+    float NdotL = dot(N, L);
 
     vec4 diffuseTxt = texture(diffuseSampler, inUV);
     if(diffuseTxt.w < 1.0)

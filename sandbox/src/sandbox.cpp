@@ -17,6 +17,9 @@
 
 static f32 rot;
 
+static RenderMeshData gameMeshes[MAX_ENTITIES_ALLOWED];
+static LightData gameLight[MAX_ENTITIES_ALLOWED];
+
 bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
@@ -30,7 +33,6 @@ bool gameInitialize(Game* pGameInst)
     state->cameraAxes   = glm::vec3(0);
 
     // Define the scene
-
     Entity player = entitySystemCreateEntity();
     TransformComponent t{};
     t.position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -43,28 +45,27 @@ bool gameInitialize(Game* pGameInst)
 
     Resource gltf;
     Material* paddleMat = materialSystemCreateFromData(playerMaterial);
-    resourceSystemLoad("cube/AnimatedCube.gltf", RESOURCE_TYPE_GLTF, &gltf);
+    resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
     paddleMat->diffuseTexture = textureSystemGet("paving.png");
     resourceSystemLoad("avocado/Avocado.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* avocadoNode = (Node*)gltf.data;
 
-/*
-    */
     RenderComponent r{};
     r.material = cubeNode->material;
     r.mesh = cubeNode->mesh;
 
     entitySystemAddComponent(player, TRANSFORM, &t);
     entitySystemAddComponent(player, RENDER, &r);
+
     Entity plane = entitySystemCreateEntity();
     TransformComponent t1{};
-    t1.position = glm::vec3(3.0f, 0.0f, 0.0f);
-    t1.rotation = glm::quat();
-    t1.scale = glm::vec3(1.0f);
+    t1.position = glm::vec3(0.0f, -2.0f, 0.0f);
+    t1.rotation = glm::quat_cast(glm::rotate(glm::mat4(1), glm::radians(0.0f), glm::vec3(1, 0, 0)));
+    t1.scale = glm::vec3(10.0f, 0.2f, 10.0f);
     RenderComponent r1{};
-    r1.material = paddleMat;
-    r1.mesh = meshSystemGetPlane(1, 1);
+    r1.material = cubeNode->material;
+    r1.mesh = cubeNode->mesh;
     entitySystemAddComponent(plane, TRANSFORM, &t1);
     entitySystemAddComponent(plane, RENDER, &r1);
 
@@ -72,7 +73,7 @@ bool gameInitialize(Game* pGameInst)
     TransformComponent t2{};
     t2.position = glm::vec3(-3.0f, 0.0f, 0.0f);
     t2.rotation = glm::quat();
-    t2.scale = glm::vec3(15.0f);
+    t2.scale    = glm::vec3(30.0f);
 
     RenderComponent r2{};
     r2.material = avocadoNode->material;
@@ -80,14 +81,17 @@ bool gameInitialize(Game* pGameInst)
     entitySystemAddComponent(cube, TRANSFORM, &t2);
     entitySystemAddComponent(cube, RENDER, &r2);
 
+    state->nEntities = 3;
+
+    // Lights
     Entity light = entitySystemCreateEntity();
     LightPointComponent pointLight{};
     pointLight.color = glm::vec3(1.0);
     pointLight.enabled = true;
-    pointLight.position = glm::vec3(0.0f, 2.0f, 0.0f);
+    pointLight.position = glm::vec3(0.0f, 2.0f, 10.0f);
     entitySystemAddComponent(light, LIGHT_POINT, &pointLight);
 
-    state->nEntities = 4;
+    state->nLights = 1;
 
     rot = 0.0f;
 
@@ -150,10 +154,10 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = (GameState*)pGameInst->state;
 
+    // Get Render information of the scene.
     RenderComponent* renderComp = nullptr;
     TransformComponent* transComp = nullptr;
     const u32 size = state->nEntities;
-    RenderMeshData* gameMeshes = (RenderMeshData*)memAllocate(sizeof(RenderMeshData) * 3, MEMORY_TAG_ENTITY);
 
     rot = rot + 10 * deltaTime;
     f32 rotRad = glm::radians(rot);
@@ -163,31 +167,32 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
         renderComp = (RenderComponent*)entitySystemGetComponent(i + 1, RENDER);
         transComp = (TransformComponent*)entitySystemGetComponent(i + 1, TRANSFORM);
 
-        gameMeshes[i].mesh = renderComp->mesh;
-        gameMeshes[i].material = renderComp->material;
-        gameMeshes[i].model =   glm::translate(glm::mat4(1), transComp->position) * 
-                                glm::rotate(glm::mat4(1), rotRad, glm::vec3(0, 1, 0)) * 
-                                glm::scale(glm::mat4(1), transComp->scale);
+        gameMeshes[i].mesh      = renderComp->mesh;
+        gameMeshes[i].material  = renderComp->material;
+        gameMeshes[i].model     =   glm::translate(glm::mat4(1), transComp->position) * 
+                                    //glm::mat4_cast(transComp->rotation) *
+                                    glm::rotate(glm::mat4(1), rotRad, glm::vec3(0, 1, 0)) * 
+                                    glm::scale(glm::mat4(1), transComp->scale);
     }
-
-    LightData* lightData = (LightData*)memAllocate(sizeof(LightData) * 1, MEMORY_TAG_ENTITY);
     
+    // Get light information of the scene.
     LightPointComponent* lightComp;
-    for(u32 i = 3; i < 4; i++) {
+    for(u32 i = 3; i < 4; i++) 
+    {
         lightComp = (LightPointComponent*)entitySystemGetComponent(i + 1, LIGHT_POINT);
 
-        lightData[0].color      = lightComp->color;
-        lightData[0].position   = lightComp->position;
-        lightData[0].intensity  = lightComp->intensity;
-        lightData[0].radius     = lightComp->radius;
+        gameLight[0].color      = lightComp->color;
+        gameLight[0].position   = lightComp->position;
+        gameLight[0].intensity  = lightComp->intensity;
+        gameLight[0].radius     = lightComp->radius;
     }
 
     RenderPacket packet{};
     packet.deltaTime            = deltaTime;
-    packet.renderMeshDataCount  = 3; //state->nEntities;
+    packet.renderMeshDataCount  = state->nEntities;
     packet.meshes               = gameMeshes;
-    packet.lightDataCount       = 1;
-    packet.lights               = lightData;
+    packet.lightDataCount       = state->nLights;
+    packet.lights               = gameLight;
     renderDrawFrame(packet);
 
     return true;
