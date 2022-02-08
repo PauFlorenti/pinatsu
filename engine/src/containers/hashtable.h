@@ -16,16 +16,13 @@ void
 hashtableDestroy(Hashtable* hashtable);
 
 bool 
-hashtableSetValue(Hashtable* hashtable, const char* name, void* value);
+hashtableSetValue(Hashtable* hashtable, const char* name, void** value);
 
 bool
 hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue);
 
 bool
 hashtableFill(Hashtable* hashtable, void* value);
-
-bool
-hashtableGetByPos(Hashtable* hashtable, u32 position, void* outValue);
 
 void
 hashtablePrint(Hashtable* hashtable);

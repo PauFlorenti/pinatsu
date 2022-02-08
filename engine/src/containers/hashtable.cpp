@@ -73,17 +73,6 @@ hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue)
 }
 
 bool
-hashtableGetByPos(Hashtable* hashtable, u32 position, void* outValue)
-{
-    if(!hashtable) {
-        return false;
-    }
-
-    outValue = ((char*)hashtable->memory + (hashtable->elementSize * position));
-    return true;
-}
-
-bool
 hashtableFill(Hashtable* hashtable, void* value)
 {
     if(!hashtable || !value) {
@@ -92,7 +81,7 @@ hashtableFill(Hashtable* hashtable, void* value)
     }
 
     for(u32 i = 0; i < hashtable->elementCount; i++) {
-        memCopy(value, (u8*)hashtable->memory + (hashtable->elementSize * i), hashtable->elementSize);
+        memCopy(value, (char*)hashtable->memory + (hashtable->elementSize * i), hashtable->elementSize);
     }
     return true;
 }

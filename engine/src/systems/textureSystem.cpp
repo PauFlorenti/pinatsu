@@ -258,9 +258,6 @@ textureSystemGet(const char* name, bool autoRelease /*= false*/)
     }
 
     void* reference = nullptr;
-    //hashtableGetByPos(&pState->hashtable, 0, &ref);
-    //hashtableGetByPos(&pState->hashtable, 302, &ref);
-
     if(pState && hashtableGetValue(&pState->hashtable, name, &reference))
     {
         TextureReference* ref = static_cast<TextureReference*>(reference);
