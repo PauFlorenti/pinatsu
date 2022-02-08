@@ -16,10 +16,10 @@ void
 hashtableDestroy(Hashtable* hashtable);
 
 bool 
-hashtableSetValue(Hashtable* hashtable, const char* name, void** value);
+hashtableSetValue(Hashtable* hashtable, const char* name, void* value);
 
 bool
-hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue);
+hashtableGetValue(Hashtable* hashtable, const char* name, void* outValue);
 
 bool
 hashtableFill(Hashtable* hashtable, void* value);

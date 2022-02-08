@@ -60,7 +60,7 @@ hashtableSetValue(Hashtable* hashtable, const char* name, void* value)
 }
 
 bool
-hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue)
+hashtableGetValue(Hashtable* hashtable, const char* name, void* outValue)
 {
     if(!hashtable || !name) {
         PERROR("hashtableGetValue - a valid hashtable or name must be provided!");
@@ -68,7 +68,8 @@ hashtableGetValue(Hashtable* hashtable, const char* name, void** outValue)
     }
 
     u64 hash = makeHash(name, hashtable->elementCount);
-    *outValue = ((char*)hashtable->memory) + (hashtable->elementSize * hash);
+    memCopy(((char*)hashtable->memory) + (hashtable->elementSize * hash), outValue, sizeof(hashtable->elementSize));
+    //*outValue = ((char*)hashtable->memory) + (hashtable->elementSize * hash);
     return true;
 }
 

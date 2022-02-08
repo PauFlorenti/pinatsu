@@ -258,29 +258,29 @@ textureSystemGet(const char* name, bool autoRelease /*= false*/)
     }
 
     void* reference = nullptr;
-    if(pState && hashtableGetValue(&pState->hashtable, name, &reference))
+    TextureReference ref;
+    if(pState && hashtableGetValue(&pState->hashtable, name, &ref))
     {
-        TextureReference* ref = static_cast<TextureReference*>(reference);
-        if(ref->referenceCount == 0) {
-            ref->autoRelease = autoRelease;
+        if(ref.referenceCount == 0) {
+            ref.autoRelease = autoRelease;
         }
 
-        ref->referenceCount++;
-        if(ref->handle == INVALID_ID)
+        ref.referenceCount++;
+        if(ref.handle == INVALID_ID)
         {
             u32 count = pState->config.maxTextureCount;
             Texture* t = 0;
             for(u32 i = 0; i < count; ++i) {
                 if(pState->textures[i].id == INVALID_ID)
                 {
-                    ref->handle = i;
+                    ref.handle = i;
                     t = &pState->textures[i];
                     break;
                 }
             }
 
             // Make sure an sopt is actually found
-            if(!t || ref->handle == INVALID_ID) {
+            if(!t || ref.handle == INVALID_ID) {
                 PFATAL("textureSystemGet - Texture system cannot hold anymore textures.");
                 return nullptr;
             }
@@ -292,60 +292,19 @@ textureSystemGet(const char* name, bool autoRelease /*= false*/)
             }
 
             // Use the handle as the texture id.
-            t->id = ref->handle;
+            t->id = ref.handle;
         }
         else {
-            PINFO("Texture '%s' already exists. Increasing reference count to %i.", name, ref->referenceCount);
+            PINFO("Texture '%s' already exists. Increasing reference count to %i.", name, ref.referenceCount);
         }
 
         // Update entry
         hashtableSetValue(&pState->hashtable, name, &ref);
-        return &pState->textures[ref->handle];
+        return &pState->textures[ref.handle];
     }
 
     PERROR("textureSystemGet - failed to get texture '%s'.", name);
     return nullptr;
-    
-/*
-   // If texture found, return texture
-   auto it = pState->map.find(name);
-   if(pState && (it != pState->map.end())) {
-       return &pState->textures[it->second.handle];
-   }
-   else // Create new texture and store it
-   {
-        TextureReference* ref = new TextureReference(); 
-        ref->autoRelease = autoRelease;
-        Texture* t = nullptr;
-        for(u32 i = 0; i < pState->config.maxTextureCount; ++i)
-        {
-            if(pState->textures[i].id == INVALID_ID)
-            {
-                ref->handle = i;
-                t = &pState->textures[i];
-                break;
-            }
-        }
-
-        // Make sure a texture slot was available
-        if(!t || ref->handle == 0)
-        {
-            PERROR("textureSystemGet - no slot available for a new texture. Increase the number of available texture slots.");
-            return 0;
-        }
-
-        if(!loadTexture(name, t))
-        {
-            PERROR("textureSystemGet - could not load texture '%s'.", name);
-            return 0;
-        }
-
-        t->id = ref->handle;
-        pState->map[name] = *ref;
-        return &pState->textures[ref->handle];
-
-   }
-*/
 }
 
 void 
@@ -355,11 +314,10 @@ textureSystemRelease(const char* name)
         return;
     }
 
-    TextureReference* ref = 0;
-    void* ptr = static_cast<void*>(ref);
-    if(pState && hashtableGetValue(&pState->hashtable, name, &ptr))
+    TextureReference ref;
+    if(pState && hashtableGetValue(&pState->hashtable, name, &ref))
     {
-        if(ref->referenceCount == 0) {
+        if(ref.referenceCount == 0) {
             PWARN("Tried to release a non-existent texture: '%s'.", name);
             return;
         }
@@ -367,20 +325,20 @@ textureSystemRelease(const char* name)
         char nameCopy[TEXTURE_NAME_MAX_LENGTH];
         stringCopy(name, nameCopy);
 
-        ref->referenceCount--;
-        if(ref->referenceCount == 0 && ref->autoRelease)
+        ref.referenceCount--;
+        if(ref.referenceCount == 0 && ref.autoRelease)
         {
-            Texture* t = &pState->textures[ref->handle];
+            Texture* t = &pState->textures[ref.handle];
 
             // Destroy texture, including in render side.
             textureSystemDestroyTexture(t);
 
-            ref->handle = INVALID_ID;
-            ref->autoRelease = false;
+            ref.handle = INVALID_ID;
+            ref.autoRelease = false;
             PINFO("Released texture '%s'.", nameCopy);
         }
         else {
-            PINFO("Released texture '%s'. It has now a reference count of %i.", nameCopy, ref->referenceCount);
+            PINFO("Released texture '%s'. It has now a reference count of %i.", nameCopy, ref.referenceCount);
         }
 
         hashtableSetValue(&pState->hashtable, nameCopy, &ref);
@@ -388,35 +346,4 @@ textureSystemRelease(const char* name)
     else {
         PERROR("textureSystemRelease - failed to release texture '%s'.", name);
     }
-
-/*
-    auto it = pState->map.find(name);
-    if(pState && (it != pState->map.end()))
-    {
-        TextureReference* ref = &it->second;
-        if(ref->referenceCount == 0)
-        {
-            PWARN("Trying to release non-existant texture '%s'.", name);
-            return;
-        }
-
-        // Save a copy of the name, since it being a pointer may be erased when removing the texture.
-        char nameCopy[TEXTURE_NAME_MAX_LENGTH];
-        stringCopy(name, nameCopy);
-
-        ref->referenceCount--;
-        if(ref->referenceCount == 0 && ref->autoRelease)
-        {
-            Texture* t = &pState->textures[ref->handle];
-
-            textureSystemDestroyTexture(t);
-
-            ref->handle = INVALID_ID;
-            ref->autoRelease = false;
-            PINFO("Released texture '%s'.", nameCopy);
-            pState->map[nameCopy] = *ref;
-        }
-    }
-    PERROR("textureSystemRelease - Failed to release texture '%s'.", name);
-    */
 }
