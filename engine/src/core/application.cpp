@@ -15,9 +15,10 @@
 #include "systems/resourceSystem.h"
 #include "systems/meshSystem.h"
 #include "systems/textureSystem.h"
-
-// TODO temp
-#include "scene/scene.h"
+#include "systems/materialSystem.h"
+#include "systems/entitySystem.h"
+#include "systems/physicsSystem.h"
+//#include "systems/entityComponentSystem.h"
 
 typedef struct ApplicationState
 {
@@ -30,8 +31,6 @@ typedef struct ApplicationState
 
     Clock clock;
     f64 lastTime;
-
-    Scene* scene;
 
     u64 memorySystemMemoryRequirements;
     void* memorySystem;
@@ -56,6 +55,15 @@ typedef struct ApplicationState
 
     u64 textureSystemMemoryRequirements;
     void* textureSystem;
+
+    u64 materialSystemMemoryRequirements;
+    void* materialSystem;
+
+    u64 entitySystemMemoryRequirements;
+    void* entitySystem;
+
+    u64 physicsSystemMemoryRequirements;
+    void* physicsSystem;
 } ApplicationState;
 
 static ApplicationState* pState;
@@ -130,7 +138,7 @@ bool applicationInit(Game* pGameInst)
 
     // Init resource system
     resourceSystemConfig resourceConfig;
-    resourceConfig.assetsBasePath = "data";
+    resourceConfig.assetsBasePath = "sandbox/assets";
     resourceConfig.maxLoaderCount = 10;
 
     resourceSystemInit(&pState->resourceSystemMemoryRequirements, nullptr, resourceConfig);
@@ -142,7 +150,8 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Mesh system
-    MeshSystemConfig meshSystemConfig{10};
+    MeshSystemConfig meshSystemConfig;
+    meshSystemConfig.maxMeshesCount = 512;
     meshSystemInit(&pState->meshSystemMemoryRequirements, nullptr, meshSystemConfig);
     pState->meshSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->meshSystemMemoryRequirements);
     if(!meshSystemInit(&pState->meshSystemMemoryRequirements, pState->meshSystem, meshSystemConfig))
@@ -152,7 +161,8 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Texture system.
-    TextureSystemConfig textureSystemConfig{10};
+    TextureSystemConfig textureSystemConfig;
+    textureSystemConfig.maxTextureCount = 512;
     textureSystemInit(&pState->textureSystemMemoryRequirements, nullptr, textureSystemConfig);    
     pState->textureSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->textureSystemMemoryRequirements);
     if(!textureSystemInit(&pState->textureSystemMemoryRequirements, pState->textureSystem, textureSystemConfig))
@@ -161,22 +171,34 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
-    // Register resource systems.
-    // MESH Loader
-    Resource cube;
-    resourceSystemLoad("cube.obj", RESOURCE_TYPE_MESH, &cube);
-    MeshData* data = (MeshData*)cube.data;
-    Mesh* cubeMesh = meshSystemCreateFromData(data);
+    // Init material system
+    MaterialSystemConfig materialSystemConfig;
+    materialSystemConfig.maxMaterialCount = 512;
+    materialSystemInit(&pState->materialSystemMemoryRequirements, nullptr, materialSystemConfig);
+    pState->materialSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->materialSystemMemoryRequirements);
+    if(!materialSystemInit(&pState->materialSystemMemoryRequirements, pState->materialSystem, materialSystemConfig))
+    {
+        PFATAL("Material system could not be initialized! Shutting down now.");
+        return false;
+    }
 
-    //PDEBUG("Loading scene ...");
-    Mesh* plane = meshSystemGetPlane(1, 1);
-    Mesh* tri = meshSystemGetTriangle();
-    Entity ent;
-    ent.mesh = cubeMesh;
-    ent.model = glm::mat4(1);
-    pState->scene = new Scene();
-    pState->scene->entities.emplace_back(ent);
-    //PDEBUG("Loading scene finished.");
+    // Init Entity Component System
+    entitySystemInit(&pState->entitySystemMemoryRequirements, nullptr);
+    pState->entitySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->entitySystemMemoryRequirements);
+    if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
+    {
+        PFATAL("Entity system could not be initialized! Shutting down now.");
+        return false;
+    }
+
+    // Simple 2D physics system
+    physicsSystemInit(&pState->physicsSystemMemoryRequirements, nullptr);
+    pState->physicsSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->physicsSystemMemoryRequirements);
+    if(!physicsSystemInit(&pState->physicsSystemMemoryRequirements, pState->physicsSystem))
+    {
+        PFATAL("Physiscs system could not be initialized! Shutting down now.");
+        return false;
+    }
 
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
@@ -211,18 +233,8 @@ bool applicationRun()
             clockUpdate(&pState->clock);
             f64 currentTime = pState->clock.elapsedTime; // convert to seconds
             f64 deltaTime = currentTime - pState->lastTime;
-            // TODO store delta time in game instance state.
-
-            // TODO This logic should be given by the game itself.
-            // TEMP
-            for(auto& ent : pState->scene->entities)
-            {
-                ent.model = glm::rotate(ent.model, glm::radians((f32)deltaTime) * 20, glm::vec3(0, 1, 0));
-            }
-            // END TEMP
 
             platformUpdate();
-            inputSystemUpdate((f32)deltaTime);
             if(!pState->pGameInst->update(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to update.");
@@ -235,23 +247,10 @@ bool applicationRun()
                 pState->m_isRunning = false;
             }
 
-            // Draw
-            // TODO Create a struct Game with its own function pointers to
-            // Update and render
-            // At the moment update the scene is done in renderBeginFrame and it shouldn't
-
-            RenderMeshData testData{};
-            testData.mesh = pState->scene->entities[0].mesh;
-            testData.model = pState->scene->entities[0].model;
-
-            RenderPacket packet{};
-            packet.deltaTime = deltaTime;
-            packet.renderMeshDataCount = 1;
-            packet.meshes = &testData;
-            renderDrawFrame(packet);
-
+            inputSystemUpdate((f32)deltaTime);
             pState->lastTime = currentTime;
         }
+        
         frameCount++;
     }
 
@@ -260,6 +259,8 @@ bool applicationRun()
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
 
+    materialSystemShutdown(pState->materialSystem);
+    textureSystemShutdown(pState->textureSystem);
     meshSystemShutdown(pState->meshSystem);
     resourceSystemShutdown(pState->resourceSystem);
     renderSystemShutdown(pState->renderSystem);
@@ -319,7 +320,6 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
 
 bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
 {
-    PDEBUG("App on key.");
     if(code == EVENT_CODE_BUTTON_PRESSED)
     {
         u16 keyCode = data.data.u16[0];
@@ -333,11 +333,7 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
             return true;
         }
         // TODO temp information.
-        else if(keyCode == KEY_A)
-        {
-            PDEBUG("Key A is being pressed!");
-        }
-        else {
+        else{
             PDEBUG("A key %c is being pressed!", (keys)keyCode);
         }
         // TODO end temp information.
@@ -347,12 +343,7 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
     {
         u16 keyCode = data.data.u16[0];
         // TODO temp information.
-        if(keyCode == KEY_B)
-        {
-            PDEBUG("Key B has been released!");
-        } else {
-            PDEBUG("A key has been released!");
-        }
+        PDEBUG("A key has been released!");
         // TODO end temp information.
         return true;
     }

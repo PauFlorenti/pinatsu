@@ -248,17 +248,14 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         break;
     }
     case WM_KEYUP: {
-        bool pressed = false;
         keys key = (keys)wParam;
-        inputProcessKey(key, pressed);
+        inputProcessKey(key, false);
         break;
     }
     case WM_MOUSEMOVE: {
-        //PDEBUG("Mouse move");
         break;
     }
     case WM_LBUTTONDOWN: {
-        //PDEBUG("Left mouse button.");
         break;
     }
     }

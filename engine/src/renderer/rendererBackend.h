@@ -22,9 +22,11 @@ typedef struct RendererBackend
     void (*endRenderPass)(DefaultRenderPasses renderPass);
     void (*endFrame)();
     void (*onResize)(u32 width, u32 height);
-    void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);
+    void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt, LightData light);
     bool (*onCreateMesh)(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
     bool (*onCreateTexture)(void* data, Texture* texture);
+    void (*onDestroyTexture)(Texture* t);
+    bool (*onCreateMaterial)(Material* m);
 
 } RendererBackend;
 

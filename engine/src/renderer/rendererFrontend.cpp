@@ -57,7 +57,7 @@ bool renderDrawFrame(const RenderPacket& packet)
             return false;
         }
 
-        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
+        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime, *packet.lights);
 
         for(u32 i = 0; i < packet.renderMeshDataCount; ++i) {
             pState->renderBackend.drawGeometry(&packet.meshes[i]);
@@ -85,8 +85,17 @@ bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount
 
 bool renderCreateTexture(void* data, Texture* texture)
 {
-    return true;
-    //return pState->renderBackend.onCreateTexture(data, texture);
+    return pState->renderBackend.onCreateTexture(data, texture);
+}
+
+void renderDestroyTexture(Texture* t)
+{
+    pState->renderBackend.onDestroyTexture(t);
+}
+
+bool renderCreateMaterial(Material* m)
+{
+    return pState->renderBackend.onCreateMaterial(m);
 }
 
 void setView(const glm::mat4 view, const glm::mat4 proj)

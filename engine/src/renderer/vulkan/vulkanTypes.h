@@ -4,9 +4,13 @@
 #include "core\assert.h"
 #include "core\logger.h"
 #include "math_types.h"
+
 #include <external\glm\glm.hpp>
 #include <external\glm\gtc\matrix_transform.hpp>
 #include <vector>
+
+// TEMP
+#include "resources/resourcesTypes.h"
 
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
 
@@ -55,19 +59,6 @@ typedef struct Framebuffer
     VulkanRenderpass* renderpass;
 } Framebuffer;
 
-typedef struct VulkanSwapchain
-{
-    VkSwapchainKHR      handle;
-    VkSurfaceFormatKHR  format;
-    VkPresentModeKHR    presentMode;
-    VkExtent2D          extent;
-    u32                 imageCount; // Number of images in the swapchain.
-    u32                 maxImageInFlight; // Number of images in flight.
-
-    std::vector<VkImage>        images;
-    std::vector<VkImageView>    imageViews;
-    std::vector<Framebuffer>    framebuffers;
-} VulkanSwapchain;
 
 typedef struct CommandBuffer
 {
@@ -97,11 +88,19 @@ typedef struct VulkanVertex
     vec3 position;
     vec4 color;
     vec2 uv;
+    vec3 normal;
 }VulkanVertex;
+
+struct VulkanLightData
+{
+    glm::vec3 position;
+    f32 intensity;
+    glm::vec3 color;
+    f32 radius;
+};
 
 typedef struct ViewProjectionBuffer
 {
-    //glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
 } ViewProjectionBuffer;
@@ -116,7 +115,7 @@ typedef struct VulkanImage
 } VulkanImage;
 
 // TODO make configurable
-#define VULKAN_MAX_TEXTURES 10
+#define VULKAN_MAX_TEXTURES 512
 
 typedef struct VulkanTexture
 {
@@ -125,7 +124,7 @@ typedef struct VulkanTexture
 } VulkanTexture;
 
 // TODO make configurable
-#define VULKAN_MAX_MESHES 10
+#define VULKAN_MAX_MESHES 512
 
 typedef struct VulkanMesh
 {
@@ -135,7 +134,7 @@ typedef struct VulkanMesh
     u32 vertexOffset;
     u32 indexCount;
     u32 indexOffset;
-    VulkanBuffer vertexBuffer;    // TODO rethink this when ECS
+    VulkanBuffer vertexBuffer;
     VulkanBuffer indexBuffer;
 } VulkanMesh;
 
@@ -145,6 +144,43 @@ typedef struct VulkanShaderObject
 {
     VkShaderModule shaderModule;
 } VulkanShaderObject;
+
+// Used to determine if a descriptor need updating or not.
+typedef struct VulkanDescriptorState
+{
+    u32 generations[3]; // one per frame
+    u32 ids[3]; // Used for samplers
+} VulkanDescriptorState;
+
+#define VULKAN_MAX_MATERIAL_COUNT 512
+
+// At the moment just one for the Material info.
+// May grow later for textures
+#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 4
+
+// At the moment it can hold samplers for diffuse, normal and MetallicRoughness
+#define VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT 3
+
+// Holding the descriptors (3 per frame) for each material instance.
+typedef struct VulkanMaterialInstance
+{
+    VkDescriptorSet descriptorSets[3];
+    VulkanDescriptorState descriptorState[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
+} VulkanMaterialInstance;
+
+/**
+ * @note Due to  requirements from some GPU (NVidia I guess...) this
+ * should be padded to 256 bytes.
+ */
+typedef struct VulkanMaterialShaderUBO{
+    glm::vec4 diffuseColor; // 16 bytes
+    glm::vec4 reserved01;   // 16 bytes
+    glm::vec4 reserved02;   // 16 bytes
+    glm::vec4 reserved03;   // 16 bytes
+    glm::mat4 matReserved01; // 64 bytes
+    glm::mat4 matReserved02; // 64 bytes
+    glm::mat4 matReserved03; // 64 bytes
+} VulkanMaterialShaderUBO;
 
 /** Vulkan Material Shader
  * This object should hold all information related to
@@ -170,9 +206,42 @@ typedef struct VulkanForwardShader
     // Buffer holding the data from globalUboData to be uploaded to the gpu.
     VulkanBuffer globalUbo;
 
-    VulkanPipeline pipeline;
+    VulkanLightData lightData;
+    VulkanBuffer lightUbo;
 
+    // Mesh instance objects
+    VkDescriptorPool meshInstanceDescriptorPool;
+    VkDescriptorSet meshInstanceDescriptorSet;
+    VkDescriptorSetLayout meshInstanceDescriptorSetLayout;
+
+    // This will grow
+    VulkanMaterialShaderUBO objectMaterialData;
+    u32 meshInstanceBufferIndex;
+    VulkanBuffer meshInstanceBuffer;
+
+    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
+
+    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
+
+    VulkanPipeline pipeline;
 } VulkanForwardShader;
+
+typedef struct VulkanSwapchain
+{
+    VkSwapchainKHR      handle;
+    VkSurfaceFormatKHR  format;
+    VkPresentModeKHR    presentMode;
+    VkExtent2D          extent;
+    u32                 imageCount; // Number of images in the swapchain.
+    u32                 maxImageInFlight; // Number of images in flight.
+
+    VkFormat depthFormat;
+    VulkanImage depthImage;
+
+    std::vector<VkImage>        images;
+    std::vector<VkImageView>    imageViews;
+    std::vector<Framebuffer>    framebuffers;
+} VulkanSwapchain;
 
 typedef struct VulkanState
 {
@@ -190,7 +259,6 @@ typedef struct VulkanState
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
-    VulkanTexture texture;
     VulkanMesh* vulkanMeshes;
 
     // Forward rendering

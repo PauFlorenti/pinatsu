@@ -14,4 +14,6 @@ void meshSystemShutdown(void* state);
 // TODO make with segments, more custom.
 Mesh* meshSystemGetTriangle();
 Mesh* meshSystemGetPlane(u32 width, u32 height);
+Mesh* meshSystemGetCircle(f32 r);
+Mesh* meshSystemGetCube();
 Mesh* meshSystemCreateFromData(const MeshData* data);

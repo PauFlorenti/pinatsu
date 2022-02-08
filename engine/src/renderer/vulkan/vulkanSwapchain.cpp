@@ -1,5 +1,8 @@
 #include "vulkanSwapchain.h"
 
+#include "vulkanDevice.h"
+#include "vulkanImage.h"
+
 static bool create(VulkanState* pState, u32 width, u32 height);
 static void destroy(VulkanState* pState);
 
@@ -125,6 +128,23 @@ static bool create(
         VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &pState->swapchain.imageViews.at(i)));
     }
 
+    // Detect depth format
+    vulkanDeviceGetDepthFormat(*pState);
+
+    // Create depth image view
+    vulkanCreateImage(
+        pState, 
+        VK_IMAGE_TYPE_2D,
+        pState->swapchain.extent.width,
+        pState->swapchain.extent.height, 
+        pState->swapchain.depthFormat, 
+        VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        VK_IMAGE_ASPECT_DEPTH_BIT,
+        &pState->swapchain.depthImage);
+
     PINFO("Swapchain created successfully.");
     return true;
 };
@@ -141,6 +161,10 @@ static void destroy(VulkanState *pState)
     for(const auto& image : pState->swapchain.imageViews){
         vkDestroyImageView(pState->device.handle, image, nullptr);
     }
+
+    vkFreeMemory(pState->device.handle, pState->swapchain.depthImage.memory, nullptr);
+    vkDestroyImage(pState->device.handle, pState->swapchain.depthImage.handle, nullptr);
+    vkDestroyImageView(pState->device.handle, pState->swapchain.depthImage.view, nullptr);
 
     vkDestroySwapchainKHR(pState->device.handle, pState->swapchain.handle, nullptr);
 };

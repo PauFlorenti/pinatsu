@@ -3,8 +3,12 @@
 #include "defines.h"
 #include "core/logger.h"
 #include "memory/pmemory.h"
-#include "external/glm/glm.hpp"
 #include "renderer/rendererFrontend.h"
+
+// TODO make own library
+//#include "math_types.h"
+#include "external/glm/gtc/constants.hpp"
+#include "external/glm/glm.hpp"
 
 typedef struct MeshSystemState
 {
@@ -15,18 +19,18 @@ typedef struct MeshSystemState
 
 static MeshSystemState* pState;
 
-bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig config)
+bool meshSystemInit(u64* memoryRequirements, void* state, MeshSystemConfig configuration)
 {
     u64 stateMemoryRequirement = sizeof(MeshSystemState);
-    u64 meshesMemoryRequirement = sizeof(Mesh) * config.maxMeshesCount;
-    *memoryRequirements = stateMemoryRequirement + meshesMemoryRequirement;
+    u64 meshesMemoryRequirement = sizeof(Mesh) * configuration.maxMeshesCount;
 
-    if(!state) {
+    if(state == nullptr) {
+        *memoryRequirements = stateMemoryRequirement + meshesMemoryRequirement;
         return true;
     }
 
     pState = static_cast<MeshSystemState*>(state);
-    pState->config = config;
+    pState->config = configuration;
     pState->meshes = (Mesh*)(pState + stateMemoryRequirement);
 
     for(u32 i = 0; i < pState->config.maxMeshesCount; ++i) {
@@ -96,29 +100,147 @@ Mesh* meshSystemGetTriangle()
     return m;
 }
 
+// TODO  make it configurable. Currently drawing at length 1.
 Mesh* meshSystemGetPlane(u32 width, u32 height)
 {
-        Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
     m->id = INVALID_ID;
     m->rendererId = INVALID_ID;
 
-    Vertex v[4];
-    memZero(v, sizeof(Vertex) * 4);
+    u32 vertexSize = sizeof(Vertex);
+    u32 indexSize = sizeof(u32);
 
-    v[0].position = {-0.5f, -0.5f, 0.0f};
-    v[1].position = { 0.5f, -0.5f, 0.0f};
-    v[2].position = {-0.5f,  0.5f, 0.0f};
-    v[3].position = { 0.5f,  0.5f, 0.0f};
+    Vertex v[4];
+    memZero(v, vertexSize * 4);
+
+    v[0].position = { 1.0f * (f32)width / 2.0f,  1.0f * (f32)height / 2.0f, 0.0f};
+    v[1].position = {-1.0f * (f32)width / 2.0f,  1.0f * (f32)height / 2.0f, 0.0f};
+    v[2].position = {-1.0f * (f32)width / 2.0f, -1.0f * (f32)height / 2.0f, 0.0f};
+    v[3].position = { 1.0f * (f32)width / 2.0f, -1.0f * (f32)height / 2.0f, 0.0f};
 
     v[0].color = glm::vec4(1);
     v[1].color = glm::vec4(1);
     v[2].color = glm::vec4(1);
     v[3].color = glm::vec4(1);
 
-    u32 i[6] = {0, 1, 2, 1, 3, 2};
+    v[0].uv = glm::vec2(0, 0);
+    v[1].uv = glm::vec2(1, 0);
+    v[2].uv = glm::vec2(0, 1);
+    v[3].uv = glm::vec2(1, 1);
+
+    v[0].normal = glm::vec3(0, 0, -1);
+    v[1].normal = glm::vec3(0, 0, -1);
+    v[2].normal = glm::vec3(0, 0, -1);
+    v[3].normal = glm::vec3(0, 0, -1);
+
+    u32 i[6] = {0, 1, 2, 2, 3, 0};
     
     meshSystemSetMesh(m);
-    if(!renderCreateMesh(m, 4, v, 4, i)){
+    if(!renderCreateMesh(m, 4, v, 6, i)){
+        return nullptr;
+    }
+
+    return m;
+}
+
+// TODO make it configurable. Currently drawing at length 1 and 12 segments.
+// TODO fix circle creation.
+Mesh* meshSystemGetCircle(f32 r)
+{
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    m->id = INVALID_ID;
+    m->rendererId = INVALID_ID;
+
+    const u32 nSegments = 6;
+    const f32 radius = 1.0f;
+    const u32 nVertices = nSegments + 1; // Include the center vertex
+
+    Vertex v[nVertices];
+    memZero(v, sizeof(Vertex) * nVertices);
+
+    f32 angleDeg = (2.0f * glm::pi<f32>() * radius) / nSegments;
+    f32 angleRad = angleDeg / 180.0f;
+    for(u32 i = 0; i < nSegments; ++i)
+    {
+        f32 x = cos(i * angleRad) * radius;
+        f32 y = sin(i * angleRad) * radius;
+        v[i].position = {x, y, 0.0f};
+        v[i].color = glm::vec4(1);
+    }
+    v[nVertices - 1].position = {0.0f, 0.0f, 0.0f};
+    v[nVertices - 1].color = glm::vec4(1);
+
+    u32 i[18] = { 0, 1, 7, 
+                  1, 2, 7,
+                  2, 3, 7,
+                  3, 4, 7,
+                  4, 5, 7,
+                  5, 6, 7 };
+
+    meshSystemSetMesh(m);
+    if(!renderCreateMesh(m, nVertices, v, 18, i)){
+        return nullptr;
+    }
+
+    return m;
+}
+
+
+// TODO fix normal issues
+Mesh*
+meshSystemGetCube()
+{
+    Mesh* m = (Mesh*)memAllocate(sizeof(Mesh), MEMORY_TAG_ENTITY);
+    m->id = INVALID_ID;
+    m->rendererId = INVALID_ID;
+
+    u32 vertexSize = sizeof(Vertex);
+    u32 indexSize = sizeof(u32);
+
+    Vertex v[24];
+    memZero(v, vertexSize * 24);
+
+    v[0] = { { 1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, -1.0} };
+    v[1] = { {-1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, -1.0} };
+    v[2] = { {-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, -1.0} };
+    v[3] = { { 1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, -1.0} };
+
+    v[4] = { { 1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, 1.0} };
+    v[5] = { {-1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, 1.0} };
+    v[6] = { {-1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, 1.0} };
+    v[7] = { { 1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 0.0, 1.0} };
+
+    v[8]  = { { 1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 1.0, 0.0} };
+    v[9]  = { {-1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 1.0, 0.0} };
+    v[10] = { {-1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 1.0, 0.0} };
+    v[11] = { { 1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, 1.0, 0.0} };
+
+    v[12] = { { 1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, -1.0, 0.0} };
+    v[13] = { {-1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, -1.0, 0.0} };
+    v[14] = { {-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, -1.0, 0.0} };
+    v[15] = { { 1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {0.0, -1.0, 0.0} };
+
+    v[16] = { {-1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {-1.0, 0.0, 0.0} };
+    v[17] = { {-1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {-1.0, 0.0, 0.0} };
+    v[18] = { {-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {-1.0, 0.0, 0.0} };
+    v[19] = { {-1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, {-1.0, 0.0, 0.0} };
+
+    v[20] = { {1.0,  1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, { 1.0, 0.0, 0.0} };
+    v[21] = { {1.0, -1.0,  1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, { 1.0, 0.0, 0.0} };
+    v[22] = { {1.0, -1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, { 1.0, 0.0, 0.0} };
+    v[23] = { {1.0,  1.0, -1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0}, { 1.0, 0.0, 0.0} };
+
+    u32 i[36] = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        8, 9, 10, 10, 11, 8,
+        12, 13, 14, 14, 15, 12,
+        16, 17, 18, 18, 19, 16,
+        20, 21, 22, 22, 23, 20 
+    };
+    
+    meshSystemSetMesh(m);
+    if(!renderCreateMesh(m, 24, v, 36, i)){
         return nullptr;
     }
 

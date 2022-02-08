@@ -10,7 +10,16 @@ typedef struct GameState
     glm::mat4 view;
     glm::mat4 projection;
     glm::vec3 cameraAxes; // Pitch x, yaw y, roll z
+
+    // this should be given by the entity system.
+    u32 nEntities;
+    u32 nLights;
 } GameState;
+
+// TODO Game status ??
+// Active
+// MENU
+// WIN/LOSE Condition
 
 bool gameInitialize(Game* pGameInst);
 bool gameUpdate(Game* pGameInst, f32 deltaTime);

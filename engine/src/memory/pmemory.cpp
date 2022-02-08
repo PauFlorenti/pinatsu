@@ -22,7 +22,9 @@ static const char* memoryTagsStrings[MEMORY_TAG_MAX_TAGS] = {
     "TRANSFORM  ",
     "ENTITY     ",
     "SCENE      ",
-    "STRING     "
+    "STRING     ",
+    "MANAGER    ",
+    "SYSTEM     "
 };
 
 typedef struct memorySystemState

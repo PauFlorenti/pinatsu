@@ -15,7 +15,16 @@ typedef struct RenderMeshData
 {
     glm::mat4 model;
     Mesh* mesh;
+    Material* material;
 } RenderMeshData;
+
+struct LightData
+{
+    glm::vec3 position;
+    glm::vec3 color;
+    f32 radius;
+    f32 intensity;
+};
 
 typedef struct RenderPacket
 {
@@ -23,4 +32,6 @@ typedef struct RenderPacket
 
     u32 renderMeshDataCount;
     RenderMeshData* meshes;
+    u32 lightDataCount;
+    LightData* lights;
 } RenderPacket;

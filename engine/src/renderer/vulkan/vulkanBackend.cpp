@@ -6,6 +6,7 @@
 #include "vulkanFramebuffer.h"
 #include "vulkanBuffer.h"
 #include "vulkanCommandBuffer.h"
+#include "vulkanImage.h"
 
 #include "shaders/vulkanForwardShader.h"
 
@@ -14,7 +15,6 @@
 #include "pmath.h"
 #include <vector>
 #include <string>
-#include <fstream>
 
 #define internal static
 
@@ -75,9 +75,6 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
         func(state.instance, state.debugMessenger, nullptr);
     }
 }
-
-// TODO revise this function.
-bool readShaderFile(std::string filename, std::vector<char>& buffer);
 
 void createCommandBuffers();
 
@@ -178,55 +175,10 @@ void vulkanRegenerateFramebuffers(
 
 bool recreateSwapchain();
 
-void vulkanCreateShaderModule(
-    VulkanState* pState,
-    std::vector<char>& buffer,
-    VkShaderModule* module);
-
-void vulkanDestroyShaderModule(
-    VulkanState& state,
-    VulkanShaderObject& module);
-
-//
-// * Texture functions
-//
-/*
-internal void vulkanCreateImage(
-    VulkanState* pState,
-    VkImageType type,
-    u32 width,
-    u32 height,
-    VkFormat imageFormat,
-    VkImageTiling tiling,
-    VkImageUsageFlags,
-    VkMemoryPropertyFlags,
-    bool createView,
-    VkImageAspectFlags viewAspectFlags,
-    VulkanImage* outImage);
-
-internal void vulkanCreateImageView(
-    VulkanState* pState, 
-    VulkanImage* image,
-    VkFormat format,
-    VkImageAspectFlags aspectFlags);
-
-internal void vulkanImageTransitionLayout(
-    VulkanState* pState,
-    VulkanImage* image,
-    VkFormat format,
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout,
-    VkCommandBuffer& cmd);
-*/
 // TODO make configurable depending on the shader.
 // Get standard attribute description.
 std::vector<VkVertexInputAttributeDescription>
 getStandardAttributeDescription(void);
-
-void vulkanBindForwardMaterial()
-{
-
-}
 
 internal bool vulkanCreateUIShader(
     VulkanState* pState
@@ -234,7 +186,7 @@ internal bool vulkanCreateUIShader(
 );
 
 // TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData light)
 {
     gameTime += dt;
     f32 speed = 100.0f;
@@ -243,6 +195,13 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+
+    state.forwardShader.lightData.color = light.color;
+    state.forwardShader.lightData.intensity = light.intensity;
+    state.forwardShader.lightData.position = light.position;
+    state.forwardShader.lightData.radius = light.radius;
+    vulkanBufferLoadData(&state, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
+    vulkanForwardShaderUpdateGlobalData(&state);
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -260,6 +219,7 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     if(alreadyUploaded)
     {
         // TODO check old data.
+        return true;
     } 
     else
     {
@@ -291,11 +251,11 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     vulkanBufferCreate(&state, totalVertexSize, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->vertexBuffer);
     vulkanUploadDataToGPU(&state, renderMesh->vertexBuffer, 0, totalVertexSize, vertices);
 
-    // TODO indices
     if(indexCount > 0 && indices)
     {
         u64 indexSize = indexCount * sizeof(u32);
         u32 indexFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        renderMesh->indexCount = indexCount;
         vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->indexBuffer);
         vulkanUploadDataToGPU(&state, renderMesh->indexBuffer, 0, indexSize, indices);
     }
@@ -326,15 +286,15 @@ void vulkanDestroyMesh(const Mesh* mesh)
     }
 }
 
-bool vulkanCreateTexture(void* data, Texture* texture)
+bool vulkanCreateTexture(void* pixels, Texture* texture)
 {
-    if(!data || !texture) {
+    if(!pixels || !texture) {
         PERROR("vulkanCreateTexture - Unable to create the texture given the inputs.");
         return false;
     }
-/*
-    //VulkanTexture* texture = (VulkanTexture*)texture->data;
 
+    texture->data = memAllocate(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+    VulkanTexture* data = (VulkanTexture*)texture->data;
     VkDeviceSize textureSize = texture->width * texture->height * texture->channels;
 
     // ! Assume 8 bit per channel
@@ -343,10 +303,10 @@ bool vulkanCreateTexture(void* data, Texture* texture)
     // Staging buffer, load data into it.
     VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags memPropsFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
     VulkanBuffer staging;
     vulkanBufferCreate(&state, textureSize, usageFlags, memPropsFlags, &staging);
-
-    vulkanBufferLoadData(&state, &staging, 0, textureSize, 0, texture->data);
+    vulkanBufferLoadData(&state, staging, 0, textureSize, 0, pixels);
 
     vulkanCreateImage(
         &state,
@@ -359,7 +319,7 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         true,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        &state.texture.image
+        &data->image
     );
 
     VkCommandBuffer temporalCommand;
@@ -369,21 +329,26 @@ bool vulkanCreateTexture(void* data, Texture* texture)
         temporalCommand);
 
     vulkanImageTransitionLayout(
-        &state, &state.texture.image, 
-        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, 
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, temporalCommand);
+        &state, 
+        &data->image, 
+        format, 
+        VK_IMAGE_LAYOUT_UNDEFINED, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        temporalCommand);
 
     vulkanBufferCopyToImage(
         &state,
         &staging, 
-        &state.texture.image, 
-        state.texture.image.width, 
-        state.texture.image.height);
+        &data->image, 
+        temporalCommand);
     
     vulkanImageTransitionLayout(
-        &state, &state.texture.image, 
-        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, temporalCommand);
+        &state, 
+        &data->image, 
+        format, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        temporalCommand);
 
     vulkanCommandBufferEndSingleUse(
         &state, 
@@ -410,14 +375,47 @@ bool vulkanCreateTexture(void* data, Texture* texture)
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    VK_CHECK(vkCreateSampler(state.device.handle, &samplerInfo, nullptr, &state.texture.sampler));
-*/
+    VK_CHECK(vkCreateSampler(state.device.handle, &samplerInfo, nullptr, &data->sampler));
+    texture->generation++;
     return true;
 }
 
-void vulkanDestroyTexture(const Texture* texture)
+void vulkanDestroyTexture(Texture* texture)
 {
-    // TODO destroy specific texture
+    vkDeviceWaitIdle(state.device.handle);
+
+    VulkanTexture* data = (VulkanTexture*)texture->data;
+    if(data)
+    {
+        vkFreeMemory(state.device.handle, data->image.memory, nullptr);
+        vkDestroyImage(state.device.handle, data->image.handle, nullptr);
+        vkDestroyImageView(state.device.handle, data->image.view, nullptr);
+        vkDestroySampler(state.device.handle, data->sampler, nullptr);
+        memZero(&data->image, sizeof(VulkanTexture));
+    }
+    memZero(texture, sizeof(Texture));
+}
+
+bool vulkanCreateMaterial(Material* m)
+{
+    if(m)
+    {
+        switch (m->type)
+        {
+        case MATERIAL_TYPE_FORWARD:
+            if(!vulkanForwardShaderGetMaterial(&state, &state.forwardShader, m))
+            {
+                PERROR("vulkanCreateMaterial - could not create material '%s'.", m->name);
+            }
+            break;
+        case MATERIAL_TYPE_UI:
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -435,7 +433,7 @@ bool vulkanBackendInit(const char* appName)
     appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName         = "Pinatsu Engine";
     appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion          = VK_API_VERSION_1_2;
+    appInfo.apiVersion          = VK_API_VERSION_1_3;
 
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -571,21 +569,6 @@ bool vulkanBackendInit(const char* appName)
         state.vulkanMeshes[i].id = INVALID_ID;
     }
 
-// TODO TEMP
-    std::vector<char> vertexBuffer;
-    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
-        return false;
-    }
-
-    std::vector<char> fragBuffer;
-    if(!readShaderFile("./data/frag.spv", fragBuffer)){
-        return false;
-    }
-
-    vulkanCreateShaderModule(&state, vertexBuffer, &state.forwardShader.shaderStages[0].shaderModule);
-    vulkanCreateShaderModule(&state, fragBuffer, &state.forwardShader.shaderStages[1].shaderModule);
-
-// TODO END TEMP
     vulkanCreateForwardShader(&state, &state.forwardShader);
 
     return true;
@@ -643,11 +626,6 @@ void vulkanBackendShutdown(void)
         }
     }
 
-    // Destroy all images.
-    vkDestroyImage(state.device.handle, state.texture.image.handle, nullptr);
-    vkDestroyImageView(state.device.handle, state.texture.image.view, nullptr);
-    vkDestroySampler(state.device.handle, state.texture.sampler, nullptr);
-
     PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);
 
@@ -689,8 +667,6 @@ void vulkanBackendShutdown(void)
  * @param void
  * @return bool if succeded.
  */
-
-static bool done = false;
 
 bool vulkanBeginFrame(f32 delta)
 {
@@ -762,15 +738,18 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
             // Forward render pass
         case 0:
         {
-            VkClearValue clearColor = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            VkClearValue clearColors[2];
+            clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            clearColors[1].depthStencil.depth = 1.0f;
+            clearColors[1].depthStencil.stencil = 0;
 
             VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
             info.renderPass         = state.renderpass.handle;
             info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
             info.renderArea.offset  = {0, 0};
             info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 1;
-            info.pClearValues       = &clearColor;
+            info.clearValueCount    = 2;
+            info.pClearValues       = clearColors;
             
             vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
             return true;
@@ -785,44 +764,27 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
 void vulkanDrawGeometry(const RenderMeshData* data)
 {
     // TODO make material specify the type to render
-    Material* m = data->mesh->material;
-    VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
+    Material* m = data->material;
+    if(!m){
+        Material mat;
+        mat.diffuseColor = glm::vec4(1);
+        m = &mat;
+    }
 
     // Get Material, set shaders, update, write and bind descriptors.
-    // TODO Func should create shader modules??
-
-    VkDescriptorBufferInfo globalUboInfo = {};
-    globalUboInfo.buffer = state.forwardShader.globalUbo.handle;
-    globalUboInfo.offset = {0};
-    globalUboInfo.range = sizeof(ViewProjectionBuffer);
-
-    // Write global shader descriptor
-    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorCount = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.pBufferInfo = &globalUboInfo;
-    write.dstSet = state.forwardShader.globalDescriptorSet[state.imageIndex];
-
-    vkUpdateDescriptorSets(state.device.handle, 1, &write, 0, nullptr);
-
     // Bind pipeline and mesh data
-
     vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
-    VkDeviceSize offset = {0};
-    vkCmdBindDescriptorSets(
-        state.commandBuffers[state.imageIndex].handle, 
-        VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        state.forwardShader.pipeline.layout,
-        0,
-        1,
-        &state.forwardShader.globalDescriptorSet[state.imageIndex],
-        0, nullptr);
 
+    // Bind material data.
+    vulkanForwardShaderSetMaterial(&state, &state.forwardShader, m);
+
+    VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
+
+    VkDeviceSize offset = 0;
+    
     vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-
     vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
+    //vkCmdSetPrimitiveTopology(state.commandBuffers[state.imageIndex].handle, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     if(geometry->indexCount > 0)
     {
         vkCmdBindIndexBuffer(state.commandBuffers[state.imageIndex].handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
@@ -888,30 +850,6 @@ void vulkanEndFrame(void)
     state.currentFrame = (state.currentFrame + 1) % state.swapchain.maxImageInFlight;
 }
 
-// TODO create a function to read files and treat shaders accordingly.
-bool readShaderFile(std::string filename, std::vector<char>& buffer)
-{
-    std::ifstream file(filename, std::ifstream::ate | std::ifstream::binary);
-
-    if(!file.is_open()){
-        PERROR("File %s could not be opened!", filename);
-        return false;
-    }
-
-    // Check if file has length and if it is multiple of 4.
-    // To be a valid binary file to be passed to the shader it must be multiple of 4.
-    size_t length = file.tellg();
-    if(length == 0 || length % 4 != 0) {
-        PERROR("File does not meet requirements.");
-        return false;
-    }
-    buffer.resize(length);
-    file.seekg(0);
-    file.read(buffer.data(), length);
-    file.close();
-    return true;
-}
-
 /**
  * @brief Regenerate the framebuffers given a new swapchain
  * @param VulkanSwapchain* swapchain
@@ -925,7 +863,7 @@ void vulkanRegenerateFramebuffers(
     for(u32 i = 0; i < swapchain->imageViews.size(); ++i){
 
         // TODO Make modular
-        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i)};
+        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i), swapchain->depthImage.view};
 
         vulkanFramebufferCreate(
             &state,
@@ -1004,178 +942,6 @@ bool recreateSwapchain()
     return true;
 }
 
-/**
- * @brief Creates a shader module given a valid buffer with the
- * shader binary data in it.
- * @param VulkanState* pState,
- * @param std::vector<char>& buffer conaining all spvr binary data
- * @param VkShaderModule* The shader module to be created.
- * @return void
- */
-void vulkanCreateShaderModule(
-    VulkanState* pState,
-    std::vector<char>& buffer,
-    VkShaderModule* module)
-{
-    VkShaderModuleCreateInfo info = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    info.codeSize   = static_cast<u32>(buffer.size());
-    info.pCode      = reinterpret_cast<const u32*>(buffer.data());
-    
-    VK_CHECK(vkCreateShaderModule(
-        pState->device.handle, 
-        &info, 
-        nullptr, 
-        module));
-}
-
-/**
- * TODO Revise if it should be DestroyShaderObject
- */
-void vulkanDestroyShaderModule(
-    VulkanState& state,
-    VulkanShaderObject& module)
-{
-    vkDestroyShaderModule(
-        state.device.handle,
-        module.shaderModule,
-        nullptr);
-}
-
-/**
- * Function to create an image in vulkan.
- */
-/*
-internal void vulkanCreateImage(
-    VulkanState* pState,
-    VkImageType type,
-    u32 width,
-    u32 height,
-    VkFormat imageFormat,
-    VkImageTiling tiling,
-    VkImageUsageFlags imageUsage,
-    VkMemoryPropertyFlags memoryProperties,
-    bool createView,
-    VkImageAspectFlags viewAspectFlags,
-    VulkanImage* outImage)
-{
-
-    outImage->width = width;
-    outImage->height = height;
-
-    VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-    info.imageType = type;
-    info.format = imageFormat;
-    info.extent = {width, height, 1};
-    info.mipLevels = 1;
-    info.arrayLayers = 1;
-    info.tiling = tiling;
-    info.usage = imageUsage;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.samples = VK_SAMPLE_COUNT_1_BIT;
-    //info.queueFamilyIndexCount = 1;
-    //info.pQueueFamilyIndices = &pState->device.graphicsQueueIndex; ignored as it is not VK_SHARING_MODE_CONCURRENT
-    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    VK_CHECK(vkCreateImage(pState->device.handle, &info, nullptr, &outImage->handle));
-
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(
-        pState->device.handle, 
-        outImage->handle, 
-        &memoryRequirements);
-
-    VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-    memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(memoryRequirements.memoryTypeBits, memoryProperties);
-
-    VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
-
-    VK_CHECK(vkBindImageMemory(pState->device.handle, outImage->handle, outImage->memory, 0));
-
-    if(createView)
-    {
-        outImage->view = 0;
-        vulkanCreateImageView(
-            pState, 
-            outImage, 
-            VK_FORMAT_R8G8B8A8_UNORM, 
-            viewAspectFlags);
-    }
-}
-
-internal void vulkanCreateImageView(
-    VulkanState* pState, 
-    VulkanImage* image,
-    VkFormat format,
-    VkImageAspectFlags aspectFlags)
-{
-    VkImageViewCreateInfo info {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    info.image = image->handle;
-    info.viewType = VK_IMAGE_VIEW_TYPE_2D;  // TODO make configurable
-    info.format = format;
-    info.subresourceRange.aspectMask = aspectFlags;
-
-    //TODO make configurable
-    info.subresourceRange.levelCount = 1;
-    info.subresourceRange.baseMipLevel = 0;
-    info.subresourceRange.layerCount = 1;
-    info.subresourceRange.baseArrayLayer = 0;
-
-    VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &image->view));
-}
-
-internal void vulkanImageTransitionLayout(
-    VulkanState* pState,
-    VulkanImage* image,
-    VkFormat format,
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout,
-    VkCommandBuffer& cmd)
-{
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-    barrier.image = image->handle;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = pState->device.graphicsQueueIndex;
-    barrier.dstQueueFamilyIndex = pState->device.graphicsQueueIndex;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-
-    VkPipelineStageFlags srcStage;
-    VkPipelineStageFlags dstStage;
-
-    if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && 
-        newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-        newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    }
-
-    vkCmdPipelineBarrier(
-        cmd,
-        srcStage,
-        dstStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
-}
-*/
 /**
  * @brief returns a vector containing the standard input attribute
  * description for this engine. The attributes description is as follows:

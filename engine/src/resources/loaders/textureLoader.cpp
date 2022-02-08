@@ -21,7 +21,7 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
     char fullPath[512];
     const char* format = "%s/%s/%s";
     stringFormat(&fullPath[0], format, resourceSystemPath(), "textures", name);
-    outResource->name = fullPath;
+    outResource->path = fullPath;
 
     TextureResource* textureResource = (TextureResource*)memAllocate(sizeof(TextureResource), MEMORY_TAG_TEXTURE);
 
@@ -32,8 +32,9 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
         return false;
     }
 
+    const i32 requiredChannels = 4;
     i32 width = 0, height = 0, channels = 0;
-    u8* data = stbi_load(fullPath, &width, &height, &channels, 0);
+    u8* data = stbi_load(fullPath, &width, &height, &channels, requiredChannels);
 
     const char* fail = stbi_failure_reason();
     if(fail) {
@@ -52,7 +53,7 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
     textureResource->pixels     = data;
     textureResource->width      = width;
     textureResource->height     = height;
-    textureResource->channels   = channels;
+    textureResource->channels   = requiredChannels;
 
     outResource->dataSize   = sizeof(TextureResource);
     outResource->data       = (void*)textureResource;
@@ -65,6 +66,22 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
 
 bool textureLoaderUnload(ResourceLoader* self, Resource* resource)
 {
+    if(!self || !resource){
+        PWARN("textureLoaderUnload - called with self or resource as nullptr.");
+        return false;
+    }
+
+    u32 length = stringLength(resource->path);
+    if(length){
+        //memFree(resource->path, sizeof(char) * length, MEMORY_TAG_STRING);
+    }
+
+    if(resource->data){
+        memFree(resource->data, resource->dataSize, MEMORY_TAG_TEXTURE);
+        resource->dataSize = 0;
+        resource->data = nullptr;
+        resource->loaderId = INVALID_ID;
+    }
     return true;
 }
 
