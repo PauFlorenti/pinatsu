@@ -14,7 +14,7 @@ void vulkanBackendOnResize(u32 width, u32 height);
 
 bool vulkanBeginFrame(f32 delta);
 bool vulkanBeginRenderPass(DefaultRenderPasses renderPassID);
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData light);
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData* light);
 void vulkanDrawGeometry(const RenderMeshData* mesh);
 void vulkanEndRenderPass(DefaultRenderPasses renderPassID);
 void vulkanEndFrame();

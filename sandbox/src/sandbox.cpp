@@ -84,14 +84,21 @@ bool gameInitialize(Game* pGameInst)
     state->nEntities = 3;
 
     // Lights
+    Entity lightRed = entitySystemCreateEntity();
+    LightPointComponent redPointLight{};
+    redPointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
+    redPointLight.enabled = true;
+    redPointLight.position = glm::vec3(0.0f, 2.0f, -10.0f);
+    entitySystemAddComponent(lightRed, LIGHT_POINT, &redPointLight);
+
     Entity light = entitySystemCreateEntity();
     LightPointComponent pointLight{};
-    pointLight.color = glm::vec3(1.0);
+    pointLight.color = glm::vec3(0.0f, 1.0f, 0.0f);
     pointLight.enabled = true;
     pointLight.position = glm::vec3(0.0f, 2.0f, 10.0f);
     entitySystemAddComponent(light, LIGHT_POINT, &pointLight);
 
-    state->nLights = 1;
+    state->nLights = 2;
 
     rot = 0.0f;
 
@@ -177,14 +184,14 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
     
     // Get light information of the scene.
     LightPointComponent* lightComp;
-    for(u32 i = 3; i < 4; i++) 
+    for(u32 i = 3; i < 5; i++) 
     {
         lightComp = (LightPointComponent*)entitySystemGetComponent(i + 1, LIGHT_POINT);
 
-        gameLight[0].color      = lightComp->color;
-        gameLight[0].position   = lightComp->position;
-        gameLight[0].intensity  = lightComp->intensity;
-        gameLight[0].radius     = lightComp->radius;
+        gameLight[i - state->nEntities].color      = lightComp->color;
+        gameLight[i - state->nEntities].position   = lightComp->position;
+        gameLight[i - state->nEntities].intensity  = lightComp->intensity;
+        gameLight[i - state->nEntities].radius     = lightComp->radius;
     }
 
     RenderPacket packet{};

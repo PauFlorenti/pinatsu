@@ -186,7 +186,7 @@ internal bool vulkanCreateUIShader(
 );
 
 // TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData light)
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData* light)
 {
     gameTime += dt;
     f32 speed = 100.0f;
@@ -196,11 +196,17 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-    state.forwardShader.lightData.color = light.color;
-    state.forwardShader.lightData.intensity = light.intensity;
-    state.forwardShader.lightData.position = light.position;
-    state.forwardShader.lightData.radius = light.radius;
+    // Hardcoded to 2 lights at the moment.
+    state.forwardShader.lightData.color     = light[0].color;
+    state.forwardShader.lightData.intensity = light[0].intensity;
+    state.forwardShader.lightData.position  = light[0].position;
+    state.forwardShader.lightData.radius    = light[0].radius;
     vulkanBufferLoadData(&state, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
+    state.forwardShader.lightData.color     = light[1].color;
+    state.forwardShader.lightData.intensity = light[1].intensity;
+    state.forwardShader.lightData.position  = light[1].position;
+    state.forwardShader.lightData.radius    = light[1].radius;
+    vulkanBufferLoadData(&state, state.forwardShader.lightUbo, sizeof(VulkanLightData), sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 

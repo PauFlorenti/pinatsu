@@ -57,11 +57,13 @@ bool renderDrawFrame(const RenderPacket& packet)
             return false;
         }
 
-        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime, *packet.lights);
+        // Update light descriptor
+        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime, packet.lights);
 
         for(u32 i = 0; i < packet.renderMeshDataCount; ++i) {
             pState->renderBackend.drawGeometry(&packet.meshes[i]);
         }
+
 
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
 

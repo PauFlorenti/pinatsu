@@ -25,7 +25,7 @@ bool vulkanCreateForwardShader(
 
     vulkanBufferCreate(
         pState,
-        sizeof(VulkanLightData),
+        sizeof(VulkanLightData) * 2,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->lightUbo);
@@ -51,7 +51,7 @@ bool vulkanCreateForwardShader(
 
     // Create global descriptor pool
     VkDescriptorPoolSize descriptorPoolSize;
-    descriptorPoolSize.descriptorCount  = static_cast<u32>(pState->swapchain.images.size());
+    descriptorPoolSize.descriptorCount  = static_cast<u32>(pState->swapchain.images.size()) * 4;
     descriptorPoolSize.type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
@@ -68,10 +68,10 @@ bool vulkanCreateForwardShader(
     cameraBinding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDescriptorSetLayoutBinding lightBinding{};
-    lightBinding.binding = 1;
-    lightBinding.descriptorCount = 1;
-    lightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    lightBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightBinding.binding            = 1;
+    lightBinding.descriptorCount    = 1;
+    lightBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding globalBindings[2] = {cameraBinding, lightBinding};
 
@@ -264,7 +264,7 @@ vulkanForwardShaderUpdateGlobalData(VulkanState* pState)
     VkDescriptorBufferInfo lightUboInfo{};
     lightUboInfo.buffer    = pState->forwardShader.lightUbo.handle;
     lightUboInfo.offset    = 0;
-    lightUboInfo.range     = sizeof(VulkanLightData);
+    lightUboInfo.range     = sizeof(VulkanLightData) *  2;
 
     VkWriteDescriptorSet lightWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     lightWrite.dstBinding       = 1;
