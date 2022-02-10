@@ -16,11 +16,34 @@
 #include <vector>
 #include <string>
 
+#include "external/imgui/imgui.h"
+#include "external/imgui/imgui_impl_vulkan.h"
+
 #define internal static
 
 static f32 gameTime = 0;
 
 static VulkanState state;
+
+// TODO TEMP
+struct imguiState
+{
+    VkDescriptorPool descriptorPool;
+    VulkanRenderpass* renderPass;
+};
+
+static imguiState* imgui = nullptr;
+
+void
+imguiInit();
+
+void
+imguiRender();
+
+void
+imguiDestroy();
+
+// END TEMP
 
 /**
  * Vulkan Debug Messenger Functions
@@ -576,6 +599,7 @@ bool vulkanBackendInit(const char* appName)
     }
 
     vulkanCreateForwardShader(&state, &state.forwardShader);
+    imguiInit();
 
     return true;
 }
@@ -631,6 +655,8 @@ void vulkanBackendShutdown(void)
             }
         }
     }
+
+    imguiDestroy();
 
     PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);
@@ -824,6 +850,8 @@ void vulkanEndRenderPass(DefaultRenderPasses renderPass)
  */
 void vulkanEndFrame(void)
 {
+    imguiRender();
+
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
     VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -987,4 +1015,158 @@ std::vector<VkVertexInputAttributeDescription>
     attributes.at(2) = uvs;
 
     return attributes;
+}
+
+VulkanRenderpass*
+imguiRenderPass()
+{
+    VulkanRenderpass* rp = (VulkanRenderpass*)memAllocate(sizeof(VulkanRenderpass), MEMORY_TAG_APPLICATION);
+        // Colour attachment
+    VkAttachmentDescription attachmentDescription = {};
+    attachmentDescription.format        = state.swapchain.format.format;
+    attachmentDescription.samples       = VK_SAMPLE_COUNT_1_BIT;
+    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachmentDescription.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachmentDescription.loadOp        = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachmentDescription.storeOp       = VK_ATTACHMENT_STORE_OP_STORE;
+    attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachmentDescription.stencilStoreOp= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    VkAttachmentDescription depthAttachmentDescription{};
+    depthAttachmentDescription.format           = state.swapchain.depthFormat;
+    depthAttachmentDescription.samples          = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachmentDescription.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachmentDescription.finalLayout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachmentDescription.loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachmentDescription.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachmentDescription.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachmentDescription.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    VkAttachmentReference attachmentRef = {};
+    attachmentRef.attachment    = 0;
+    attachmentRef.layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthRef{};
+    depthRef.attachment = 1;
+    depthRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    // Subpass
+    VkSubpassDescription subpassDescription = {};
+    subpassDescription.pipelineBindPoint        = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescription.colorAttachmentCount     = 1;
+    subpassDescription.pColorAttachments        = &attachmentRef;
+    subpassDescription.pDepthStencilAttachment  = &depthRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass       = 0;
+    dependency.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask    = 0;
+    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkSubpassDependency depthDependency{};
+    depthDependency.srcSubpass      = VK_SUBPASS_EXTERNAL;
+    depthDependency.dstSubpass      = 0;
+    depthDependency.srcStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.srcAccessMask   = 0;
+    depthDependency.dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    VkAttachmentDescription attachmentDesc[2] = {attachmentDescription, depthAttachmentDescription};
+    VkSubpassDependency subpassDependencies[2] = {dependency, depthDependency};
+
+    VkRenderPassCreateInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    info.attachmentCount    = 2;
+    info.pAttachments       = attachmentDesc;
+    info.subpassCount       = 1;
+    info.pSubpasses         = &subpassDescription;
+    info.dependencyCount    = 2;
+    info.pDependencies      = subpassDependencies;
+
+    if(vkCreateRenderPass(state.device.handle, &info, nullptr, &(*rp).handle) != VK_SUCCESS);
+    return rp;
+}
+
+void
+imguiInit()
+{
+    imgui = (imguiState*)memAllocate(sizeof(imguiState), MEMORY_TAG_MANAGER);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    imgui->renderPass = imguiRenderPass();
+
+    VkDescriptorPoolSize desc{};
+    desc.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    desc.descriptorCount = 1;
+
+    VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &desc;
+    poolInfo.maxSets = 1;
+
+    vkCreateDescriptorPool(state.device.handle, &poolInfo, nullptr, &imgui->descriptorPool);
+
+    ImGui_ImplVulkan_InitInfo vkinit = {};
+    vkinit.Instance = state.instance;
+    vkinit.PhysicalDevice = state.device.physicalDevice;
+    vkinit.Device = state.device.handle;
+    vkinit.QueueFamily = state.device.graphicsQueueIndex;
+    vkinit.Queue = state.device.graphicsQueue;
+    vkinit.PipelineCache = nullptr;
+    vkinit.DescriptorPool = imgui->descriptorPool;
+    vkinit.MinImageCount = state.swapchain.imageCount;
+    vkinit.ImageCount = state.swapchain.imageCount;
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2((f32)state.clientWidth, (f32)state.clientHeight);
+    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+    if(!ImGui_ImplVulkan_Init(&vkinit, imgui->renderPass->handle)){
+        PERROR("Error initializing imgui.");
+    }
+
+    VkCommandBuffer cmd;
+    vulkanCommandBufferAllocateAndBeginSingleUse(&state, state.device.commandPool, cmd);
+    ImGui_ImplVulkan_CreateFontsTexture(cmd);
+    vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, state.device.graphicsQueue, cmd);
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
+
+void
+imguiRender()
+{
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
+		ImGui::Render();
+
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f} };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = imgui->renderPass->handle;
+		renderPassInfo.framebuffer = state.swapchain.framebuffers.at(state.imageIndex).handle;
+		renderPassInfo.renderArea.offset = {0, 0};
+		renderPassInfo.renderArea.extent = state.swapchain.extent;
+		renderPassInfo.clearValueCount = 2;
+		renderPassInfo.pClearValues = clearValues;
+
+		vkCmdBeginRenderPass(state.commandBuffers[state.imageIndex].handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		{
+			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.commandBuffers[state.imageIndex].handle);
+		}
+		vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
+}
+
+void
+imguiDestroy()
+{
+    vkDestroyDescriptorPool(state.device.handle, imgui->descriptorPool, nullptr);
+    vkDestroyRenderPass(state.device.handle, imgui->renderPass->handle, nullptr);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui::DestroyContext();
 }
