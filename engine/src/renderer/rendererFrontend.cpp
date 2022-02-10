@@ -17,7 +17,7 @@ typedef struct RenderFrontendState
 
 static RenderFrontendState* pState;
 
-bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName)
+bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, void* winHandle)
 {
     *memoryRequirement = sizeof(RenderFrontendState);
     if(!state)
@@ -26,7 +26,7 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName)
     pState = static_cast<RenderFrontendState*>(state);
     rendererBackendInit(VULKAN_API, &pState->renderBackend);
 
-    if(!pState->renderBackend.init(appName))
+    if(!pState->renderBackend.init(appName, winHandle))
     {
         PFATAL("Render Backend failed to initialize!");
         return false;
@@ -64,6 +64,7 @@ bool renderDrawFrame(const RenderPacket& packet)
             pState->renderBackend.drawGeometry(&packet.meshes[i]);
         }
 
+        pState->renderBackend.drawGui();
 
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
 

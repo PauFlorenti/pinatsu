@@ -35,9 +35,9 @@ bool gameInitialize(Game* pGameInst)
     // Define the scene
     Entity player = entitySystemCreateEntity();
     TransformComponent t{};
-    t.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    t.rotation = glm::quat();
-    t.scale = glm::vec3(1.0f);
+    t.position  = glm::vec3(0.0f, 0.0f, 0.0f);
+    t.rotation  = glm::quat();
+    t.scale     = glm::vec3(1.0f);
 
     MaterialData playerMaterial{};
     playerMaterial.diffuseColor = glm::vec4(1);

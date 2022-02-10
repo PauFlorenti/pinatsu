@@ -272,6 +272,8 @@ typedef struct VulkanState
     u32 clientHeight;
     bool resized;
 
+    void* windowHandle;
+
     VulkanRenderpass renderpass;
 
     std::vector<CommandBuffer> commandBuffers;

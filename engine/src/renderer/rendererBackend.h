@@ -14,7 +14,7 @@ typedef enum RenderBackendAPI
 
 typedef struct RendererBackend
 {
-    bool (*init)(const char* appName);
+    bool (*init)(const char* appName, void* winHandle);
     void (*shutdown)();
     bool (*beginFrame)(f32 delta);
     bool (*beginRenderPass)(DefaultRenderPasses renderPass);
@@ -27,7 +27,7 @@ typedef struct RendererBackend
     bool (*onCreateTexture)(void* data, Texture* texture);
     void (*onDestroyTexture)(Texture* t);
     bool (*onCreateMaterial)(Material* m);
-
+    void (*drawGui)();
 } RendererBackend;
 
 bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state);

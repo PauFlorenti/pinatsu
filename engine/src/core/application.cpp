@@ -18,7 +18,8 @@
 #include "systems/materialSystem.h"
 #include "systems/entitySystem.h"
 #include "systems/physicsSystem.h"
-//#include "systems/entityComponentSystem.h"
+
+#include <external/imgui/imgui.h>
 
 typedef struct ApplicationState
 {
@@ -127,9 +128,9 @@ bool applicationInit(Game* pGameInst)
     eventRegister(EVENT_CODE_RESIZED, 0, appOnResize);
 
     // Init renderer system.
-    renderSystemInit(&pState->renderSystemMemoryRequirements, nullptr, nullptr);
+    renderSystemInit(&pState->renderSystemMemoryRequirements, nullptr, nullptr, nullptr);
     pState->renderSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->renderSystemMemoryRequirements);
-    if(!renderSystemInit(&pState->renderSystemMemoryRequirements, pState->renderSystem, "Pinatsu engine"))
+    if(!renderSystemInit(&pState->renderSystemMemoryRequirements, pState->renderSystem, "Pinatsu engine", platformGetWinHandle()))
     {
         PFATAL("Render system could not be initialized! Shuting down now.");
         return false;
@@ -235,6 +236,7 @@ bool applicationRun()
             f64 deltaTime = currentTime - pState->lastTime;
 
             platformUpdate();
+            
             if(!pState->pGameInst->update(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to update.");

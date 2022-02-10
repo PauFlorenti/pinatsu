@@ -17,6 +17,7 @@
 #include <string>
 
 #include "external/imgui/imgui.h"
+#include "external/imgui/imgui_impl_win32.h"
 #include "external/imgui/imgui_impl_vulkan.h"
 
 #define internal static
@@ -29,16 +30,16 @@ static VulkanState state;
 struct imguiState
 {
     VkDescriptorPool descriptorPool;
-    VulkanRenderpass* renderPass;
+    const VulkanRenderpass* renderPass;
 };
 
 static imguiState* imgui = nullptr;
 
 void
-imguiInit();
+imguiInit(const VulkanRenderpass* renderpass);
 
 void
-imguiRender();
+vulkanImguiRender();
 
 void
 imguiDestroy();
@@ -452,9 +453,11 @@ bool vulkanCreateMaterial(Material* m)
  * @param const char* application name.
  * @return bool if succeded initialization.
  */
-bool vulkanBackendInit(const char* appName)
+bool vulkanBackendInit(const char* appName, void* winHandle)
 {
     applicationGetFramebufferSize(&state.clientWidth, &state.clientHeight);
+
+    state.windowHandle = winHandle;
 
     VkApplicationInfo appInfo = {};
     appInfo.sType               = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -599,7 +602,7 @@ bool vulkanBackendInit(const char* appName)
     }
 
     vulkanCreateForwardShader(&state, &state.forwardShader);
-    imguiInit();
+    imguiInit(&state.renderpass);
 
     return true;
 }
@@ -850,7 +853,6 @@ void vulkanEndRenderPass(DefaultRenderPasses renderPass)
  */
 void vulkanEndFrame(void)
 {
-    imguiRender();
 
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
@@ -1089,14 +1091,14 @@ imguiRenderPass()
 }
 
 void
-imguiInit()
+imguiInit(const VulkanRenderpass* renderpass)
 {
     imgui = (imguiState*)memAllocate(sizeof(imguiState), MEMORY_TAG_MANAGER);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    imgui->renderPass = imguiRenderPass();
+    imgui->renderPass = renderpass;
 
     VkDescriptorPoolSize desc{};
     desc.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1124,6 +1126,7 @@ imguiInit()
     io.DisplaySize = ImVec2((f32)state.clientWidth, (f32)state.clientHeight);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
+    ImGui_ImplWin32_Init(state.windowHandle);
     if(!ImGui_ImplVulkan_Init(&vkinit, imgui->renderPass->handle)){
         PERROR("Error initializing imgui.");
     }
@@ -1136,37 +1139,21 @@ imguiInit()
 }
 
 void
-imguiRender()
+vulkanImguiRender()
 {
 		ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+        ImGui::ShowDemoWindow();
 		ImGui::Render();
-
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.2f, 0.2f, 0.2f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = imgui->renderPass->handle;
-		renderPassInfo.framebuffer = state.swapchain.framebuffers.at(state.imageIndex).handle;
-		renderPassInfo.renderArea.offset = {0, 0};
-		renderPassInfo.renderArea.extent = state.swapchain.extent;
-		renderPassInfo.clearValueCount = 2;
-		renderPassInfo.pClearValues = clearValues;
-
-		vkCmdBeginRenderPass(state.commandBuffers[state.imageIndex].handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		{
-			ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.commandBuffers[state.imageIndex].handle);
-		}
-		vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.commandBuffers[state.imageIndex].handle);
 }
 
 void
 imguiDestroy()
 {
     vkDestroyDescriptorPool(state.device.handle, imgui->descriptorPool, nullptr);
-    vkDestroyRenderPass(state.device.handle, imgui->renderPass->handle, nullptr);
     ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
 }

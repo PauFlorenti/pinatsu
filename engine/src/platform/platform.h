@@ -37,3 +37,5 @@ bool platformSurfaceCreation(VulkanState* vulkanState);
 f64 platformGetCurrentTime();
 
 const char* getExecutablePath();
+
+void* platformGetWinHandle();

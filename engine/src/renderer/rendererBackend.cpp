@@ -20,6 +20,7 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
         state->onCreateTexture = vulkanCreateTexture;
         state->onDestroyTexture = vulkanDestroyTexture;
         state->onCreateMaterial = vulkanCreateMaterial;
+        state->drawGui = vulkanImguiRender;
 
         return true;
     }

@@ -13,7 +13,9 @@
 #include <wingdi.h>
 
 #include "vulkan\vulkan_win32.h"
+#include <external/imgui/imgui_impl_win32.h>
 
+LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 typedef struct platformState
@@ -40,7 +42,8 @@ static void setupTimer()
  * Initialize the platform system by creating
  * a window given a name, position and size.
  */
-bool platformStartup(
+bool 
+platformStartup(
     u64* memoryRequirements,
     void* state,
     const char* name,
@@ -109,7 +112,8 @@ bool platformStartup(
     return true;
 };
 
-void platformShutdown(void* state)
+void 
+platformShutdown(void* state)
 {
     if(pState && pState->hwnd){
         DestroyWindow(pState->hwnd);
@@ -117,7 +121,8 @@ void platformShutdown(void* state)
     }
 }
 
-bool platformPumpMessages()
+bool 
+platformPumpMessages()
 {
     if(pState)
     {
@@ -132,33 +137,39 @@ bool platformPumpMessages()
     return true;
 }
 
-void* platformAllocateMemory(u64 size)
+void* 
+platformAllocateMemory(u64 size)
 {
     return malloc(size);
 }
 
-void platformFreeMemory(void* block)
+void 
+platformFreeMemory(void* block)
 {
     if(block)
         free(block);
 }
 
-void* platformZeroMemory(void* block, u64 size)
+void* 
+platformZeroMemory(void* block, u64 size)
 {
     return memset(block, 0, size);
 }
 
-void* platformSetMemory(void* dest, i32 value, u64 size)
+void* 
+platformSetMemory(void* dest, i32 value, u64 size)
 {
     return memset(dest, value, size);
 }
 
-void* platformCopyMemory(void* source, void* dest, u64 size)
+void* 
+platformCopyMemory(void* source, void* dest, u64 size)
 {
     return memcpy(dest, source, size);
 }
 
-void platformConsoleWrite(const char* msg, u8 level)
+void 
+platformConsoleWrite(const char* msg, u8 level)
 {
     HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     static u8 colour[5] = {64, 4, 6, 1, 2};
@@ -167,19 +178,22 @@ void platformConsoleWrite(const char* msg, u8 level)
     SetConsoleTextAttribute(outputHandle, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 }
 
-void platformUpdate()
+void 
+platformUpdate()
 {
     RECT rc;
     GetClientRect(pState->hwnd, &rc);
     RedrawWindow(pState->hwnd, &rc, 0, 0);
 }
 
-void platformSpecificExtensions(std::vector<const char*>& extensions)
+void 
+platformSpecificExtensions(std::vector<const char*>& extensions)
 {
     extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 }
 
-bool platformSurfaceCreation(VulkanState* vulkanState)
+bool 
+platformSurfaceCreation(VulkanState* vulkanState)
 {
     VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
     surfaceInfo.sType       = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -200,6 +214,10 @@ bool platformSurfaceCreation(VulkanState* vulkanState)
 
 LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+
+    if(ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+        return true;
+
     switch (uMsg)
     {
     case WM_SIZE: {
@@ -286,4 +304,10 @@ const char* getExecutablePath()
     GetModuleFileNameA(NULL, buffer, MAX_PATH);
     std::string::size_type pos = std::string(buffer).find_last_of("\\/");
     return std::string(buffer).substr(0, pos).c_str();
+}
+
+void*
+platformGetWinHandle()
+{
+    return pState->hwnd;
 }

@@ -7,7 +7,7 @@
 
 struct Scene;
 
-bool vulkanBackendInit(const char* appName);
+bool vulkanBackendInit(const char* appName, void* winHandle);
 void vulkanBackendShutdown();
 
 void vulkanBackendOnResize(u32 width, u32 height);
@@ -18,6 +18,7 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 void vulkanDrawGeometry(const RenderMeshData* mesh);
 void vulkanEndRenderPass(DefaultRenderPasses renderPassID);
 void vulkanEndFrame();
+void vulkanImguiRender();
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices);
 void vulkanDestroyMesh(const Mesh* mesh);
