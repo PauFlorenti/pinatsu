@@ -2,7 +2,7 @@
 
 void 
 vulkanCommandBufferAllocateAndBeginSingleUse(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkCommandPool pool,
     VkCommandBuffer& cmd)
 {
@@ -10,7 +10,7 @@ vulkanCommandBufferAllocateAndBeginSingleUse(
     allocInfo.commandPool = pool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
-    VK_CHECK(vkAllocateCommandBuffers(pState->device.handle, &allocInfo, &cmd));
+    VK_CHECK(vkAllocateCommandBuffers(device.handle, &allocInfo, &cmd));
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -20,7 +20,7 @@ vulkanCommandBufferAllocateAndBeginSingleUse(
 
 void 
 vulkanCommandBufferEndSingleUse(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkCommandPool pool,
     VkQueue queue,
     VkCommandBuffer& cmd)
@@ -35,5 +35,5 @@ vulkanCommandBufferEndSingleUse(
 
     VK_CHECK(vkQueueWaitIdle(queue));
 
-    vkFreeCommandBuffers(pState->device.handle, pool, 1, &cmd);
+    vkFreeCommandBuffers(device.handle, pool, 1, &cmd);
 }

@@ -84,19 +84,19 @@ bool gameInitialize(Game* pGameInst)
     state->nEntities = 3;
 
     // Lights
-    Entity lightRed = entitySystemCreateEntity();
-    LightPointComponent redPointLight{};
-    redPointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
-    redPointLight.enabled = true;
-    redPointLight.position = glm::vec3(0.0f, 2.0f, -10.0f);
-    entitySystemAddComponent(lightRed, LIGHT_POINT, &redPointLight);
-
     Entity light = entitySystemCreateEntity();
     LightPointComponent pointLight{};
     pointLight.color = glm::vec3(0.0f, 1.0f, 0.0f);
     pointLight.enabled = true;
-    pointLight.position = glm::vec3(0.0f, 2.0f, 10.0f);
+    pointLight.position = glm::vec3(0.0f, 2.0f, 0.0f);
     entitySystemAddComponent(light, LIGHT_POINT, &pointLight);
+
+    Entity lightRed = entitySystemCreateEntity();
+    LightPointComponent redPointLight{};
+    redPointLight.color = glm::vec3(1.0f, 0.0f, 0.0f);
+    redPointLight.enabled = true;
+    redPointLight.position = glm::vec3(0.0f, 2.0f, 0.0f);
+    entitySystemAddComponent(lightRed, LIGHT_POINT, &redPointLight);
 
     state->nLights = 2;
 

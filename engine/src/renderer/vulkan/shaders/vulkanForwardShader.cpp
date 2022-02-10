@@ -17,14 +17,14 @@ bool vulkanCreateForwardShader(
 {
     // Create the buffer holding the data to upload to the GPU
     vulkanBufferCreate(
-        pState, 
+        pState->device, 
         sizeof(ViewProjectionBuffer),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
 
     vulkanBufferCreate(
-        pState,
+        pState->device,
         sizeof(VulkanLightData) * 2,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -86,7 +86,7 @@ bool vulkanCreateForwardShader(
 
     u32 objectMaterialSize = sizeof(VulkanMaterialShaderUBO) * VULKAN_MAX_MATERIAL_COUNT;
     vulkanBufferCreate(
-        pState, 
+        pState->device, 
         objectMaterialSize, 
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
@@ -225,9 +225,9 @@ bool vulkanCreateForwardShader(
 void
 vulkanDestroyForwardShader(VulkanState* pState)
 {
-    vulkanBufferDestroy(pState, pState->forwardShader.globalUbo);
-    vulkanBufferDestroy(pState, pState->forwardShader.lightUbo);
-    vulkanBufferDestroy(pState, pState->forwardShader.meshInstanceBuffer);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.globalUbo);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.lightUbo);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.meshInstanceBuffer);
 
     vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[0].shaderModule, nullptr);
     vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[1].shaderModule, nullptr);
@@ -349,7 +349,7 @@ vulkanForwardShaderSetMaterial(
     // Upload the data to the ubo.
     VulkanMaterialShaderUBO ubo{};
     ubo.diffuseColor = m->diffuseColor;
-    vulkanBufferLoadData(pState, shader->meshInstanceBuffer, offset, range, 0, &ubo);
+    vulkanBufferLoadData(pState->device, shader->meshInstanceBuffer, offset, range, 0, &ubo);
 
     // If descriptor has not been updated, generate the writes.
     if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)

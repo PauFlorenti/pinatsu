@@ -54,6 +54,4 @@ void main()
         color += NdotL * vec4(lights.l[i].color, 1.0) * diffuse;
     }
     fragColor = color;
-    //fragColor = texture(normalSampler, inUV);
-    //fragColor =  texture(metallicRoughnessSampler, inUV);
 }

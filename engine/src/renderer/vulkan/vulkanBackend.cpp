@@ -7,6 +7,8 @@
 #include "vulkanBuffer.h"
 #include "vulkanCommandBuffer.h"
 #include "vulkanImage.h"
+#include "vulkanUtils.h"
+#include "vulkanImgui.h"
 
 #include "shaders/vulkanForwardShader.h"
 
@@ -16,35 +18,11 @@
 #include <vector>
 #include <string>
 
-#include "external/imgui/imgui.h"
-#include "external/imgui/imgui_impl_win32.h"
-#include "external/imgui/imgui_impl_vulkan.h"
-
 #define internal static
 
 static f32 gameTime = 0;
 
 static VulkanState state;
-
-// TODO TEMP
-struct imguiState
-{
-    VkDescriptorPool descriptorPool;
-    const VulkanRenderpass* renderPass;
-};
-
-static imguiState* imgui = nullptr;
-
-void
-imguiInit(const VulkanRenderpass* renderpass);
-
-void
-vulkanImguiRender();
-
-void
-imguiDestroy();
-
-// END TEMP
 
 /**
  * Vulkan Debug Messenger Functions
@@ -103,94 +81,6 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
 void createCommandBuffers();
 
 /**
- * *Synchronization Utility Functions.
- * This includes both Semaphores and Fences.
- */
-internal bool vulkanCreateFence(
-    VulkanState* pState,
-    VulkanFence* fence,
-    bool signaled)
-{
-    VkFenceCreateInfo info = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    if(signaled){
-        info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        fence->signaled = true;
-    } else {
-        fence->signaled = false;
-    }
-
-    if(vkCreateFence(state.device.handle, &info, nullptr, &fence->handle) != VK_SUCCESS){
-        PERROR("Fence creation failed!");
-        return false;
-    }
-    return true;
-};
-
-internal bool vulkanWaitFence(
-    VulkanState *pState,
-    VulkanFence* fence,
-    u64 timeout = UINT64_MAX)
-{
-    if(fence->signaled)
-        return true;
-    
-    if(vkWaitForFences(
-        pState->device.handle, 1, 
-        &fence->handle, VK_TRUE, timeout) == VK_SUCCESS)
-    {
-        return true;
-    }
-    return false;
-}
-
-internal bool vulkanResetFence(
-    VulkanState* pState,
-    VulkanFence* fence)
-{
-    if(vkResetFences(
-        pState->device.handle, 
-        1, 
-        &fence->handle) == VK_SUCCESS)
-    {
-        fence->signaled = false;
-        return true;   
-    }
-    return false;
-}
-
-internal void vulkanDestroyFence(
-    VulkanState& state,
-    VulkanFence& fence)
-{
-    vkDestroyFence(
-        state.device.handle,
-        fence.handle,
-        nullptr);
-}
-
-internal bool vulkanCreateSemaphore(
-    VulkanState* pState,
-    VkSemaphore* semaphore)
-{
-    VkSemaphoreCreateInfo info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    if(vkCreateSemaphore(pState->device.handle, &info, nullptr, semaphore) != VK_SUCCESS){
-        PERROR("Semaphore creation failed!");
-        return false;
-    }
-    return true;
-}
-
-internal void vulkanDestroySemaphore(
-    VulkanState& state,
-    VkSemaphore& semaphore)
-{
-    vkDestroySemaphore(
-        state.device.handle,
-        semaphore,
-        nullptr);
-}
-
-/**
  * Framebuffers functions
  */
 void vulkanRegenerateFramebuffers(
@@ -218,19 +108,19 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     state.forwardShader.globalUboData.projection  = projection;
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
-    vulkanBufferLoadData(&state, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+    vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
     // Hardcoded to 2 lights at the moment.
     state.forwardShader.lightData.color     = light[0].color;
     state.forwardShader.lightData.intensity = light[0].intensity;
     state.forwardShader.lightData.position  = light[0].position;
     state.forwardShader.lightData.radius    = light[0].radius;
-    vulkanBufferLoadData(&state, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
+    vulkanBufferLoadData(state.device, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
     state.forwardShader.lightData.color     = light[1].color;
     state.forwardShader.lightData.intensity = light[1].intensity;
     state.forwardShader.lightData.position  = light[1].position;
     state.forwardShader.lightData.radius    = light[1].radius;
-    vulkanBufferLoadData(&state, state.forwardShader.lightUbo, sizeof(VulkanLightData), sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
+    vulkanBufferLoadData(state.device, state.forwardShader.lightUbo, sizeof(VulkanLightData), sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 
@@ -278,16 +168,16 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
     u64 totalVertexSize = renderMesh->vertexCount * renderMesh->vertexSize;
 
     u32 flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    vulkanBufferCreate(&state, totalVertexSize, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->vertexBuffer);
-    vulkanUploadDataToGPU(&state, renderMesh->vertexBuffer, 0, totalVertexSize, vertices);
+    vulkanBufferCreate(state.device, totalVertexSize, flags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->vertexBuffer);
+    vulkanUploadDataToGPU(state.device, renderMesh->vertexBuffer, 0, totalVertexSize, vertices);
 
     if(indexCount > 0 && indices)
     {
         u64 indexSize = indexCount * sizeof(u32);
         u32 indexFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         renderMesh->indexCount = indexCount;
-        vulkanBufferCreate(&state, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->indexBuffer);
-        vulkanUploadDataToGPU(&state, renderMesh->indexBuffer, 0, indexSize, indices);
+        vulkanBufferCreate(state.device, indexSize, indexFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &renderMesh->indexBuffer);
+        vulkanUploadDataToGPU(state.device, renderMesh->indexBuffer, 0, indexSize, indices);
     }
 
     return true;
@@ -305,10 +195,10 @@ void vulkanDestroyMesh(const Mesh* mesh)
     {
         if(state.vulkanMeshes[i].id == mesh->id)
         {
-            vulkanBufferDestroy(&state, state.vulkanMeshes[i].vertexBuffer);
+            vulkanBufferDestroy(state.device, state.vulkanMeshes[i].vertexBuffer);
             if(state.vulkanMeshes[i].indexBuffer.handle)
             {
-                vulkanBufferDestroy(&state, state.vulkanMeshes[i].indexBuffer);
+                vulkanBufferDestroy(state.device, state.vulkanMeshes[i].indexBuffer);
             }
             state.vulkanMeshes[i].id = INVALID_ID;
             break;
@@ -335,8 +225,8 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
     VkMemoryPropertyFlags memPropsFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
     VulkanBuffer staging;
-    vulkanBufferCreate(&state, textureSize, usageFlags, memPropsFlags, &staging);
-    vulkanBufferLoadData(&state, staging, 0, textureSize, 0, pixels);
+    vulkanBufferCreate(state.device, textureSize, usageFlags, memPropsFlags, &staging);
+    vulkanBufferLoadData(state.device, staging, 0, textureSize, 0, pixels);
 
     vulkanCreateImage(
         &state,
@@ -354,7 +244,7 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
 
     VkCommandBuffer temporalCommand;
     vulkanCommandBufferAllocateAndBeginSingleUse(
-        &state, 
+        state.device, 
         state.device.commandPool, 
         temporalCommand);
 
@@ -367,7 +257,7 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
         temporalCommand);
 
     vulkanBufferCopyToImage(
-        &state,
+        state.device,
         &staging, 
         &data->image, 
         temporalCommand);
@@ -381,12 +271,12 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
         temporalCommand);
 
     vulkanCommandBufferEndSingleUse(
-        &state, 
+        state.device, 
         state.device.commandPool, 
         state.device.graphicsQueue, 
         temporalCommand);
 
-    vulkanBufferDestroy(&state, staging);
+    vulkanBufferDestroy(state.device, staging);
 
     VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -585,13 +475,13 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
 
     for(u32 i = 0; i < state.swapchain.maxImageInFlight; ++i)
     {
-        if(!vulkanCreateSemaphore(&state, &state.imageAvailableSemaphores.at(i))){
+        if(!vulkanCreateSemaphore(state.device, &state.imageAvailableSemaphores.at(i))){
             return false;
         }
-        if(!vulkanCreateSemaphore(&state, &state.renderFinishedSemaphores.at(i))){
+        if(!vulkanCreateSemaphore(state.device, &state.renderFinishedSemaphores.at(i))){
             return false;
         }
-        if(!vulkanCreateFence(&state, &state.frameInFlightFences.at(i), true)){
+        if(!vulkanCreateFence(state.device, &state.frameInFlightFences.at(i), true)){
             return false;
         }
     }
@@ -602,7 +492,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
     }
 
     vulkanCreateForwardShader(&state, &state.forwardShader);
-    imguiInit(&state.renderpass);
+    imguiInit(&state, &state.renderpass);
 
     return true;
 }
@@ -634,15 +524,15 @@ void vulkanBackendShutdown(void)
     // Destroy all synchronization resources
     for(VkSemaphore& semaphore : state.imageAvailableSemaphores)
     {
-        vulkanDestroySemaphore(state, semaphore);
+        vulkanDestroySemaphore(state.device, semaphore);
     }
     for(VkSemaphore& semaphore : state.renderFinishedSemaphores)
     {
-        vulkanDestroySemaphore(state, semaphore);
+        vulkanDestroySemaphore(state.device, semaphore);
     }
     for(VulkanFence& fence : state.frameInFlightFences)
     {
-        vulkanDestroyFence(state, fence);
+        vulkanDestroyFence(state.device, fence);
     }
 
     // Destroy all buffers from loaded meshes
@@ -652,9 +542,9 @@ void vulkanBackendShutdown(void)
     {
         if(state.vulkanMeshes[i].id != INVALID_ID)
         {
-            vulkanBufferDestroy(&state, state.vulkanMeshes[i].vertexBuffer);
+            vulkanBufferDestroy(state.device, state.vulkanMeshes[i].vertexBuffer);
             if(state.vulkanMeshes[i].indexBuffer.handle){
-                vulkanBufferDestroy(&state, state.vulkanMeshes[i].indexBuffer);
+                vulkanBufferDestroy(state.device, state.vulkanMeshes[i].indexBuffer);
             }
         }
     }
@@ -729,7 +619,7 @@ bool vulkanBeginFrame(f32 delta)
 
     // Wait for the previous frame to finish.
     vulkanWaitFence(
-        &state, 
+        state.device, 
         &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
@@ -867,8 +757,8 @@ void vulkanEndFrame(void)
     submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
     submitInfo.pWaitDstStageMask    = pipelineStage;
 
-    vulkanWaitFence(&state, &state.frameInFlightFences[state.currentFrame]);
-    vulkanResetFence(&state, &state.frameInFlightFences[state.currentFrame]);
+    vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+    vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
 
     if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
         PERROR("Queue wasn't submitted.");
@@ -1019,141 +909,7 @@ std::vector<VkVertexInputAttributeDescription>
     return attributes;
 }
 
-VulkanRenderpass*
-imguiRenderPass()
+void vulkanImguiRender()
 {
-    VulkanRenderpass* rp = (VulkanRenderpass*)memAllocate(sizeof(VulkanRenderpass), MEMORY_TAG_APPLICATION);
-        // Colour attachment
-    VkAttachmentDescription attachmentDescription = {};
-    attachmentDescription.format        = state.swapchain.format.format;
-    attachmentDescription.samples       = VK_SAMPLE_COUNT_1_BIT;
-    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachmentDescription.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    attachmentDescription.loadOp        = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachmentDescription.storeOp       = VK_ATTACHMENT_STORE_OP_STORE;
-    attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachmentDescription.stencilStoreOp= VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    VkAttachmentDescription depthAttachmentDescription{};
-    depthAttachmentDescription.format           = state.swapchain.depthFormat;
-    depthAttachmentDescription.samples          = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachmentDescription.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachmentDescription.finalLayout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    depthAttachmentDescription.loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachmentDescription.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    depthAttachmentDescription.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachmentDescription.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    VkAttachmentReference attachmentRef = {};
-    attachmentRef.attachment    = 0;
-    attachmentRef.layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthRef{};
-    depthRef.attachment = 1;
-    depthRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    // Subpass
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint        = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount     = 1;
-    subpassDescription.pColorAttachments        = &attachmentRef;
-    subpassDescription.pDepthStencilAttachment  = &depthRef;
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass       = 0;
-    dependency.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask    = 0;
-    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkSubpassDependency depthDependency{};
-    depthDependency.srcSubpass      = VK_SUBPASS_EXTERNAL;
-    depthDependency.dstSubpass      = 0;
-    depthDependency.srcStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    depthDependency.srcAccessMask   = 0;
-    depthDependency.dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    depthDependency.dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-    VkAttachmentDescription attachmentDesc[2] = {attachmentDescription, depthAttachmentDescription};
-    VkSubpassDependency subpassDependencies[2] = {dependency, depthDependency};
-
-    VkRenderPassCreateInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    info.attachmentCount    = 2;
-    info.pAttachments       = attachmentDesc;
-    info.subpassCount       = 1;
-    info.pSubpasses         = &subpassDescription;
-    info.dependencyCount    = 2;
-    info.pDependencies      = subpassDependencies;
-
-    if(vkCreateRenderPass(state.device.handle, &info, nullptr, &(*rp).handle) != VK_SUCCESS);
-    return rp;
-}
-
-void
-imguiInit(const VulkanRenderpass* renderpass)
-{
-    imgui = (imguiState*)memAllocate(sizeof(imguiState), MEMORY_TAG_MANAGER);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-
-    imgui->renderPass = renderpass;
-
-    VkDescriptorPoolSize desc{};
-    desc.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    desc.descriptorCount = 1;
-
-    VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &desc;
-    poolInfo.maxSets = 1;
-
-    vkCreateDescriptorPool(state.device.handle, &poolInfo, nullptr, &imgui->descriptorPool);
-
-    ImGui_ImplVulkan_InitInfo vkinit = {};
-    vkinit.Instance = state.instance;
-    vkinit.PhysicalDevice = state.device.physicalDevice;
-    vkinit.Device = state.device.handle;
-    vkinit.QueueFamily = state.device.graphicsQueueIndex;
-    vkinit.Queue = state.device.graphicsQueue;
-    vkinit.PipelineCache = nullptr;
-    vkinit.DescriptorPool = imgui->descriptorPool;
-    vkinit.MinImageCount = state.swapchain.imageCount;
-    vkinit.ImageCount = state.swapchain.imageCount;
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2((f32)state.clientWidth, (f32)state.clientHeight);
-    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-    ImGui_ImplWin32_Init(state.windowHandle);
-    if(!ImGui_ImplVulkan_Init(&vkinit, imgui->renderPass->handle)){
-        PERROR("Error initializing imgui.");
-    }
-
-    VkCommandBuffer cmd;
-    vulkanCommandBufferAllocateAndBeginSingleUse(&state, state.device.commandPool, cmd);
-    ImGui_ImplVulkan_CreateFontsTexture(cmd);
-    vulkanCommandBufferEndSingleUse(&state, state.device.commandPool, state.device.graphicsQueue, cmd);
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-}
-
-void
-vulkanImguiRender()
-{
-		ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
-		ImGui::Render();
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.commandBuffers[state.imageIndex].handle);
-}
-
-void
-imguiDestroy()
-{
-    vkDestroyDescriptorPool(state.device.handle, imgui->descriptorPool, nullptr);
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    imguiRender(state.commandBuffers[state.imageIndex].handle);
 }

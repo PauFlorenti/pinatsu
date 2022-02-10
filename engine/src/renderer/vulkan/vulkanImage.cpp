@@ -43,7 +43,7 @@ void vulkanCreateImage(
 
     VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(pState, memoryRequirements.memoryTypeBits, memoryProperties);
+    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(pState->device, memoryRequirements.memoryTypeBits, memoryProperties);
 
     VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
 
