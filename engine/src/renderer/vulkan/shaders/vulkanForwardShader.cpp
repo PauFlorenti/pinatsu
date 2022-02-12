@@ -25,10 +25,14 @@ bool vulkanCreateForwardShader(
 
     vulkanBufferCreate(
         pState->device,
-        sizeof(VulkanLightData) * 2,
+        sizeof(VulkanLightData) * MAX_LIGHTS,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->lightUbo);
+
+    // Compile hardcoded shaders
+    system("glslc ./data/shader.vert -o ./data/vert.spv");
+    system("glslc ./data/shader.frag -o ./data/frag.spv");
 
     // Shader modules creation
     std::vector<char> vertexBuffer;
@@ -264,7 +268,7 @@ vulkanForwardShaderUpdateGlobalData(VulkanState* pState)
     VkDescriptorBufferInfo lightUboInfo{};
     lightUboInfo.buffer    = pState->forwardShader.lightUbo.handle;
     lightUboInfo.offset    = 0;
-    lightUboInfo.range     = sizeof(VulkanLightData) *  2;
+    lightUboInfo.range     = sizeof(VulkanLightData) * MAX_LIGHTS;
 
     VkWriteDescriptorSet lightWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     lightWrite.dstBinding       = 1;

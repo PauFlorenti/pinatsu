@@ -14,6 +14,7 @@
 
 #include "core/application.h"
 #include "platform/platform.h"
+#include "systems/entitySystemComponent.h"
 #include "pmath.h"
 #include <vector>
 #include <string>
@@ -100,7 +101,7 @@ internal bool vulkanCreateUIShader(
 );
 
 // TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt, LightData* light)
+void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
     gameTime += dt;
     f32 speed = 100.0f;
@@ -110,17 +111,30 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-    // Hardcoded to 2 lights at the moment.
-    state.forwardShader.lightData.color     = light[0].color;
-    state.forwardShader.lightData.intensity = light[0].intensity;
-    state.forwardShader.lightData.position  = light[0].position;
-    state.forwardShader.lightData.radius    = light[0].radius;
-    vulkanBufferLoadData(state.device, state.forwardShader.lightUbo, 0, sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
-    state.forwardShader.lightData.color     = light[1].color;
-    state.forwardShader.lightData.intensity = light[1].intensity;
-    state.forwardShader.lightData.position  = light[1].position;
-    state.forwardShader.lightData.radius    = light[1].radius;
-    vulkanBufferLoadData(state.device, state.forwardShader.lightUbo, sizeof(VulkanLightData), sizeof(VulkanLightData), 0, &state.forwardShader.lightData);
+    EntitySystem* entitySystem = EntitySystem::Get();
+    auto& entities = entitySystem->getAvailableEntities();
+
+    u32 lightCount = 0;
+    for(auto& it = entities.begin(); it != entities.end(); it++)
+    {
+        u32 idx = entitySystem->getComponentType<LightPointComponent>(it->first);
+        if(it->second[idx] == 1)
+        {
+            LightPointComponent comp = entitySystem->getComponent<LightPointComponent>(it->first);
+            state.forwardShader.lightData.color     = comp.color;
+            state.forwardShader.lightData.intensity = comp.intensity;
+            state.forwardShader.lightData.position  = comp.position;
+            state.forwardShader.lightData.radius    = comp.radius;
+            vulkanBufferLoadData(
+                state.device, 
+                state.forwardShader.lightUbo, 
+                sizeof(VulkanLightData) * lightCount, 
+                sizeof(VulkanLightData), 
+                0, 
+                &state.forwardShader.lightData);
+            ++lightCount;
+        }
+    }
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 
@@ -909,7 +923,7 @@ std::vector<VkVertexInputAttributeDescription>
     return attributes;
 }
 
-void vulkanImguiRender()
+void vulkanImguiRender(const RenderPacket& packet)
 {
-    imguiRender(state.commandBuffers[state.imageIndex].handle);
+    imguiRender(state.commandBuffers[state.imageIndex].handle, packet);
 }

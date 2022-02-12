@@ -16,56 +16,12 @@
 #include "systems/meshSystem.h"
 #include "systems/textureSystem.h"
 #include "systems/materialSystem.h"
-#include "systems/entitySystem.h"
+//#include "systems/entitySystem.h"
 #include "systems/physicsSystem.h"
 
+#include "systems/entitySystemComponent.h"
+
 #include <external/imgui/imgui.h>
-
-typedef struct ApplicationState
-{
-    Game* pGameInst;
-    bool m_isRunning;
-    bool m_isSuspended;
-    i16 m_width;
-    i16 m_height;
-    LinearAllocator systemsAllocator;
-
-    Clock clock;
-    f64 lastTime;
-
-    u64 memorySystemMemoryRequirements;
-    void* memorySystem;
-
-    u64 eventSystemMemoryRequirements;
-    void* eventSystem;
-
-    u64 inputSystemMemoryRequirements;
-    void* inputSystem;
-
-    u64 platformSystemMemoryRequirements;
-    void* platformSystem;
-
-    u64 renderSystemMemoryRequirements;
-    void* renderSystem;
-
-    u64 resourceSystemMemoryRequirements;
-    void* resourceSystem;
-
-    u64 meshSystemMemoryRequirements;
-    void* meshSystem;
-
-    u64 textureSystemMemoryRequirements;
-    void* textureSystem;
-
-    u64 materialSystemMemoryRequirements;
-    void* materialSystem;
-
-    u64 entitySystemMemoryRequirements;
-    void* entitySystem;
-
-    u64 physicsSystemMemoryRequirements;
-    void* physicsSystem;
-} ApplicationState;
 
 static ApplicationState* pState;
 
@@ -184,15 +140,19 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Entity Component System
-    entitySystemInit(&pState->entitySystemMemoryRequirements, nullptr);
-    pState->entitySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->entitySystemMemoryRequirements);
-    if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
-    {
-        PFATAL("Entity system could not be initialized! Shutting down now.");
-        return false;
-    }
+    //entitySystemInit(&pState->entitySystemMemoryRequirements, nullptr);
+    //pState->entitySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->entitySystemMemoryRequirements);
+    //if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
+    //{
+    //    PFATAL("Entity system could not be initialized! Shutting down now.");
+    //    return false;
+    //}
+
+    pState->entitySystem = new EntitySystem();
+    pState->entitySystem->init();
 
     // Simple 2D physics system
+    /*
     physicsSystemInit(&pState->physicsSystemMemoryRequirements, nullptr);
     pState->physicsSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->physicsSystemMemoryRequirements);
     if(!physicsSystemInit(&pState->physicsSystemMemoryRequirements, pState->physicsSystem))
@@ -200,7 +160,7 @@ bool applicationInit(Game* pGameInst)
         PFATAL("Physiscs system could not be initialized! Shutting down now.");
         return false;
     }
-
+    */
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
     {

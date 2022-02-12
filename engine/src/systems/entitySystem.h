@@ -1,5 +1,5 @@
 #pragma once
-
+/*
 #include "defines.h"
 
 #include "resources/resourcesTypes.h"
@@ -157,3 +157,4 @@ entitySystemGetComponent(Entity entity, ComponentType type);
 
 void 
 entitySystemGetByComponent(u32* counter, ComponentType type, void* outComponents);
+*/

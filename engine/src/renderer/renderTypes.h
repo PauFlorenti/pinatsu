@@ -29,9 +29,4 @@ struct LightData
 typedef struct RenderPacket
 {
     f32 deltaTime;
-
-    u32 renderMeshDataCount;
-    RenderMeshData* meshes;
-    u32 lightDataCount;
-    LightData* lights;
 } RenderPacket;

@@ -5,6 +5,9 @@
 #include "memory/pmemory.h"
 
 // TODO TEMP
+//#include "systems/entitySystem.h"
+#include "systems/entitySystemComponent.h"
+
 struct imguiState
 {
     VkDescriptorPool descriptorPool;
@@ -68,14 +71,45 @@ imguiInit(
 }
 
 void
-imguiRender(VkCommandBuffer& cmd)
+imguiRender(
+    VkCommandBuffer& cmd,
+    const RenderPacket& packet)
 {
-		ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
-		ImGui::Render();
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    //ImGui::ShowDemoWindow();
+
+    EntitySystem* entitySystem = EntitySystem::Get();
+    auto& entities = entitySystem->getAvailableEntities();
+
+    for(auto& it = entities.begin(); it != entities.end(); it++)
+    {
+        if(it->second[entitySystem->getComponentType<RenderComponent>(it->first)] == 1)
+        {
+            if(ImGui::TreeNode("Mesh"))
+            {
+                TransformComponent* comp = &entitySystem->getComponent<TransformComponent>(it->first);
+                ImGui::DragFloat3(" Position", &comp->position.x, 1.0f);
+                ImGui::DragFloat4(" Rotation", &comp->rotation.x, 1.0f);
+                ImGui::DragFloat3(" Scale", &comp->scale.x, 1.0f);
+                ImGui::TreePop();
+            }
+        }
+        if(it->second[entitySystem->getComponentType<LightPointComponent>(it->first)] == 1)
+        {
+            if(ImGui::TreeNode("Light"))
+            {
+                LightPointComponent* comp = &entitySystem->getComponent<LightPointComponent>(it->first);
+                ImGui::DragFloat3(" Position ", &comp->position.x, 1.0f);
+                ImGui::DragFloat3(" Colour", &comp->color.r, 1.0f);
+                ImGui::DragFloat(" Radius", &comp->radius, 1.0f);
+                ImGui::TreePop();
+            }
+        }
+    }
+    ImGui::Render();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 }
 
 void

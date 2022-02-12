@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkanTypes.h"
+#include "renderer/renderTypes.h"
 
 #include "external/imgui/imgui.h"
 #include "external/imgui/imgui_impl_win32.h"
@@ -12,7 +13,9 @@ imguiInit(
     const VulkanRenderpass* renderpass);
 
 void
-imguiRender(VkCommandBuffer& cmd);
+imguiRender(
+    VkCommandBuffer& cmd, 
+    const RenderPacket& packet);
 
 void
 imguiDestroy();

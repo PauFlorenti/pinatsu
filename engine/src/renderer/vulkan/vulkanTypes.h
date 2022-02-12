@@ -14,6 +14,8 @@
 
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
 
+#define MAX_LIGHTS 16
+
 typedef struct VulkanDevice
 { 
     VkPhysicalDevice    physicalDevice;

@@ -28,7 +28,7 @@ void main()
     fragColor = color;
     outUV = uv;
     worldPos = (model * vec4(position, 1.0)).xyz;
-    worldNormal = (model * vec4(normal, 1.0)).xyz;
+    worldNormal = mat3(transpose(inverse(model))) * normal;
 
     gl_Position = ubo.proj * ubo.view * vec4(worldPos, 1.0);
 }

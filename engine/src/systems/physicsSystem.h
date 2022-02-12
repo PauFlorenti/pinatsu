@@ -1,5 +1,5 @@
 #pragma once
-
+/*
 #include "defines.h"
 #include "entitySystem.h"
 
@@ -22,3 +22,4 @@ physicsSystemRemoveEntity(Entity entity);
 
 void
 physicsSystemsUpdate(f32 dt);
+*/

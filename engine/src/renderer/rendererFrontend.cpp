@@ -4,6 +4,8 @@
 #include "math_types.h"
 #include "core/logger.h"
 
+#include "systems/entitySystemComponent.h"
+
 #include "external/glm/gtc/matrix_transform.hpp" // TODO temp
 
 typedef struct RenderFrontendState
@@ -46,10 +48,8 @@ void renderSystemShutdown(void* state)
 
 bool renderDrawFrame(const RenderPacket& packet)
 {
-
     if(pState->renderBackend.beginFrame(packet.deltaTime))
     {
-
         // Begin renderpass
         if(!pState->renderBackend.beginRenderPass(RENDER_PASS_FORWARD))
         {
@@ -58,13 +58,25 @@ bool renderDrawFrame(const RenderPacket& packet)
         }
 
         // Update light descriptor
-        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime, packet.lights);
+        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
 
-        for(u32 i = 0; i < packet.renderMeshDataCount; ++i) {
-            pState->renderBackend.drawGeometry(&packet.meshes[i]);
+        EntitySystem* entitySystem = EntitySystem::Get();
+        auto& entities = entitySystem->getAvailableEntities();
+
+        for(auto& entity : entities)
+        {
+            if(entity.second[entitySystem->getComponentType<RenderComponent>(entity.first)] == 1)
+            {
+                TransformComponent t = entitySystem->getComponent<TransformComponent>(entity.first);
+                RenderComponent r = entitySystem->getComponent<RenderComponent>(entity.first);
+
+                glm::mat4 model = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);
+                RenderMeshData renderData = {model, r.mesh, r.material};
+                pState->renderBackend.drawGeometry(&renderData);
+            }
         }
 
-        pState->renderBackend.drawGui();
+        pState->renderBackend.drawGui(packet);
 
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
 

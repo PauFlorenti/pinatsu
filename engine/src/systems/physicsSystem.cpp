@@ -1,5 +1,5 @@
 #include "physicsSystem.h"
-
+/*
 #include "core/logger.h"
 
 static PhysicSystem* physicsState = nullptr;
@@ -169,3 +169,4 @@ physicsSystemsUpdate(f32 dt)
         updateStep(ent, dt);
     }
 }
+*/
