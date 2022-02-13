@@ -3,8 +3,8 @@
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/pstring.h"
-
 #include "core/application.h"
+#include "memory/pmemory.h"
 
 // TODO If application.h is included, does system need to be included too?
 #include "systems/resourceSystem.h"
@@ -12,10 +12,8 @@
 #include "systems/materialSystem.h"
 #include "systems/textureSystem.h"
 #include "systems/physicsSystem.h"
-
 #include "systems/entitySystemComponent.h"
 
-#include "memory/pmemory.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
@@ -30,14 +28,6 @@ static Entity camera;
 bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
-
-    // TODO make camera an entity
-    // Camera definition
-    f32 ratio           = (f32)pGameInst->appConfig.startWidth / (f32)pGameInst->appConfig.startHeight;
-    state->projection   = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
-    state->view         = glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, -10.0f));
-    state->deltaTime    = 0.0f;
-    state->cameraAxes   = glm::vec3(0);
 
     ApplicationState* appState = (ApplicationState*)pGameInst->appState;
     EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
@@ -62,7 +52,7 @@ bool gameInitialize(Game* pGameInst)
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
     entitySystem->addComponent(player, TransformComponent{glm::vec3(0.0), glm::quat(), glm::vec3(1.0)});
-    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), glm::vec3(3.0f, 0.5f, 3.0f)});
+    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), glm::vec3(10.0f, 0.25f, 10.0f)});
 
     Resource gltf;
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);

@@ -61,7 +61,15 @@ void main()
     vec3 wNorm = inWorldNormal;
     vec3 N = vec3(0.0);
     vec4 color = vec4(0.0);
+    vec3 ambient_factor = vec3(0.1);
 
+    // Diffuse color
+    vec4 diffuseTxt = texture(diffuseSampler, inUV);
+    if(diffuseTxt.w < 1.0)
+        discard;
+    vec4 diffuse = mat.diffuse * diffuseTxt;
+
+    // Multipass lights
     for(int i = 0; i < MAX_LIGHTS; i++)
     {
         vec3 lightPos = lights.l[i].position;
@@ -69,24 +77,17 @@ void main()
         float distanceToLight = length(L);
         L = normalize(L);
 
-        //if(distanceToLight > lights.l[i].radius)
-        //    continue;
+        if(distanceToLight > lights.l[i].radius)
+            continue;
 
-        float att_factor = 1.0 / distanceToLight;
-        att_factor = 1.0;
+        float att_factor = (lights.l[i].radius - distanceToLight) / lights.l[i].radius;
+        att_factor = att_factor * att_factor;
 
         N = normalize(texture(normalSampler, inUV).xyz);
-        //N = N * 2.0 - 1.0;
         N = perturbNormal(wNorm, wPos, inUV, N);
         float NdotL = dot(N, L);
-        vec4 diffuseTxt = texture(diffuseSampler, inUV);
-        if(diffuseTxt.w < 1.0)
-            discard;
-        vec4 diffuse = mat.diffuse * diffuseTxt;
         vec4 light = (NdotL * vec4(lights.l[i].color, 1.0)) * att_factor;
         color += light * diffuse;
     }
-    //N = wNorm * 2.0 - 1.0;
     fragColor = color;
-    //fragColor = vec4(N, 1.0);
 }

@@ -125,7 +125,6 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
     {
