@@ -48,6 +48,24 @@ struct LightPointComponent
     bool enabled;
 };
 
+struct CameraComponent
+{
+    // Basic attributes
+    glm::vec3 position;
+    glm::vec3 up;
+    glm::vec3 right;
+    glm::vec3 front;
+    
+    // Euler angles
+    f32 yaw;
+    f32 pitch;
+
+    // Options
+    f32 speed;
+    f32 zoom;
+    bool locked;
+};
+
 class EntityManager
 {
 private:

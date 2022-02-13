@@ -274,6 +274,19 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         break;
     }
     case WM_LBUTTONDOWN: {
+        inputProcessButton(LEFT_MOUSE_BUTTON, true);
+        break;
+    }
+    case WM_LBUTTONUP: {
+        inputProcessButton(LEFT_MOUSE_BUTTON, false);
+        break;
+    }
+    case WM_RBUTTONDOWN: {
+        inputProcessButton(RIGHT_MOUSE_BUTTON, true);
+        break;
+    }
+    case WM_RBUTTONUP: {
+        inputProcessButton(RIGHT_MOUSE_BUTTON, false);
         break;
     }
     }

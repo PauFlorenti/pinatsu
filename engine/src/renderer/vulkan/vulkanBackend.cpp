@@ -104,15 +104,27 @@ internal bool vulkanCreateUIShader(
 void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
     gameTime += dt;
-    f32 speed = 100.0f;
-    state.forwardShader.globalUboData.view        = view;
+
+    EntitySystem* entitySystem = EntitySystem::Get();
+    auto& entities = entitySystem->getAvailableEntities();
+
+    CameraComponent camera;
+    for(auto& it = entities.begin(); it != entities.end(); it++)
+    {
+        if(it->second[entitySystem->getComponentType<CameraComponent>(it->first)]) {
+            camera = entitySystem->getComponent<CameraComponent>(it->first);
+            break;
+        }
+    }
+
+    glm::mat4 cameraView = glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+
+    state.forwardShader.globalUboData.view        = cameraView;
     state.forwardShader.globalUboData.projection  = projection;
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-    EntitySystem* entitySystem = EntitySystem::Get();
-    auto& entities = entitySystem->getAvailableEntities();
 
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
@@ -174,7 +186,6 @@ bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCo
         PFATAL("vulkanCreateMesh - failed to assign an index. No slot available.");
         return false;
     }
-
 
     renderMesh->vertexCount   = vertexCount;
     renderMesh->vertexOffset  = 0;

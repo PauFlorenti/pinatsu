@@ -163,6 +163,19 @@ void inputProcessKey(keys key, bool pressed)
         // Fire event
         eventContext context;
         context.data.u16[0] = key;
+        eventFire(pressed ? EVENT_CODE_KEY_PRESSED : EVENT_CODE_KEY_RELEASED, 0, context);
+    }
+}
+
+void inputProcessButton(Buttons button, bool pressed)
+{
+    if(pState != nullptr && pState->currentMouse.buttons[button] != pressed)
+    {
+        pState->currentMouse.buttons[button] = pressed;
+
+        // Fire event
+        eventContext context;
+        context.data.u16[0] = button;
         eventFire(pressed ? EVENT_CODE_BUTTON_PRESSED : EVENT_CODE_BUTTON_RELEASED, 0, context);
     }
 }

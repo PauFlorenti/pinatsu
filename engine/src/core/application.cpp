@@ -28,6 +28,7 @@ static ApplicationState* pState;
 bool appOnEvent(u16 code, void* sender, void* listener, eventContext data);
 bool appOnResize(u16 code, void* sender, void* listener, eventContext data);
 bool appOnKey(u16 code, void* sender, void* listener, eventContext data);
+bool appOnButton(u16 code, void* sender, void* listener, eventContext data);
 
 /**
  * Initialize all systems needed for the app to run.
@@ -67,8 +68,10 @@ bool applicationInit(Game* pGameInst)
     inputSystemInit(&pState->inputSystemMemoryRequirements, nullptr);
     pState->inputSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->inputSystemMemoryRequirements);
     inputSystemInit(&pState->inputSystemMemoryRequirements, pState->inputSystem);
-    eventRegister(EVENT_CODE_BUTTON_PRESSED, 0, appOnKey);
-    eventRegister(EVENT_CODE_BUTTON_RELEASED, 0, appOnKey);
+    eventRegister(EVENT_CODE_KEY_PRESSED, 0, appOnKey);
+    eventRegister(EVENT_CODE_KEY_RELEASED, 0, appOnKey);
+    eventRegister(EVENT_CODE_BUTTON_PRESSED, 0, appOnButton);
+    eventRegister(EVENT_CODE_BUTTON_RELEASED, 0, appOnButton);
 
     // Init platform system.
     platformStartup(&pState->platformSystemMemoryRequirements, 0, 0, 0, 0, 0, 0);
@@ -216,10 +219,12 @@ bool applicationRun()
         frameCount++;
     }
 
-    eventUnregister(EVENT_CODE_BUTTON_PRESSED, 0, appOnKey);
-    eventUnregister(EVENT_CODE_BUTTON_RELEASED, 0, appOnKey);
+    eventUnregister(EVENT_CODE_KEY_PRESSED, 0, appOnKey);
+    eventUnregister(EVENT_CODE_KEY_RELEASED, 0, appOnKey);
     eventUnregister(EVENT_CODE_APP_QUIT, 0, appOnEvent);
     eventUnregister(EVENT_CODE_RESIZED, 0, appOnResize);
+    eventUnregister(EVENT_CODE_BUTTON_PRESSED, 0, appOnButton);
+    eventUnregister(EVENT_CODE_BUTTON_RELEASED, 0, appOnButton);
 
     materialSystemShutdown(pState->materialSystem);
     textureSystemShutdown(pState->textureSystem);
@@ -282,7 +287,7 @@ bool appOnResize(u16 code, void* sender, void* listener, eventContext data)
 
 bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
 {
-    if(code == EVENT_CODE_BUTTON_PRESSED)
+    if(code == EVENT_CODE_KEY_PRESSED)
     {
         u16 keyCode = data.data.u16[0];
         if(keyCode == KEY_ESCAPE)
@@ -301,7 +306,7 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
         // TODO end temp information.
         return true;
     }
-    else if(code == EVENT_CODE_BUTTON_RELEASED)
+    else if(code == EVENT_CODE_KEY_RELEASED)
     {
         u16 keyCode = data.data.u16[0];
         // TODO temp information.
@@ -311,6 +316,43 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data)
     }
 
     // let know the event has not been handled.
+    return false;
+}
+
+bool appOnButton(u16 code, void* sender, void* listener, eventContext data)
+{
+    if(code == EVENT_CODE_BUTTON_PRESSED)
+    {
+        u16 button = data.data.u16[0];
+        if(button == LEFT_MOUSE_BUTTON){
+            PINFO("Left mouse button pressed!");
+            return true;
+        }
+        if(button == MIDDLE_MOUSE_BUTTON){
+            PINFO("Middle mouse button pressed!");
+            return true;
+        }
+        if(button == RIGHT_MOUSE_BUTTON){
+            PINFO("Right mouse button pressed!");
+            return true;
+        }
+    }
+    else if(code == EVENT_CODE_BUTTON_RELEASED)
+    {
+        u16 button = data.data.u16[0];
+        if(button == RIGHT_MOUSE_BUTTON){
+            PINFO("Right mouse button released!");
+            return true;
+        }
+        if(button == MIDDLE_MOUSE_BUTTON){
+            PINFO("Middle mouse button released!");
+            return true;
+        }
+        if(button == LEFT_MOUSE_BUTTON){
+            PINFO("Left mouse button released!");
+            return true;
+        }
+    }
     return false;
 }
 

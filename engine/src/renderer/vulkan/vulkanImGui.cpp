@@ -4,9 +4,8 @@
 
 #include "memory/pmemory.h"
 
-// TODO TEMP
-//#include "systems/entitySystem.h"
 #include "systems/entitySystemComponent.h"
+#include "external/imgui/ImGuizmo.h"
 
 struct imguiState
 {
@@ -87,6 +86,7 @@ imguiRender(
     {
         if(it->second[entitySystem->getComponentType<RenderComponent>(it->first)] == 1)
         {
+            ImGui::PushID(it->first);
             if(ImGui::TreeNode("Mesh"))
             {
                 TransformComponent* comp = &entitySystem->getComponent<TransformComponent>(it->first);
@@ -95,9 +95,11 @@ imguiRender(
                 ImGui::DragFloat3(" Scale", &comp->scale.x, 1.0f);
                 ImGui::TreePop();
             }
+            ImGui::PopID();
         }
         if(it->second[entitySystem->getComponentType<LightPointComponent>(it->first)] == 1)
         {
+            ImGui::PushID(it->first);
             if(ImGui::TreeNode("Light"))
             {
                 LightPointComponent* comp = &entitySystem->getComponent<LightPointComponent>(it->first);
@@ -106,8 +108,71 @@ imguiRender(
                 ImGui::DragFloat(" Radius", &comp->radius, 1.0f);
                 ImGui::TreePop();
             }
+            ImGui::PopID();
         }
     }
+/*
+    TransformComponent t = entitySystem->getComponent<TransformComponent>(1);
+    glm::mat4 matrix = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);
+
+    ImGuizmo::BeginFrame();
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+	static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+	if (ImGui::IsKeyPressed(90))
+		mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+	if (ImGui::IsKeyPressed(69))
+		mCurrentGizmoOperation = ImGuizmo::ROTATE;
+	if (ImGui::IsKeyPressed(82)) // r Key
+		mCurrentGizmoOperation = ImGuizmo::SCALE;
+	if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+		mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+		mCurrentGizmoOperation = ImGuizmo::ROTATE;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+		mCurrentGizmoOperation = ImGuizmo::SCALE;
+	float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+	ImGuizmo::DecomposeMatrixToComponents(&matrix[0][0], matrixTranslation, matrixRotation, matrixScale);
+	ImGui::InputFloat3("Tr", matrixTranslation);
+	ImGui::InputFloat3("Rt", matrixRotation);
+	ImGui::InputFloat3("Sc", matrixScale);
+	ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, &matrix[0][0]);
+
+    if (mCurrentGizmoOperation != ImGuizmo::SCALE)
+	{
+		if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+			mCurrentGizmoMode = ImGuizmo::LOCAL;
+		ImGui::SameLine();
+		if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+			mCurrentGizmoMode = ImGuizmo::WORLD;
+	}
+	static bool useSnap(false);
+	if (ImGui::IsKeyPressed(83))
+		useSnap = !useSnap;
+	ImGui::Checkbox("", &useSnap);
+	ImGui::SameLine();
+	glm::vec3 snap;
+	switch (mCurrentGizmoOperation)
+	{
+	case ImGuizmo::TRANSLATE:
+		//snap = config.mSnapTranslation;
+		ImGui::InputFloat3("Snap", &snap.x);
+		break;
+	case ImGuizmo::ROTATE:
+		//snap = config.mSnapRotation;
+		ImGui::InputFloat("Angle Snap", &snap.x);
+		break;
+	case ImGuizmo::SCALE:
+		//snap = config.mSnapScale;
+		ImGui::InputFloat("Scale Snap", &snap.x);
+		break;
+	}
+	ImGuiIO& io = ImGui::GetIO();
+	ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+	glm::mat4 projection = glm::perspective(glm::radians(70.0f), 1700.f / 900.f, 0.1f, 200.0f);
+	ImGuizmo::Manipulate(&_scene->_camera->getView()[0][0], &projection[0][0], mCurrentGizmoOperation, mCurrentGizmoMode, &matrix[0][0], NULL, useSnap ? &snap.x : NULL);
+*/
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 }
