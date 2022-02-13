@@ -29,6 +29,7 @@ bool appOnEvent(u16 code, void* sender, void* listener, eventContext data);
 bool appOnResize(u16 code, void* sender, void* listener, eventContext data);
 bool appOnKey(u16 code, void* sender, void* listener, eventContext data);
 bool appOnButton(u16 code, void* sender, void* listener, eventContext data);
+bool appOnMouseMove(u16 code, void* sender, void* listener, eventContext data);
 
 /**
  * Initialize all systems needed for the app to run.
@@ -72,6 +73,7 @@ bool applicationInit(Game* pGameInst)
     eventRegister(EVENT_CODE_KEY_RELEASED, 0, appOnKey);
     eventRegister(EVENT_CODE_BUTTON_PRESSED, 0, appOnButton);
     eventRegister(EVENT_CODE_BUTTON_RELEASED, 0, appOnButton);
+    eventRegister(EVENT_CODE_MOUSE_MOVED, 0, appOnMouseMove);
 
     // Init platform system.
     platformStartup(&pState->platformSystemMemoryRequirements, 0, 0, 0, 0, 0, 0);
@@ -352,6 +354,18 @@ bool appOnButton(u16 code, void* sender, void* listener, eventContext data)
             PINFO("Left mouse button released!");
             return true;
         }
+    }
+    return false;
+}
+
+bool appOnMouseMove(u16 code, void* sender, void* listener, eventContext data)
+{
+    if(code == EVENT_CODE_MOUSE_MOVED)
+    {
+        u16 x = data.data.u16[0];
+        u16 y = data.data.u16[1];
+
+        return true;
     }
     return false;
 }

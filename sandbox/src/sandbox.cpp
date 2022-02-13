@@ -111,27 +111,23 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
     CameraComponent* cameraComp = &entitySystem->getComponent<CameraComponent>(camera);
 #if DEBUG
     f32 speed = 10.0f;
-    if(isKeyDown(KEY_W))
-    {
-        cameraComp->position = cameraComp->position + (glm::vec3(0, 1, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_W)) {
+        cameraComp->position = cameraComp->position + (cameraComp->front * speed * deltaTime);
     }
-    if(isKeyDown(KEY_S))
-    {
-        cameraComp->position = cameraComp->position + (glm::vec3(0, -1, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_S)) {
+        cameraComp->position = cameraComp->position - (cameraComp->front * speed * deltaTime);
     }
-    if(isKeyDown(KEY_UP))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, 0, 1) * speed * deltaTime);
+    if(isKeyDown(KEY_UP)) {
+        cameraComp->position = cameraComp->position + (cameraComp->up * speed * deltaTime);
     }
-    if(isKeyDown(KEY_DOWN))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, 0, -1) * speed * deltaTime);
+    if(isKeyDown(KEY_DOWN)) {
+        cameraComp->position = cameraComp->position - (cameraComp->up * speed * deltaTime);
     }
-    if(isKeyDown(KEY_A)){
-        cameraComp->position = cameraComp->position + (glm::vec3(-1, 0, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_A)) {
+        cameraComp->position = cameraComp->position + (cameraComp->right * speed * deltaTime);
     }
-    else if(isKeyDown(KEY_D)){
-        cameraComp->position = cameraComp->position + (glm::vec3(1, 0, 0) * speed * deltaTime);
+    else if(isKeyDown(KEY_D)) {
+        cameraComp->position = cameraComp->position - (cameraComp->right * speed * deltaTime);
     }
     if(isMouseButtonDown(RIGHT_MOUSE_BUTTON)) {
         cameraComp->locked = true;
@@ -143,30 +139,27 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
     glm::vec2 mousePosition;
     glm::vec2 oldMousePosition;
     if(cameraComp->locked) {
-        glm::vec2 mousePosition;
-        glm::vec2 oldMousePosition;
-        getMousePosition(&(i32)mousePosition.x, &(i32)mousePosition.y);
-        getPreviousMousePosition(&(i32)oldMousePosition.x, &(i32)oldMousePosition.y);
+        i32 x, y;
+        i32 oldX, oldY;
+        getMousePosition(&x, &y);
+        getPreviousMousePosition(&oldX, &oldY);
         if(mousePosition != oldMousePosition) {
             // Rotate
-            glm::vec2 deltaMouse = oldMousePosition - mousePosition;
-
-            cameraComp->yaw += deltaMouse.x * deltaTime;
-            cameraComp->pitch += deltaMouse.y * deltaTime;
+            glm::vec2 deltaMouse(oldX - x, oldY - y);
+            cameraComp->yaw -= deltaMouse.x * 200 * deltaTime;
+            cameraComp->pitch += deltaMouse.y * 200 * deltaTime;
 
             glm::vec3 front;
             front.x = cos(glm::radians(cameraComp->yaw)) * cos(glm::radians(cameraComp->pitch));
             front.y = sin(glm::radians(cameraComp->pitch));
             front.z = sin(glm::radians(cameraComp->yaw)) * cos(glm::radians(cameraComp->pitch));
 
-            cameraComp->front = glm::normalize(front);
-            cameraComp->right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraComp->front));
-            cameraComp->up = glm::normalize(glm::cross(cameraComp->front, cameraComp->right));
+            cameraComp->front   = glm::normalize(front);
+            cameraComp->right   = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraComp->front));
+            cameraComp->up      = glm::normalize(glm::cross(cameraComp->front, cameraComp->right));
             // TODO set mouse position to center
         }
     }
-/*
-*/
 #endif
     /*
     No rotation at the moment

@@ -164,3 +164,4 @@ void getPreviousMousePosition(i32* x, i32* y);
 // Process input
 void inputProcessKey(keys key, bool pressed);
 void inputProcessButton(Buttons button, bool pressed);
+void inputProcessMouseMove(i16 x, i16 y);

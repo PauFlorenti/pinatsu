@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <windows.h>
+#include <windowsx.h>
 #include <wingdi.h>
 
 #include "vulkan\vulkan_win32.h"
@@ -271,6 +272,7 @@ LRESULT CALLBACK WinProcMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         break;
     }
     case WM_MOUSEMOVE: {
+        inputProcessMouseMove((i16)GET_X_LPARAM(lParam), (i16)GET_Y_LPARAM(lParam));
         break;
     }
     case WM_LBUTTONDOWN: {
@@ -323,4 +325,10 @@ void*
 platformGetWinHandle()
 {
     return pState->hwnd;
+}
+
+void setMousePosition(i32 x, i32 y)
+{
+    SetCursorPos(x, y);
+    inputProcessMouseMove(x, y);
 }
