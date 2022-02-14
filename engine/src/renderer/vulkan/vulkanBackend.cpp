@@ -117,10 +117,11 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
         }
     }
 
-    glm::mat4 cameraView = glm::lookAt(camera.position, camera.position + camera.front, camera.up);
+    glm::mat4 cameraView = camera.getView();
 
     state.forwardShader.globalUboData.view        = cameraView;
     state.forwardShader.globalUboData.projection  = projection;
+    state.forwardShader.globalUboData.position    = camera.position; 
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
