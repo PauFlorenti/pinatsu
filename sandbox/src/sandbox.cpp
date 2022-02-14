@@ -29,6 +29,9 @@ bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
 
+    f32 ratio           = (f32)pGameInst->appConfig.startWidth / (f32)pGameInst->appConfig.startHeight;
+    state->projection   = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
+
     ApplicationState* appState = (ApplicationState*)pGameInst->appState;
     EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
     

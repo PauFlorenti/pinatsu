@@ -5,6 +5,9 @@
 #include "memory/pmemory.h"
 
 #include "systems/entitySystemComponent.h"
+
+#include <external/glm/gtc/type_ptr.hpp>
+#include <external/glm/gtx/quaternion.hpp>
 #include "external/imgui/ImGuizmo.h"
 
 struct imguiState
@@ -89,10 +92,78 @@ imguiRender(
             ImGui::PushID(it->first);
             if(ImGui::TreeNode("Mesh"))
             {
-                TransformComponent* comp = &entitySystem->getComponent<TransformComponent>(it->first);
-                ImGui::DragFloat3(" Position", &comp->position.x, 1.0f);
-                ImGui::DragFloat4(" Rotation", &comp->rotation.x, 1.0f);
-                ImGui::DragFloat3(" Scale", &comp->scale.x, 1.0f);
+                static ImGuizmo::OPERATION currentOperation(ImGuizmo::TRANSLATE);
+                static ImGuizmo::MODE currentMode(ImGuizmo::WORLD);
+
+                CameraComponent* c = &entitySystem->getComponent<CameraComponent>(0);
+                TransformComponent* t = &entitySystem->getComponent<TransformComponent>(it->first);
+
+                ImGui::DragFloat3(" Position", &t->position.x, 1.0f);
+                //ImGui::DragFloat4(" Rotation", &comp->rotation.x, 1.0f);
+                ImGui::DragFloat3(" Scale", &t->scale.x, 1.0f);
+                if(ImGui::RadioButton("Translate", currentOperation == ImGuizmo::TRANSLATE))
+                    currentOperation = ImGuizmo::TRANSLATE;
+                ImGui::SameLine();
+                if(ImGui::RadioButton("Rotate", currentOperation == ImGuizmo::ROTATE))
+                    currentOperation = ImGuizmo::ROTATE;
+                ImGui::SameLine();
+                if(ImGui::RadioButton("Scale", currentOperation == ImGuizmo::SCALE))
+                    currentOperation = ImGuizmo::SCALE;
+                ImGui::SameLine();
+                if(currentOperation != ImGuizmo::SCALE) {
+                    if(ImGui::RadioButton("Local", currentMode == ImGuizmo::LOCAL))
+                        currentMode = ImGuizmo::LOCAL;
+                    ImGui::SameLine();
+                    if(ImGui::RadioButton("World", currentMode == ImGuizmo::WORLD))
+                        currentMode = ImGuizmo::WORLD;
+                }
+
+                glm::mat4 matrix = t->asMatrix();
+                glm::mat4 cameraView = c->getView();
+                f32 ratio = (f32)imgui->swapchain->extent.width / (f32)imgui->swapchain->extent.height;
+                glm::mat4 projection = c->getProjection(ratio);
+
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Reset"))
+                {
+                    if(currentOperation == ImGuizmo::TRANSLATE)
+                        t->position = glm::vec3(0.0f);
+                    else if(currentOperation == ImGuizmo::ROTATE)
+                        t->rotation = glm::quat();
+                    else if(currentOperation == ImGuizmo::SCALE)
+                        t->scale = glm::vec3(1.0f);
+                }
+
+                ImGui::SameLine();
+                if(ImGui::SmallButton("All"))
+                {
+                    t->position = glm::vec3(0.0f);
+                    t->rotation = glm::quat();
+                    t->scale = glm::vec3(1.0f);
+                }
+
+                ImGuizmo::BeginFrame();
+                ImGuizmo::Manipulate(
+                    glm::value_ptr(cameraView), 
+                    glm::value_ptr(projection), 
+                    currentOperation, 
+                    currentMode, 
+                    glm::value_ptr(matrix));
+
+                if(ImGuizmo::IsUsing())
+                {
+                    f32 translation[3], rotation[3], scale[3];
+                    ImGuizmo::DecomposeMatrixToComponents(
+                        glm::value_ptr(matrix),
+                        translation,
+                        rotation,
+                        scale);
+                    
+                    t->fromMatrix(matrix);
+                }
+
+                ImGuiIO& io = ImGui::GetIO();
+                ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
                 ImGui::TreePop();
             }
             ImGui::PopID();
@@ -104,18 +175,16 @@ imguiRender(
             {
                 LightPointComponent* comp = &entitySystem->getComponent<LightPointComponent>(it->first);
                 ImGui::DragFloat3(" Position ", &comp->position.x, 1.0f);
-                ImGui::DragFloat3(" Colour", &comp->color.r, 1.0f);
-                ImGui::DragFloat(" Radius", &comp->radius, 1.0f);
+                ImGui::DragFloat3(" Colour", &comp->color.r, 1.0f, 0.0f, 1.0f);
+                ImGui::DragFloat(" Radius", &comp->radius, 0.1f);
                 ImGui::TreePop();
             }
             ImGui::PopID();
         }
     }
-/*
-    TransformComponent t = entitySystem->getComponent<TransformComponent>(1);
-    glm::mat4 matrix = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);
 
-    ImGuizmo::BeginFrame();
+
+/*
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
 	static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 	if (ImGui::IsKeyPressed(90))

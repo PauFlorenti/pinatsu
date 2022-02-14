@@ -8,6 +8,7 @@
 
 #include "external/glm/glm.hpp"
 #include "external/glm/gtc/quaternion.hpp"
+#include <external/glm/gtx/matrix_decompose.hpp>
 
 #include <queue>
 #include <unordered_map>
@@ -29,6 +30,17 @@ struct TransformComponent
     glm::vec3 position;
     glm::quat rotation;
     glm::vec3 scale;
+
+    glm::mat4 asMatrix() {
+        return glm::translate(glm::mat4(1), position)
+                * glm::mat4_cast(rotation)
+                * glm::scale(glm::mat4(1), scale);
+    }
+
+    void fromMatrix(glm::mat4 matrix) {
+        glm::decompose(matrix, scale, rotation, position, glm::vec3(0), glm::vec4(0));
+        rotation = glm::conjugate(rotation);
+    }
 };
 
 // Render component
@@ -64,6 +76,13 @@ struct CameraComponent
     f32 speed;
     f32 zoom;
     bool locked;
+
+    glm::mat4 getView() {
+        return glm::lookAt(position, position + front, glm::vec3(0, 1, 0));
+    }
+    glm::mat4 getProjection(f32 ratio) {
+        return glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
+    }
 };
 
 class EntityManager
