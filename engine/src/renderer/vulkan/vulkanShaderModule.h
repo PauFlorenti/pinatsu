@@ -6,7 +6,7 @@
 bool readShaderFile(const char* filename, std::vector<char>& buffer);
 
 void vulkanCreateShaderModule(
-    VulkanState* pState,
+    const VulkanDevice& device,
     std::vector<char>& buffer,
     VkShaderModule* module);
 

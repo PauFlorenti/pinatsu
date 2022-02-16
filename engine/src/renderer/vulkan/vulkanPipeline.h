@@ -11,7 +11,7 @@ void vulkanCreateGraphicsPipeline(
     VulkanState* pState,
     VulkanRenderpass* renderpass,
     u32 attributeCount,
-    VkVertexInputAttributeDescription* attributeDescription,
+    const VkVertexInputAttributeDescription* attributeDescription,
     u32 stageCount,
     VkPipelineShaderStageCreateInfo* stages,
     u32 descriptorCount,

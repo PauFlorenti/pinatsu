@@ -36,7 +36,7 @@ readShaderFile(const char* filename, std::vector<char>& buffer)
  * @return void
  */
 void vulkanCreateShaderModule(
-    VulkanState* pState,
+    const VulkanDevice& device,
     std::vector<char>& buffer,
     VkShaderModule* module)
 {
@@ -45,7 +45,7 @@ void vulkanCreateShaderModule(
     info.pCode      = reinterpret_cast<const u32*>(buffer.data());
     
     VK_CHECK(vkCreateShaderModule(
-        pState->device.handle, 
+        device.handle, 
         &info, 
         nullptr, 
         module));

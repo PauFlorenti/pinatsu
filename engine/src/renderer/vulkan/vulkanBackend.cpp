@@ -90,16 +90,6 @@ void vulkanRegenerateFramebuffers(
 
 bool recreateSwapchain();
 
-// TODO make configurable depending on the shader.
-// Get standard attribute description.
-std::vector<VkVertexInputAttributeDescription>
-getStandardAttributeDescription(void);
-
-internal bool vulkanCreateUIShader(
-    VulkanState* pState
-    // TODO VulkanUIShader* outShader
-);
-
 // TODO review to function per shader pass.
 void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
 {
@@ -886,52 +876,8 @@ bool recreateSwapchain()
         &state.renderpass);
     
     createCommandBuffers();
-
-    // TODO Change viewport ans scissor from render pipeline
-
     state.recreatingSwapchain = false;
     return true;
-}
-
-/**
- * @brief returns a vector containing the standard input attribute
- * description for this engine. The attributes description is as follows:
- *  vec3 position
- *  vec4 colour
- *  vec3 normal
- *  vec2 uvs
- * @param void
- * @return vector containing all input attributes.
- */
-// TODO Add Normals and uvs
-std::vector<VkVertexInputAttributeDescription>
-    getStandardAttributeDescription(void)
-{
-    std::vector<VkVertexInputAttributeDescription> attributes(3);
-    
-    // Position
-    VkVertexInputAttributeDescription vert{};
-    vert.binding    = 0;
-    vert.location   = 0;
-    vert.format     = VK_FORMAT_R32G32B32_SFLOAT;
-    vert.offset     = 0;
-    attributes.at(0) = vert;
-
-    VkVertexInputAttributeDescription color{};
-    color.binding   = 0;
-    color.location  = 1;
-    color.format    = VK_FORMAT_R32G32B32A32_SFLOAT;
-    color.offset    = sizeof(f32) * 3;
-    attributes.at(1) = color;
-
-    VkVertexInputAttributeDescription uvs{};
-    uvs.binding = 0;
-    uvs.location = 2;
-    uvs.format = VK_FORMAT_R32G32_SFLOAT;
-    uvs.offset = sizeof(f32) * 7;
-    attributes.at(2) = uvs;
-
-    return attributes;
 }
 
 void vulkanImguiRender(const RenderPacket& packet)

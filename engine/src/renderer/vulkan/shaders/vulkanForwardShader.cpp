@@ -1,9 +1,10 @@
 #include "vulkanForwardShader.h"
 
+#include "memory/pmemory.h"
 #include "../vulkanBuffer.h"
 #include "../vulkanPipeline.h"
 #include "../vulkanShaderModule.h"
-#include "memory/pmemory.h"
+#include "../vulkanVertexDeclaration.h"
 
 /**
  * * Vulkan Shader creation functions
@@ -45,8 +46,8 @@ bool vulkanCreateForwardShader(
         return false;
     }
 
-    vulkanCreateShaderModule(pState, vertexBuffer, &outShader->shaderStages[0].shaderModule);
-    vulkanCreateShaderModule(pState, fragBuffer, &outShader->shaderStages[1].shaderModule);
+    vulkanCreateShaderModule(pState->device, vertexBuffer, &outShader->shaderStages[0].shaderModule);
+    vulkanCreateShaderModule(pState->device, fragBuffer, &outShader->shaderStages[1].shaderModule);
 
     // Set the samplers index
     outShader->samplerUses[0] = TEXTURE_USE_DIFFUSE;
@@ -165,40 +166,14 @@ bool vulkanCreateForwardShader(
         outShader->globalDescriptorSetLayout,
         outShader->meshInstanceDescriptorSetLayout
     };
-
-    // Position
-    VkVertexInputAttributeDescription vert{};
-    vert.binding    = 0;
-    vert.location   = 0;
-    vert.format     = VK_FORMAT_R32G32B32_SFLOAT;
-    vert.offset     = 0;
-
-    VkVertexInputAttributeDescription color{};
-    color.binding   = 0;
-    color.location  = 1;
-    color.format    = VK_FORMAT_R32G32B32A32_SFLOAT;
-    color.offset    = sizeof(f32) * 3;
-
-    VkVertexInputAttributeDescription uvs{};
-    uvs.binding     = 0;
-    uvs.location    = 2;
-    uvs.format      = VK_FORMAT_R32G32_SFLOAT;
-    uvs.offset      = sizeof(f32) * 7;
-
-    VkVertexInputAttributeDescription normal{};
-    normal.binding  = 0;
-    normal.location = 3;
-    normal.format   = VK_FORMAT_R32G32B32_SFLOAT;
-    normal.offset   = sizeof(f32) * 9;
-
-    const u32 attributeSize = 4;
-    VkVertexInputAttributeDescription attributeDescription[attributeSize] = {vert, color, uvs, normal};
+    
+    const VertexDeclaration* vtx = getVertexDeclarationByName("PosColorUvN");
 
     vulkanCreateGraphicsPipeline(
         pState,
         &pState->renderpass,
-        attributeSize,
-        attributeDescription,
+        vtx->size,
+        vtx->layout,
         shaderStages.size(),
         shaderStages.data(),
         descriptorSetLayoutCount,
