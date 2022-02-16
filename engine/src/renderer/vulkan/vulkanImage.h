@@ -4,7 +4,7 @@
 #include "vulkanTypes.h"
 
 void vulkanCreateImage(
-    VulkanState* pState,
+    const VulkanDevice& device, 
     VkImageType type,
     u32 width,
     u32 height,
@@ -17,13 +17,13 @@ void vulkanCreateImage(
     VulkanImage* outImage);
 
 void vulkanCreateImageView(
-    VulkanState* pState, 
+    const VulkanDevice& device, 
     VulkanImage* image,
     VkFormat format,
     VkImageAspectFlags aspectFlags);
 
 void vulkanImageTransitionLayout(
-    VulkanState* pState,
+    const VulkanDevice& device, 
     VulkanImage* image,
     VkFormat format,
     VkImageLayout oldLayout,

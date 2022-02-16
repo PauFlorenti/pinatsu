@@ -1,5 +1,7 @@
 #include "vulkanUtils.h"
 
+#include "vulkanImage.h"
+
 i32 
 findMemoryIndex(
     const VulkanDevice& device,
@@ -104,4 +106,50 @@ void vulkanDestroySemaphore(
         device.handle,
         semaphore,
         nullptr);
+}
+
+
+/**
+ * *Create Attachment
+ */
+
+void 
+vulkanCreateAttachment(
+    const VulkanDevice& device,
+    VkFormat format,
+    VkImageUsageFlagBits usage,
+    u32 width,
+    u32 height,
+    VulkanTexture* texture)
+{
+
+    VkImageAspectFlags aspectFlags;
+    VkImageLayout imageLayout;
+
+    if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+    {
+        aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;        
+    }
+    if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+    {
+        aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    }
+
+    VkExtent3D extent = {width, height, 1};
+    
+    vulkanCreateImage(
+        device, 
+        VK_IMAGE_TYPE_2D, 
+        width, 
+        height, 
+        format, 
+        VK_IMAGE_TILING_OPTIMAL, 
+        usage | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        true,
+        0,
+        &texture->image);
+
 }

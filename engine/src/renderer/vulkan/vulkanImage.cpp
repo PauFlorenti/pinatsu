@@ -3,7 +3,7 @@
 #include "vulkanUtils.h"
 
 void vulkanCreateImage(
-    VulkanState* pState,
+    const VulkanDevice& device, 
     VkImageType type,
     u32 width,
     u32 height,
@@ -33,27 +33,27 @@ void vulkanCreateImage(
     //info.pQueueFamilyIndices = &pState->device.graphicsQueueIndex; ignored as it is not VK_SHARING_MODE_CONCURRENT
     info.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    VK_CHECK(vkCreateImage(pState->device.handle, &info, nullptr, &outImage->handle));
+    VK_CHECK(vkCreateImage(device.handle, &info, nullptr, &outImage->handle));
 
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(
-        pState->device.handle, 
+        device.handle, 
         outImage->handle, 
         &memoryRequirements);
 
     VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     memoryAllocateInfo.allocationSize = memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(pState->device, memoryRequirements.memoryTypeBits, memoryProperties);
+    memoryAllocateInfo.memoryTypeIndex = findMemoryIndex(device, memoryRequirements.memoryTypeBits, memoryProperties);
 
-    VK_CHECK(vkAllocateMemory(pState->device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
+    VK_CHECK(vkAllocateMemory(device.handle, &memoryAllocateInfo, nullptr, &outImage->memory));
 
-    VK_CHECK(vkBindImageMemory(pState->device.handle, outImage->handle, outImage->memory, 0));
+    VK_CHECK(vkBindImageMemory(device.handle, outImage->handle, outImage->memory, 0));
 
     if(createView)
     {
         outImage->view = 0;
         vulkanCreateImageView(
-            pState, 
+            device, 
             outImage, 
             imageFormat, 
             viewAspectFlags);
@@ -61,7 +61,7 @@ void vulkanCreateImage(
 }
 
 void vulkanCreateImageView(
-    VulkanState* pState, 
+    const VulkanDevice& device, 
     VulkanImage* image,
     VkFormat format,
     VkImageAspectFlags aspectFlags)
@@ -78,11 +78,11 @@ void vulkanCreateImageView(
     info.subresourceRange.layerCount        = 1;
     info.subresourceRange.baseArrayLayer    = 0;
 
-    VK_CHECK(vkCreateImageView(pState->device.handle, &info, nullptr, &image->view));
+    VK_CHECK(vkCreateImageView(device.handle, &info, nullptr, &image->view));
 }
 
 void vulkanImageTransitionLayout(
-    VulkanState* pState,
+    const VulkanDevice& device, 
     VulkanImage* image,
     VkFormat format,
     VkImageLayout oldLayout,
@@ -93,8 +93,8 @@ void vulkanImageTransitionLayout(
     barrier.image = image->handle;
     barrier.oldLayout = oldLayout;
     barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = pState->device.graphicsQueueIndex;
-    barrier.dstQueueFamilyIndex = pState->device.graphicsQueueIndex;
+    barrier.srcQueueFamilyIndex = device.graphicsQueueIndex;
+    barrier.dstQueueFamilyIndex = device.graphicsQueueIndex;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseMipLevel = 0;

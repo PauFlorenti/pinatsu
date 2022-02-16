@@ -37,3 +37,15 @@ bool vulkanCreateSemaphore(
 void vulkanDestroySemaphore(
     const VulkanDevice& device,
     VkSemaphore& semaphore);
+
+/**
+ * *Create Attachment
+ */
+void 
+vulkanCreateAttachment(
+    const VulkanDevice& device,
+    VkFormat format,
+    VkImageUsageFlagBits usage,
+    u32 width,
+    u32 height,
+    VulkanTexture* texture);

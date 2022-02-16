@@ -244,7 +244,7 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
     vulkanBufferLoadData(state.device, staging, 0, textureSize, 0, pixels);
 
     vulkanCreateImage(
-        &state,
+        state.device,
         VK_IMAGE_TYPE_2D,
         texture->width,
         texture->height,
@@ -264,7 +264,7 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
         temporalCommand);
 
     vulkanImageTransitionLayout(
-        &state, 
+        state.device, 
         &data->image, 
         format, 
         VK_IMAGE_LAYOUT_UNDEFINED, 
@@ -278,7 +278,7 @@ bool vulkanCreateTexture(void* pixels, Texture* texture)
         temporalCommand);
     
     vulkanImageTransitionLayout(
-        &state, 
+        state.device, 
         &data->image, 
         format, 
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 

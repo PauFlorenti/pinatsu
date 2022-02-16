@@ -8,7 +8,7 @@
  */
 
 void vulkanCreateGraphicsPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass,
     u32 attributeCount,
     const VkVertexInputAttributeDescription* attributeDescription,
@@ -25,6 +25,6 @@ void vulkanCreateGraphicsPipeline(
 );
 
 void vulkanDestroyGrapchisPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanPipeline* pipeline
 );

@@ -1,7 +1,7 @@
 #include "vulkanPipeline.h"
 
 void vulkanCreateGraphicsPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass,
     u32 attributeCount,
     const VkVertexInputAttributeDescription* attributeDescription,
@@ -90,7 +90,7 @@ void vulkanCreateGraphicsPipeline(
     layoutInfo.setLayoutCount           = descriptorCount;
     layoutInfo.pSetLayouts              = descriptorSetLayouts;
 
-    VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &outPipeline->layout));
+    VK_CHECK(vkCreatePipelineLayout(device.handle, &layoutInfo, nullptr, &outPipeline->layout));
 
     VkGraphicsPipelineCreateInfo info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
     info.stageCount             = stageCount;
@@ -108,24 +108,24 @@ void vulkanCreateGraphicsPipeline(
     info.renderPass             = renderpass->handle;
     info.subpass                = 0;
 
-    VK_CHECK(vkCreateGraphicsPipelines(pState->device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline));
 }
 
 void vulkanDestroyGrapchisPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanPipeline* pipeline)
 {
-    if(!pState || !pipeline){
+    if(!pipeline){
         return;
     }
 
     vkDestroyPipelineLayout(
-        pState->device.handle,
+        device.handle,
         pipeline->layout,
         nullptr);
     
     vkDestroyPipeline(
-        pState->device.handle,
+        device.handle,
         pipeline->pipeline,
         nullptr);
 }

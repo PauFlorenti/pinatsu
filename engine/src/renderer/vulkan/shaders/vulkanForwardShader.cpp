@@ -166,11 +166,11 @@ bool vulkanCreateForwardShader(
         outShader->globalDescriptorSetLayout,
         outShader->meshInstanceDescriptorSetLayout
     };
-    
+
     const VertexDeclaration* vtx = getVertexDeclarationByName("PosColorUvN");
 
     vulkanCreateGraphicsPipeline(
-        pState,
+        pState->device,
         &pState->renderpass,
         vtx->size,
         vtx->layout,
