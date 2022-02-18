@@ -8,7 +8,9 @@
 
 typedef enum DefaultRenderPasses
 {
-    RENDER_PASS_FORWARD
+    RENDER_PASS_FORWARD,
+    RENDER_PASS_GEOMETRY,
+    RENDER_PASS_DEFERRED
 } DefaultRenderPasses;
 
 typedef struct RenderMeshData

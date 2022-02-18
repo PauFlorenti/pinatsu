@@ -167,6 +167,10 @@ bool vulkanCreateForwardShader(
         outShader->meshInstanceDescriptorSetLayout
     };
 
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.colorWriteMask = 0xf;
+
     const VertexDeclaration* vtx = getVertexDeclarationByName("PosColorUvN");
 
     vulkanCreateGraphicsPipeline(
@@ -178,6 +182,8 @@ bool vulkanCreateForwardShader(
         shaderStages.data(),
         descriptorSetLayoutCount,
         layouts,
+        1,
+        &colorBlendAttachment,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         viewport,
         scissors,

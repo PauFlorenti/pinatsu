@@ -149,7 +149,6 @@ vulkanCreateAttachment(
         usage | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         true,
-        0,
+        aspectFlags,
         &texture->image);
-
 }

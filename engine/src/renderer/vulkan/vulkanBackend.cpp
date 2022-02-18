@@ -11,6 +11,7 @@
 #include "vulkanImgui.h"
 
 #include "shaders/vulkanForwardShader.h"
+#include "shaders/vulkanDeferredShader.h"
 
 #include "core/application.h"
 #include "platform/platform.h"
@@ -507,6 +508,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
     }
 
     vulkanCreateForwardShader(&state, &state.forwardShader);
+    vulkanDeferredShaderCreate(state.device, state.swapchain.extent.width, state.swapchain.extent.height, &state.deferredShader);
     imguiInit(&state, &state.renderpass);
 
     return true;
@@ -568,6 +570,7 @@ void vulkanBackendShutdown(void)
 
     PDEBUG("Destroying Vulkan Shaders ...");
     vulkanDestroyForwardShader(&state);
+    vulkanDeferredShaderDestroy(state.device, state.deferredShader);
 
     PDEBUG("Destroying Vulkan Render passes ...");
     vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
@@ -695,6 +698,31 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
             return true;
             break;
         }
+        case 1: // Geometry pass
+        {
+            VkClearValue clearColors[3];
+            clearColors[0].color = {1.0, 0.0, 0.0, 1.0};
+            clearColors[1].color = {0.0, 1.0, 0.0, 1.0};
+            clearColors[2].color = {0.0, 0.0, 1.0, 1.0};
+
+            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+            info.renderPass         = state.deferredShader.geometryRenderpass.handle;
+            info.framebuffer        = state.deferredShader.lightFramebuffer.handle;
+            info.renderArea.offset  = {0, 0};
+            info.renderArea.extent  = state.swapchain.extent;
+            info.clearValueCount    = 3;
+            info.pClearValues       = clearColors;
+
+            vkCmdBeginRenderPass(state.deferredShader.geometryCmd.handle, &info, VK_SUBPASS_CONTENTS_INLINE);
+            return true;
+            break;
+        }
+        case 2:
+        {
+
+            return true;
+            break;
+        }
         default:
             return false;
             break;
@@ -744,10 +772,20 @@ void vulkanEndRenderPass(DefaultRenderPasses renderPass)
     case 0:
         vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
         break;
-    
+    case 1:
+        vkCmdEndRenderPass(state.deferredShader.geometryCmd.handle);
+        break;
+    case 2:
+        vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
+        break;
     default:
         break;
     }
+}
+
+void vulkanSubmitCommands(CommandBuffer& cmd)
+{
+    
 }
 
 /**
@@ -807,7 +845,7 @@ void vulkanRegenerateFramebuffers(
         std::vector<VkImageView> attachments = {swapchain->imageViews.at(i), swapchain->depthImage.view};
 
         vulkanFramebufferCreate(
-            &state,
+            state.device,
             renderpass,
             state.clientWidth, state.clientHeight,
             static_cast<u32>(attachments.size()),

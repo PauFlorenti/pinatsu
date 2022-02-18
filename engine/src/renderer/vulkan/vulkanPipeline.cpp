@@ -9,6 +9,8 @@ void vulkanCreateGraphicsPipeline(
     VkPipelineShaderStageCreateInfo* stages,
     u32 descriptorCount,
     VkDescriptorSetLayout* descriptorSetLayouts,
+    u32 blendAttachmentCount,
+    VkPipelineColorBlendAttachmentState* blendAttachments,
     u32 stride,
     VkViewport viewport,
     VkRect2D scissors,
@@ -64,13 +66,9 @@ void vulkanCreateGraphicsPipeline(
     depthStencilInfo.depthCompareOp     = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencilInfo.stencilTestEnable  = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable    = VK_FALSE;
-
     VkPipelineColorBlendStateCreateInfo colorBlendInfo = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-    colorBlendInfo.attachmentCount  = 1;
-    colorBlendInfo.pAttachments     = &colorBlendAttachment;
+    colorBlendInfo.attachmentCount  = blendAttachmentCount;
+    colorBlendInfo.pAttachments     = blendAttachments;
     colorBlendInfo.logicOpEnable    = VK_FALSE;
 
     std::vector<VkDynamicState> dynamicStates           = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
@@ -115,9 +113,8 @@ void vulkanDestroyGrapchisPipeline(
     const VulkanDevice& device,
     VulkanPipeline* pipeline)
 {
-    if(!pipeline){
+    if(!pipeline)
         return;
-    }
 
     vkDestroyPipelineLayout(
         device.handle,

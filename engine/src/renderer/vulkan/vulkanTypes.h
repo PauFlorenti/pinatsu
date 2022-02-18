@@ -229,6 +229,47 @@ typedef struct VulkanForwardShader
     VulkanPipeline pipeline;
 } VulkanForwardShader;
 
+struct gbuffers
+{
+    VulkanTexture positonTxt;
+    VulkanTexture normalTxt;
+    VulkanTexture albedoTxt;
+};
+
+struct VulkanDeferredShader
+{
+    // 2 for geometry pass and 2 for deferred pass - maybe 2 more for postFX in the future.
+    VulkanShaderObject shaderStages[4];
+    
+    // Geometry pass
+    VkDescriptorPool geometryDescriptorPool;
+    VkDescriptorPool lightDescriptorPool;
+    // Per frame
+    VkDescriptorSet globalGeometryDescriptorSet;
+    VkDescriptorSetLayout globalGeometryDescriptorSetLayout;
+    // Per object
+    VkDescriptorSet objectGeometryDescriptorSet;
+    VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
+    
+    VulkanBuffer globalUbo;
+    VulkanBuffer objectUbo;
+
+    // Deferred pass
+    VkDescriptorSet lightDescriptorSet;
+    VkDescriptorSetLayout lightDescriptorSetLayout;
+
+    gbuffers gbuf;
+
+    Framebuffer lightFramebuffer;
+    VkCommandPool geometryCmdPool;
+    CommandBuffer geometryCmd;
+
+    VulkanPipeline geometryPipeline;
+    VulkanPipeline lightPipeline;
+    VulkanRenderpass geometryRenderpass;
+    VulkanRenderpass lightRenderpass;
+};
+
 typedef struct VulkanSwapchain
 {
     VkSwapchainKHR      handle;
@@ -266,6 +307,7 @@ typedef struct VulkanState
 
     // Forward rendering
     VulkanForwardShader forwardShader;
+    VulkanDeferredShader deferredShader;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;

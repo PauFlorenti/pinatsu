@@ -76,15 +76,35 @@ bool renderDrawFrame(const RenderPacket& packet)
             }
         }
 
+
         pState->renderBackend.drawGui(packet);
-
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
-
         pState->renderBackend.endFrame();
 
         return true;
     }
     PERROR("Could not start rendering the frame;")
+    return false;
+}
+
+bool renderDeferredFrame(const RenderPacket& packet)
+{
+
+    if(pState->renderBackend.beginFrame(packet.deltaTime))
+    {
+        pState->renderBackend.beginRenderPass(RENDER_PASS_GEOMETRY);
+
+        pState->renderBackend.endRenderPass(RENDER_PASS_GEOMETRY);
+
+        pState->renderBackend.beginRenderPass(RENDER_PASS_DEFERRED);
+
+        pState->renderBackend.endRenderPass(RENDER_PASS_DEFERRED);
+        // RenderBakcend.submitCommands();
+
+        // RenderBackend.present();
+        pState->renderBackend.endFrame();
+        return true;
+    }
     return false;
 }
 

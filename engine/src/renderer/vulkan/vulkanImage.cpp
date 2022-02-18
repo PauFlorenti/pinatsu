@@ -19,10 +19,12 @@ void vulkanCreateImage(
     outImage->width = width;
     outImage->height = height;
 
+    VkExtent3D extent = {width, height, 1};
+
     VkImageCreateInfo info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-    info.imageType      = type;
     info.format         = imageFormat;
-    info.extent         = {width, height, 1};
+    info.imageType      = type;
+    info.extent         = extent;
     info.mipLevels      = 1;
     info.arrayLayers    = 1;
     info.tiling         = tiling;

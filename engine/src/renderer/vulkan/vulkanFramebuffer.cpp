@@ -1,7 +1,7 @@
 #include "vulkanFramebuffer.h"
 
 bool vulkanFramebufferCreate(
-    VulkanState* pState, 
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass, 
     u32 width, u32 height, 
     u32 attachmentCount,
@@ -21,13 +21,15 @@ bool vulkanFramebufferCreate(
     info.height             = height;
     info.layers             = 1;
 
-    VK_CHECK(vkCreateFramebuffer(pState->device.handle, &info, nullptr, &outFramebuffer->handle));
+    VK_CHECK(vkCreateFramebuffer(device.handle, &info, nullptr, &outFramebuffer->handle));
     return true;
 }
 
-void vulkanFramebufferDestroy(VulkanState* pState, Framebuffer* framebuffer)
+void vulkanFramebufferDestroy(
+    const VulkanDevice& device,
+    Framebuffer* framebuffer)
 {
-    vkDestroyFramebuffer(pState->device.handle, framebuffer->handle, nullptr);
+    vkDestroyFramebuffer(device.handle, framebuffer->handle, nullptr);
     if(!framebuffer->attachments.empty())
     {
         framebuffer->attachments.clear();

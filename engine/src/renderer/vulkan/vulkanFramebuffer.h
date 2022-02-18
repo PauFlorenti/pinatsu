@@ -3,7 +3,7 @@
 #include "vulkanTypes.h"
 
 bool vulkanFramebufferCreate(
-    VulkanState* pState, 
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass, 
     u32 width, u32 height, 
     u32 attachmentCount,
@@ -11,5 +11,5 @@ bool vulkanFramebufferCreate(
     Framebuffer* outFramebuffer);
 
 void vulkanFramebufferDestroy(
-    VulkanState* pState,
+    const VulkanDevice& device,
     Framebuffer* framebuffer);

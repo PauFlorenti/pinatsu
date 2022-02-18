@@ -133,7 +133,7 @@ static bool create(
 
     // Create depth image view
     vulkanCreateImage(
-        pState, 
+        pState->device, 
         VK_IMAGE_TYPE_2D,
         pState->swapchain.extent.width,
         pState->swapchain.extent.height, 
