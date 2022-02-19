@@ -17,6 +17,7 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassID);
 void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt);
 void vulkanDrawGeometry(const RenderMeshData* mesh);
 void vulkanEndRenderPass(DefaultRenderPasses renderPassID);
+void vulkanSubmitCommands(DefaultRenderPasses renderPassID);
 void vulkanEndFrame();
 void vulkanImguiRender(const RenderPacket& packet);
 

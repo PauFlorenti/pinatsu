@@ -79,6 +79,7 @@ bool renderDrawFrame(const RenderPacket& packet)
 
         pState->renderBackend.drawGui(packet);
         pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
+        pState->renderBackend.submitCommands(RENDER_PASS_FORWARD);
         pState->renderBackend.endFrame();
 
         return true;
@@ -94,10 +95,21 @@ bool renderDeferredFrame(const RenderPacket& packet)
     {
         pState->renderBackend.beginRenderPass(RENDER_PASS_GEOMETRY);
 
+        EntitySystem* entitySystem = EntitySystem::Get();
+        auto& entities = entitySystem->getAvailableEntities();
+        TransformComponent t = entitySystem->getComponent<TransformComponent>(0);
+        RenderComponent r = entitySystem->getComponent<RenderComponent>(0);
+
+        glm::mat4 model = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);
+        RenderMeshData renderData = {model, r.mesh, r.material};
+        pState->renderBackend.drawGeometry(&renderData);
+
         pState->renderBackend.endRenderPass(RENDER_PASS_GEOMETRY);
+        // RenderBackend.submitCommands();
 
         pState->renderBackend.beginRenderPass(RENDER_PASS_DEFERRED);
 
+        pState->renderBackend.drawGui(packet);
         pState->renderBackend.endRenderPass(RENDER_PASS_DEFERRED);
         // RenderBakcend.submitCommands();
 

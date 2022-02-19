@@ -67,14 +67,16 @@ void main()
         L = normalize(L);
         vec3 H = normalize(V + normalize(L));
 
-        if(distanceToLight > lights.l[i].radius)
+        if(distanceToLight >= lights.l[i].radius)
             continue;
+        
+        float lightIntensity = lights.l[i].intensity / (distanceToLight * distanceToLight);
 
         float att_factor = (lights.l[i].radius - distanceToLight) / lights.l[i].radius;
         att_factor = max(att_factor, 0.0);
         att_factor = att_factor * att_factor;
 
-        vec3 radiance = lights.l[i].color * 1.0 * att_factor;
+        vec3 radiance = lights.l[i].color * lightIntensity * att_factor;
 
         N = normalize(texture(normalSampler, inUV).xyz);
         N = perturbNormal(wNorm, wPos, inUV, N);

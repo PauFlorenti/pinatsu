@@ -13,6 +13,7 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
         state->beginRenderPass = vulkanBeginRenderPass;
         state->drawGeometry = vulkanDrawGeometry;
         state->endRenderPass = vulkanEndRenderPass;
+        state->submitCommands = vulkanSubmitCommands;
         state->endFrame = vulkanEndFrame;
         state->onResize = vulkanBackendOnResize;
         state->updateGlobalState = vulkanForwardUpdateGlobalState;

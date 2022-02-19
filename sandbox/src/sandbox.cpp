@@ -14,7 +14,6 @@
 #include "systems/physicsSystem.h"
 #include "systems/entitySystemComponent.h"
 
-
 // TODO temp
 #include "renderer/rendererFrontend.h"
 
@@ -75,17 +74,20 @@ bool gameInitialize(Game* pGameInst)
     LightPointComponent lightComponent{};
     lightComponent.color = glm::vec3(1, 0, 0);
     lightComponent.position = glm::vec3(0, 2, 0);
-    lightComponent.radius = 1.0f;
+    lightComponent.radius = 30.0f;
+    lightComponent.intensity = 100.0f;
 
     LightPointComponent lightComp1{};
     lightComp1.color = glm::vec3(0, 1, 0);
     lightComp1.position = glm::vec3(3, 2, 0);
-    lightComp1.radius = 4.0f;
+    lightComp1.radius = 40.0f;
+    lightComp1.intensity = 100.0f;
 
     LightPointComponent lightComp2{};
     lightComp2.color = glm::vec3(0, 0, 1);
     lightComp2.position = glm::vec3(-3, 2, 0);
-    lightComp2.radius = 5.0f;
+    lightComp2.radius = 50.0f;
+    lightComp2.intensity = 100.0f;
 
     entitySystem->addComponent(light, lightComponent);
     entitySystem->addComponent(light1, lightComp1);

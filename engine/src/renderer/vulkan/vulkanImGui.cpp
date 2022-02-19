@@ -176,6 +176,7 @@ imguiRender(
                 ImGui::DragFloat3(" Position ", &comp->position.x, 1.0f);
                 ImGui::DragFloat3(" Colour", &comp->color.r, 1.0f, 0.0f, 1.0f);
                 ImGui::DragFloat(" Radius", &comp->radius, 0.1f, 0.0f);
+                ImGui::DragFloat(" Intensity", &comp->intensity, 1.0f, 0.0f);
                 ImGui::TreePop();
             }
             ImGui::PopID();

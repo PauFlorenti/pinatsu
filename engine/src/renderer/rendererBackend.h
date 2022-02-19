@@ -20,6 +20,7 @@ typedef struct RendererBackend
     bool (*beginRenderPass)(DefaultRenderPasses renderPass);
     void (*drawGeometry)(const RenderMeshData* mesh);
     void (*endRenderPass)(DefaultRenderPasses renderPass);
+    void (*submitCommands)(DefaultRenderPasses renderPass);
     void (*endFrame)();
     void (*onResize)(u32 width, u32 height);
     void (*updateGlobalState)(glm::mat4 view, glm::mat4 projection, f32 dt);

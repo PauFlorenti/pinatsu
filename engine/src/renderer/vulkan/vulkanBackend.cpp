@@ -783,9 +783,41 @@ void vulkanEndRenderPass(DefaultRenderPasses renderPass)
     }
 }
 
-void vulkanSubmitCommands(CommandBuffer& cmd)
+void
+vulkanSubmitCommands(DefaultRenderPasses renderPass)
 {
-    
+    switch(renderPass)
+    {
+        case 0:
+        {
+            VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
+
+            VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+            submitInfo.commandBufferCount   = 1;
+            submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
+            submitInfo.waitSemaphoreCount   = 1;
+            submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
+            submitInfo.pWaitDstStageMask    = pipelineStage;
+
+            vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+            vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+
+            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
+                PERROR("Queue wasn't submitted.");
+            }
+        }
+            break;
+        case 1:
+            break;
+        case 2:
+            break;
+        default:
+            break;
+    }
 }
 
 /**
@@ -796,7 +828,7 @@ void vulkanSubmitCommands(CommandBuffer& cmd)
  */
 void vulkanEndFrame(void)
 {
-
+    /*
     VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
 
     VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -816,7 +848,7 @@ void vulkanEndFrame(void)
     if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
         PERROR("Queue wasn't submitted.");
     }
-
+*/
     // Present swapchain image
     VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.pImageIndices       = &state.imageIndex;
