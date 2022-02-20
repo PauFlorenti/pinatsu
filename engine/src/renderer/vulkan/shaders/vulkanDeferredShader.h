@@ -26,3 +26,15 @@ vulkanDeferredUpdateGbuffers(
     const VulkanDevice& device,
     const u32 imageIndex,
     VulkanDeferredShader& shader);
+
+bool 
+vulkanForwardShaderGetMaterial(
+    VulkanState* pState,
+    VulkanDeferredShader* shader,
+    Material* m);
+
+void
+vulkanDeferredShaderSetMaterial(
+    VulkanState* pState,
+    VulkanDeferredShader* shader,
+    Material* m);

@@ -8,5 +8,6 @@ layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-    fragColor = texture(gbuf[1], inUV);
+    vec3 N = normalize(texture(gbuf[1], inUV).xyz * 2.0 - vec3(1));
+    fragColor = vec4(N, 1.0);
 }

@@ -9,9 +9,19 @@ layout(location = 0) out vec4 outPosition;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outAlbedo;
 
+layout(set = 1, binding = 0) uniform Material
+{
+    vec4 diffuse;
+} mat;
+
+layout(set = 1, binding = 1) uniform sampler2D diffuseSampler;
+layout(set = 1, binding = 2) uniform sampler2D normalSampler;
+layout(set = 1, binding = 3) uniform sampler2D metallicRoughnessSampler;
+
 void main()
 {
     outPosition = vec4(inWorldPos, 1.0);
     outNormal = (vec4( inNormal * 0.5 + vec3(0.5), 1));
-    outAlbedo = vec4(inColor, 1.0);
+    vec3 albedo = inColor * texture(diffuseSampler, inUV).xyz;
+    outAlbedo = vec4(albedo, 1.0);
 }

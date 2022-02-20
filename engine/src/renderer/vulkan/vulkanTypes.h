@@ -271,6 +271,8 @@ struct VulkanDeferredShader
     VulkanPipeline lightPipeline;
     VulkanRenderpass geometryRenderpass;
     VulkanRenderpass lightRenderpass;
+    
+    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
 };
 
 typedef struct VulkanSwapchain
