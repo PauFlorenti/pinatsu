@@ -3,14 +3,16 @@
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/pstring.h"
+#include "core/application.h"
+#include "memory/pmemory.h"
+
+// TODO If application.h is included, does system need to be included too?
 #include "systems/resourceSystem.h"
 #include "systems/meshSystem.h"
 #include "systems/materialSystem.h"
 #include "systems/textureSystem.h"
-#include "systems/entitySystem.h"
 #include "systems/physicsSystem.h"
-
-#include "memory/pmemory.h"
+#include "systems/entitySystemComponent.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
@@ -20,80 +22,80 @@ static f32 rot;
 static RenderMeshData gameMeshes[MAX_ENTITIES_ALLOWED];
 static LightData gameLight[MAX_ENTITIES_ALLOWED];
 
+static Entity camera;
+
+#ifdef DEBUG
+static bool deferred = false;
+#endif
+
 bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
 
-    // TODO make camera an entity
-    // Camera definition
     f32 ratio           = (f32)pGameInst->appConfig.startWidth / (f32)pGameInst->appConfig.startHeight;
     state->projection   = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
-    state->view         = glm::translate(glm::mat4(1), glm::vec3(0.0f, 0.0f, -10.0f));
-    state->deltaTime    = 0.0f;
-    state->cameraAxes   = glm::vec3(0);
 
-    // Define the scene
-    Entity player = entitySystemCreateEntity();
-    TransformComponent t{};
-    t.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    t.rotation = glm::quat();
-    t.scale = glm::vec3(1.0f);
+    ApplicationState* appState = (ApplicationState*)pGameInst->appState;
+    EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
+    
+    entitySystem->registerComponent<TransformComponent>();
+    entitySystem->registerComponent<RenderComponent>();
+    entitySystem->registerComponent<LightPointComponent>();
+    entitySystem->registerComponent<CameraComponent>();
 
-    MaterialData playerMaterial{};
-    playerMaterial.diffuseColor = glm::vec4(1);
-    playerMaterial.type = MATERIAL_TYPE_FORWARD;
+    camera = entitySystem->createEntity();
+    CameraComponent cameraComp;
+    cameraComp.position = glm::vec3(0.0f, 1.0f, 3.0f);
+    cameraComp.front = glm::vec3(0, 0, -1);
+    cameraComp.right = glm::vec3(1, 0, 0);
+    cameraComp.up = glm::vec3(0, 1, 0);
+    cameraComp.yaw = -90.0f;
+    cameraComp.pitch = 0.0f;
+    cameraComp.locked = false;
+
+    entitySystem->addComponent(camera, cameraComp);
+
+    Entity player = entitySystem->createEntity();
+    Entity floor = entitySystem->createEntity();
+    entitySystem->addComponent(player, TransformComponent{glm::vec3(0.0f, 0.0f, -5.0f), glm::quat(), glm::vec3(1.0)});
+    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, -5.0f), glm::quat(), glm::vec3(10.0f, 0.25f, 10.0f)});
 
     Resource gltf;
-    Material* paddleMat = materialSystemCreateFromData(playerMaterial);
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
-    paddleMat->diffuseTexture = textureSystemGet("paving.png");
-    resourceSystemLoad("avocado/Avocado.gltf", RESOURCE_TYPE_GLTF, &gltf);
-    Node* avocadoNode = (Node*)gltf.data;
 
-    RenderComponent r{};
-    r.material = cubeNode->material;
-    r.mesh = cubeNode->mesh;
+    RenderComponent renderComponent{};
+    renderComponent.active = true;
+    renderComponent.material = cubeNode->material;
+    renderComponent.mesh = cubeNode->mesh;
+    entitySystem->addComponent(player, renderComponent);
+    entitySystem->addComponent(floor, renderComponent);
 
-    entitySystemAddComponent(player, TRANSFORM, &t);
-    entitySystemAddComponent(player, RENDER, &r);
+    Entity light = entitySystem->createEntity();
+    Entity light1 = entitySystem->createEntity();
+    Entity light2 = entitySystem->createEntity();
 
-    Entity plane = entitySystemCreateEntity();
-    TransformComponent t1{};
-    t1.position = glm::vec3(0.0f, -2.0f, 0.0f);
-    t1.rotation = glm::quat_cast(glm::rotate(glm::mat4(1), glm::radians(0.0f), glm::vec3(1, 0, 0)));
-    t1.scale = glm::vec3(10.0f, 0.2f, 10.0f);
-    RenderComponent r1{};
-    r1.material = cubeNode->material;
-    r1.mesh = cubeNode->mesh;
-    entitySystemAddComponent(plane, TRANSFORM, &t1);
-    entitySystemAddComponent(plane, RENDER, &r1);
+    LightPointComponent lightComponent{};
+    lightComponent.color = glm::vec3(1, 0, 0);
+    lightComponent.position = glm::vec3(0, 2, 0);
+    lightComponent.radius = 30.0f;
+    lightComponent.intensity = 100.0f;
 
-    Entity cube = entitySystemCreateEntity();
-    TransformComponent t2{};
-    t2.position = glm::vec3(-3.0f, 0.0f, 0.0f);
-    t2.rotation = glm::quat();
-    t2.scale    = glm::vec3(30.0f);
+    LightPointComponent lightComp1{};
+    lightComp1.color = glm::vec3(0, 1, 0);
+    lightComp1.position = glm::vec3(3, 2, 0);
+    lightComp1.radius = 40.0f;
+    lightComp1.intensity = 100.0f;
 
-    RenderComponent r2{};
-    r2.material = avocadoNode->material;
-    r2.mesh = avocadoNode->mesh;
-    entitySystemAddComponent(cube, TRANSFORM, &t2);
-    entitySystemAddComponent(cube, RENDER, &r2);
+    LightPointComponent lightComp2{};
+    lightComp2.color = glm::vec3(0, 0, 1);
+    lightComp2.position = glm::vec3(-3, 2, 0);
+    lightComp2.radius = 50.0f;
+    lightComp2.intensity = 100.0f;
 
-    state->nEntities = 3;
-
-    // Lights
-    Entity light = entitySystemCreateEntity();
-    LightPointComponent pointLight{};
-    pointLight.color = glm::vec3(1.0);
-    pointLight.enabled = true;
-    pointLight.position = glm::vec3(0.0f, 2.0f, 10.0f);
-    entitySystemAddComponent(light, LIGHT_POINT, &pointLight);
-
-    state->nLights = 1;
-
-    rot = 0.0f;
+    entitySystem->addComponent(light, lightComponent);
+    entitySystem->addComponent(light1, lightComp1);
+    entitySystem->addComponent(light2, lightComp2);
 
     return true;
 }
@@ -102,33 +104,65 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
     state->deltaTime = deltaTime;
+    ApplicationState* appState = (ApplicationState*)pGameInst->appState;
+    EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
 
+    CameraComponent* cameraComp = &entitySystem->getComponent<CameraComponent>(camera);
 #if DEBUG
+
+    if(wasKeyDown(KEY_F1) && !isKeyDown(KEY_F1)) deferred = !deferred;
+
     f32 speed = 10.0f;
-    if(isKeyDown(KEY_W))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, 0, 1) * speed * deltaTime);
+    if(isKeyDown(KEY_W)) {
+        cameraComp->position = cameraComp->position + (cameraComp->front * speed * deltaTime);
     }
-    if(isKeyDown(KEY_S))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, 0, -1) * speed * deltaTime);
+    if(isKeyDown(KEY_S)) {
+        cameraComp->position = cameraComp->position - (cameraComp->front * speed * deltaTime);
     }
-    if(isKeyDown(KEY_UP))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, -1, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_UP)) {
+        cameraComp->position = cameraComp->position + (cameraComp->up * speed * deltaTime);
     }
-    if(isKeyDown(KEY_DOWN))
-    {
-        state->view = glm::translate(state->view, glm::vec3(0, 1, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_DOWN)) {
+        cameraComp->position = cameraComp->position - (cameraComp->up * speed * deltaTime);
     }
-    if(isKeyDown(KEY_LEFT)){
-        state->view = glm::translate(state->view, glm::vec3(1, 0, 0) * speed * deltaTime);
+    if(isKeyDown(KEY_A)) {
+        cameraComp->position = cameraComp->position + (cameraComp->right * speed * deltaTime);
     }
-    else if(isKeyDown(KEY_RIGHT)){
-        state->view = glm::translate(state->view, glm::vec3(-1, 0, 0) * speed * deltaTime);
+    else if(isKeyDown(KEY_D)) {
+        cameraComp->position = cameraComp->position - (cameraComp->right * speed * deltaTime);
+    }
+    if(isMouseButtonDown(RIGHT_MOUSE_BUTTON)) {
+        cameraComp->locked = true;
+    } 
+    else {
+        cameraComp->locked = false;
+    }
+
+    glm::vec2 mousePosition;
+    glm::vec2 oldMousePosition;
+    if(cameraComp->locked) {
+        i32 x, y;
+        i32 oldX, oldY;
+        getMousePosition(&x, &y);
+        getPreviousMousePosition(&oldX, &oldY);
+        if(mousePosition != oldMousePosition) {
+            // Rotate
+            glm::vec2 deltaMouse(oldX - x, oldY - y);
+            cameraComp->yaw -= deltaMouse.x * 200 * deltaTime;
+            cameraComp->pitch += deltaMouse.y * 200 * deltaTime;
+
+            glm::vec3 front;
+            front.x = cos(glm::radians(cameraComp->yaw)) * cos(glm::radians(cameraComp->pitch));
+            front.y = sin(glm::radians(cameraComp->pitch));
+            front.z = sin(glm::radians(cameraComp->yaw)) * cos(glm::radians(cameraComp->pitch));
+
+            cameraComp->front   = glm::normalize(front);
+            cameraComp->right   = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraComp->front));
+            cameraComp->up      = glm::normalize(glm::cross(cameraComp->front, cameraComp->right));
+            // TODO set mouse position to center
+        }
     }
 #endif
-
     /*
     No rotation at the moment
 
@@ -153,48 +187,17 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 bool gameRender(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = (GameState*)pGameInst->state;
-
-    // Get Render information of the scene.
-    RenderComponent* renderComp = nullptr;
-    TransformComponent* transComp = nullptr;
-    const u32 size = state->nEntities;
-
-    rot = rot + 10 * deltaTime;
-    f32 rotRad = glm::radians(rot);
-
-    for(u32 i = 0; i < 3; ++i)
-    {
-        renderComp = (RenderComponent*)entitySystemGetComponent(i + 1, RENDER);
-        transComp = (TransformComponent*)entitySystemGetComponent(i + 1, TRANSFORM);
-
-        gameMeshes[i].mesh      = renderComp->mesh;
-        gameMeshes[i].material  = renderComp->material;
-        gameMeshes[i].model     =   glm::translate(glm::mat4(1), transComp->position) * 
-                                    //glm::mat4_cast(transComp->rotation) *
-                                    glm::rotate(glm::mat4(1), rotRad, glm::vec3(0, 1, 0)) * 
-                                    glm::scale(glm::mat4(1), transComp->scale);
-    }
-    
-    // Get light information of the scene.
-    LightPointComponent* lightComp;
-    for(u32 i = 3; i < 4; i++) 
-    {
-        lightComp = (LightPointComponent*)entitySystemGetComponent(i + 1, LIGHT_POINT);
-
-        gameLight[0].color      = lightComp->color;
-        gameLight[0].position   = lightComp->position;
-        gameLight[0].intensity  = lightComp->intensity;
-        gameLight[0].radius     = lightComp->radius;
-    }
-
     RenderPacket packet{};
-    packet.deltaTime            = deltaTime;
-    packet.renderMeshDataCount  = state->nEntities;
-    packet.meshes               = gameMeshes;
-    packet.lightDataCount       = state->nLights;
-    packet.lights               = gameLight;
+    packet.deltaTime = deltaTime;
+    
+#ifdef DEBUG
+    if(!deferred)
+        renderDrawFrame(packet);
+    else
+        renderDeferredFrame(packet);
+#else
     renderDrawFrame(packet);
-
+#endif
     return true;
 }
 

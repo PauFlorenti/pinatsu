@@ -4,7 +4,7 @@
 #include "vulkanUtils.h"
 
 bool vulkanBufferCreate(
-    VulkanState* pState,
+    const VulkanDevice& device,
     u32 size,
     u32 usageFlags,
     u32 memFlags,
@@ -15,12 +15,12 @@ bool vulkanBufferCreate(
     info.sharingMode            = VK_SHARING_MODE_EXCLUSIVE; // It is only used in one queue
     info.usage                  = usageFlags;
 
-    VK_CHECK(vkCreateBuffer(pState->device.handle, &info, nullptr, &buffer->handle));
+    VK_CHECK(vkCreateBuffer(device.handle, &info, nullptr, &buffer->handle));
 
     VkMemoryRequirements requirements;
-    vkGetBufferMemoryRequirements(pState->device.handle, buffer->handle, &requirements);
+    vkGetBufferMemoryRequirements(device.handle, buffer->handle, &requirements);
 
-    i32 index = findMemoryIndex(pState, requirements.memoryTypeBits, memFlags);
+    i32 index = findMemoryIndex(device, requirements.memoryTypeBits, memFlags);
     if(index == -1){
         PERROR("Could not find a valid memory index.");
         return false;
@@ -29,8 +29,8 @@ bool vulkanBufferCreate(
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize    = requirements.size;
     allocInfo.memoryTypeIndex   = index;
-    VK_CHECK(vkAllocateMemory(pState->device.handle, &allocInfo, nullptr, &buffer->memory));
-    VK_CHECK(vkBindBufferMemory(pState->device.handle, buffer->handle, buffer->memory, 0));
+    VK_CHECK(vkAllocateMemory(device.handle, &allocInfo, nullptr, &buffer->memory));
+    VK_CHECK(vkBindBufferMemory(device.handle, buffer->handle, buffer->memory, 0));
 
     return true;
 }
@@ -39,7 +39,7 @@ bool vulkanBufferCreate(
  * Upload data to the given buffer by mapping it.
  */
 void vulkanBufferLoadData(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer,
     VkDeviceSize offset,
     u64 size,
@@ -47,9 +47,9 @@ void vulkanBufferLoadData(
     const void* data)
 {
     void* targetData;
-    vkMapMemory(pState->device.handle, buffer.memory, offset, size, flags, &targetData);
+    vkMapMemory(device.handle, buffer.memory, offset, size, flags, &targetData);
     std::memcpy(targetData, data, size);
-    vkUnmapMemory(pState->device.handle, buffer.memory);
+    vkUnmapMemory(device.handle, buffer.memory);
 }
 
 /**
@@ -59,16 +59,16 @@ void vulkanBufferLoadData(
  * @return void
  */
 void vulkanBufferDestroy(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer)
 {
     vkFreeMemory(
-        pState->device.handle, 
+        device.handle, 
         buffer.memory, 
         nullptr);
 
     vkDestroyBuffer(
-        pState->device.handle, 
+        device.handle, 
         buffer.handle,
         nullptr);
 }
@@ -81,15 +81,15 @@ void vulkanBufferDestroy(
  * @return void
  */
 void vulkanTransferBuffer(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkBuffer& src,
     VkBuffer& dst,
     VkDeviceSize size)
 {
     VkCommandBuffer cmd;
     vulkanCommandBufferAllocateAndBeginSingleUse(
-        pState, 
-        pState->device.transferCmdPool, 
+        device, 
+        device.transferCmdPool, 
         cmd);
 
     VkBufferCopy region;
@@ -99,9 +99,9 @@ void vulkanTransferBuffer(
     vkCmdCopyBuffer(cmd, src, dst, 1, &region);
 
     vulkanCommandBufferEndSingleUse(
-        pState, 
-        pState->device.transferCmdPool, 
-        pState->device.transferQueue, 
+        device, 
+        device.transferCmdPool, 
+        device.transferQueue, 
         cmd);
 }
 
@@ -109,7 +109,7 @@ void vulkanTransferBuffer(
  * @brief Upload data to the GPU through a staging buffer.
  */
 void vulkanUploadDataToGPU(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer, 
     u32 offset, 
     u64 size, 
@@ -118,23 +118,23 @@ void vulkanUploadDataToGPU(
     VulkanBuffer stagingBuffer;
 
     vulkanBufferCreate(
-        pState,
+        device,
         size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &stagingBuffer
     );
 
-    vulkanBufferLoadData(pState, stagingBuffer, 0, size, 0, data);
-    vulkanTransferBuffer(pState, stagingBuffer.handle, buffer.handle, size);
-    vulkanBufferDestroy(pState, stagingBuffer);
+    vulkanBufferLoadData(device, stagingBuffer, 0, size, 0, data);
+    vulkanTransferBuffer(device, stagingBuffer.handle, buffer.handle, size);
+    vulkanBufferDestroy(device, stagingBuffer);
 }
 
 /**
  * @brief Copy the buffer data to an image.
  */
 void vulkanBufferCopyToImage(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer* buffer,
     VulkanImage* image,
     VkCommandBuffer& cmd)

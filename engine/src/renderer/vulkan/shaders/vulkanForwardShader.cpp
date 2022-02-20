@@ -1,9 +1,10 @@
 #include "vulkanForwardShader.h"
 
+#include "memory/pmemory.h"
 #include "../vulkanBuffer.h"
 #include "../vulkanPipeline.h"
 #include "../vulkanShaderModule.h"
-#include "memory/pmemory.h"
+#include "../vulkanVertexDeclaration.h"
 
 /**
  * * Vulkan Shader creation functions
@@ -17,18 +18,22 @@ bool vulkanCreateForwardShader(
 {
     // Create the buffer holding the data to upload to the GPU
     vulkanBufferCreate(
-        pState, 
+        pState->device, 
         sizeof(ViewProjectionBuffer),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
 
     vulkanBufferCreate(
-        pState,
-        sizeof(VulkanLightData),
+        pState->device,
+        sizeof(VulkanLightData) * MAX_LIGHTS,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->lightUbo);
+
+    // Compile hardcoded shaders
+    system("glslc ./data/shader.vert -o ./data/vert.spv");
+    system("glslc ./data/shader.frag -o ./data/frag.spv");
 
     // Shader modules creation
     std::vector<char> vertexBuffer;
@@ -41,8 +46,8 @@ bool vulkanCreateForwardShader(
         return false;
     }
 
-    vulkanCreateShaderModule(pState, vertexBuffer, &outShader->shaderStages[0].shaderModule);
-    vulkanCreateShaderModule(pState, fragBuffer, &outShader->shaderStages[1].shaderModule);
+    vulkanCreateShaderModule(pState->device, vertexBuffer, &outShader->shaderStages[0].shaderModule);
+    vulkanCreateShaderModule(pState->device, fragBuffer, &outShader->shaderStages[1].shaderModule);
 
     // Set the samplers index
     outShader->samplerUses[0] = TEXTURE_USE_DIFFUSE;
@@ -51,7 +56,7 @@ bool vulkanCreateForwardShader(
 
     // Create global descriptor pool
     VkDescriptorPoolSize descriptorPoolSize;
-    descriptorPoolSize.descriptorCount  = static_cast<u32>(pState->swapchain.images.size());
+    descriptorPoolSize.descriptorCount  = static_cast<u32>(pState->swapchain.images.size()) * 4;
     descriptorPoolSize.type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
     VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
@@ -68,10 +73,10 @@ bool vulkanCreateForwardShader(
     cameraBinding.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDescriptorSetLayoutBinding lightBinding{};
-    lightBinding.binding = 1;
-    lightBinding.descriptorCount = 1;
-    lightBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    lightBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightBinding.binding            = 1;
+    lightBinding.descriptorCount    = 1;
+    lightBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding globalBindings[2] = {cameraBinding, lightBinding};
 
@@ -86,7 +91,7 @@ bool vulkanCreateForwardShader(
 
     u32 objectMaterialSize = sizeof(VulkanMaterialShaderUBO) * VULKAN_MAX_MATERIAL_COUNT;
     vulkanBufferCreate(
-        pState, 
+        pState->device, 
         objectMaterialSize, 
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
@@ -162,43 +167,23 @@ bool vulkanCreateForwardShader(
         outShader->meshInstanceDescriptorSetLayout
     };
 
-    // Position
-    VkVertexInputAttributeDescription vert{};
-    vert.binding    = 0;
-    vert.location   = 0;
-    vert.format     = VK_FORMAT_R32G32B32_SFLOAT;
-    vert.offset     = 0;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.colorWriteMask = 0xf;
 
-    VkVertexInputAttributeDescription color{};
-    color.binding   = 0;
-    color.location  = 1;
-    color.format    = VK_FORMAT_R32G32B32A32_SFLOAT;
-    color.offset    = sizeof(f32) * 3;
-
-    VkVertexInputAttributeDescription uvs{};
-    uvs.binding     = 0;
-    uvs.location    = 2;
-    uvs.format      = VK_FORMAT_R32G32_SFLOAT;
-    uvs.offset      = sizeof(f32) * 7;
-
-    VkVertexInputAttributeDescription normal{};
-    normal.binding  = 0;
-    normal.location = 3;
-    normal.format   = VK_FORMAT_R32G32B32_SFLOAT;
-    normal.offset   = sizeof(f32) * 9;
-
-    const u32 attributeSize = 4;
-    VkVertexInputAttributeDescription attributeDescription[attributeSize] = {vert, color, uvs, normal};
+    const VertexDeclaration* vtx = getVertexDeclarationByName("PosColorUvN");
 
     vulkanCreateGraphicsPipeline(
-        pState,
+        pState->device,
         &pState->renderpass,
-        attributeSize,
-        attributeDescription,
+        vtx->size,
+        vtx->layout,
         shaderStages.size(),
         shaderStages.data(),
         descriptorSetLayoutCount,
         layouts,
+        1,
+        &colorBlendAttachment,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         viewport,
         scissors,
@@ -225,9 +210,9 @@ bool vulkanCreateForwardShader(
 void
 vulkanDestroyForwardShader(VulkanState* pState)
 {
-    vulkanBufferDestroy(pState, pState->forwardShader.globalUbo);
-    vulkanBufferDestroy(pState, pState->forwardShader.lightUbo);
-    vulkanBufferDestroy(pState, pState->forwardShader.meshInstanceBuffer);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.globalUbo);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.lightUbo);
+    vulkanBufferDestroy(pState->device, pState->forwardShader.meshInstanceBuffer);
 
     vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[0].shaderModule, nullptr);
     vkDestroyShaderModule(pState->device.handle, pState->forwardShader.shaderStages[1].shaderModule, nullptr);
@@ -264,7 +249,7 @@ vulkanForwardShaderUpdateGlobalData(VulkanState* pState)
     VkDescriptorBufferInfo lightUboInfo{};
     lightUboInfo.buffer    = pState->forwardShader.lightUbo.handle;
     lightUboInfo.offset    = 0;
-    lightUboInfo.range     = sizeof(VulkanLightData);
+    lightUboInfo.range     = sizeof(VulkanLightData) * MAX_LIGHTS;
 
     VkWriteDescriptorSet lightWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     lightWrite.dstBinding       = 1;
@@ -349,7 +334,7 @@ vulkanForwardShaderSetMaterial(
     // Upload the data to the ubo.
     VulkanMaterialShaderUBO ubo{};
     ubo.diffuseColor = m->diffuseColor;
-    vulkanBufferLoadData(pState, shader->meshInstanceBuffer, offset, range, 0, &ubo);
+    vulkanBufferLoadData(pState->device, shader->meshInstanceBuffer, offset, range, 0, &ubo);
 
     // If descriptor has not been updated, generate the writes.
     if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)

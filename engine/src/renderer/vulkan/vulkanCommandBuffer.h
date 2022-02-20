@@ -6,12 +6,12 @@
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )
 
 void vulkanCommandBufferAllocateAndBeginSingleUse(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkCommandPool pool,
     VkCommandBuffer& cmd);
 
 void vulkanCommandBufferEndSingleUse(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkCommandPool pool,
     VkQueue queue,
     VkCommandBuffer& cmd);

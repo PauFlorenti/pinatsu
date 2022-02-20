@@ -1,5 +1,5 @@
 #include "entitySystem.h"
-
+/*
 #include "memory/pmemory.h"
 #include "core/logger.h"
 
@@ -272,3 +272,4 @@ entitySystemGetByComponent(u32* counter, ComponentType type, void* outComponents
 {
 
 }
+*/

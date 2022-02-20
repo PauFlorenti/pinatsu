@@ -8,7 +8,9 @@
 
 typedef enum DefaultRenderPasses
 {
-    RENDER_PASS_FORWARD
+    RENDER_PASS_FORWARD,
+    RENDER_PASS_GEOMETRY,
+    RENDER_PASS_DEFERRED
 } DefaultRenderPasses;
 
 typedef struct RenderMeshData
@@ -29,9 +31,4 @@ struct LightData
 typedef struct RenderPacket
 {
     f32 deltaTime;
-
-    u32 renderMeshDataCount;
-    RenderMeshData* meshes;
-    u32 lightDataCount;
-    LightData* lights;
 } RenderPacket;

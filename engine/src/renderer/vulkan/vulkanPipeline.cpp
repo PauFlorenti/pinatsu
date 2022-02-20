@@ -1,14 +1,16 @@
 #include "vulkanPipeline.h"
 
 void vulkanCreateGraphicsPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass,
     u32 attributeCount,
-    VkVertexInputAttributeDescription* attributeDescription,
+    const VkVertexInputAttributeDescription* attributeDescription,
     u32 stageCount,
     VkPipelineShaderStageCreateInfo* stages,
     u32 descriptorCount,
     VkDescriptorSetLayout* descriptorSetLayouts,
+    u32 blendAttachmentCount,
+    VkPipelineColorBlendAttachmentState* blendAttachments,
     u32 stride,
     VkViewport viewport,
     VkRect2D scissors,
@@ -64,13 +66,9 @@ void vulkanCreateGraphicsPipeline(
     depthStencilInfo.depthCompareOp     = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencilInfo.stencilTestEnable  = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable    = VK_FALSE;
-
     VkPipelineColorBlendStateCreateInfo colorBlendInfo = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-    colorBlendInfo.attachmentCount  = 1;
-    colorBlendInfo.pAttachments     = &colorBlendAttachment;
+    colorBlendInfo.attachmentCount  = blendAttachmentCount;
+    colorBlendInfo.pAttachments     = blendAttachments;
     colorBlendInfo.logicOpEnable    = VK_FALSE;
 
     std::vector<VkDynamicState> dynamicStates           = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
@@ -90,7 +88,7 @@ void vulkanCreateGraphicsPipeline(
     layoutInfo.setLayoutCount           = descriptorCount;
     layoutInfo.pSetLayouts              = descriptorSetLayouts;
 
-    VK_CHECK(vkCreatePipelineLayout(pState->device.handle, &layoutInfo, nullptr, &outPipeline->layout));
+    VK_CHECK(vkCreatePipelineLayout(device.handle, &layoutInfo, nullptr, &outPipeline->layout));
 
     VkGraphicsPipelineCreateInfo info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
     info.stageCount             = stageCount;
@@ -108,24 +106,23 @@ void vulkanCreateGraphicsPipeline(
     info.renderPass             = renderpass->handle;
     info.subpass                = 0;
 
-    VK_CHECK(vkCreateGraphicsPipelines(pState->device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline));
 }
 
 void vulkanDestroyGrapchisPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanPipeline* pipeline)
 {
-    if(!pState || !pipeline){
+    if(!pipeline)
         return;
-    }
 
     vkDestroyPipelineLayout(
-        pState->device.handle,
+        device.handle,
         pipeline->layout,
         nullptr);
     
     vkDestroyPipeline(
-        pState->device.handle,
+        device.handle,
         pipeline->pipeline,
         nullptr);
 }

@@ -4,24 +4,24 @@
 #include "vulkanTypes.h"
 
 bool vulkanBufferCreate(
-    VulkanState* pState,
+    const VulkanDevice& device,
     u32 size,
     u32 usageFlags,
     u32 memFlagss,
     VulkanBuffer* buffer);
 
 void vulkanBufferDestroy(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer);
 
 void vulkanTransferBuffer(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VkBuffer &src,
     VkBuffer &dst,
     VkDeviceSize size);
 
 void vulkanBufferLoadData(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer,
     VkDeviceSize offset,
     u64 size,
@@ -29,14 +29,14 @@ void vulkanBufferLoadData(
     const void* data);
 
 void vulkanUploadDataToGPU(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer& buffer,
     u32 offset,
     u64 size,
     const void* data);
 
 void vulkanBufferCopyToImage(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanBuffer* buffer,
     VulkanImage* image,
     VkCommandBuffer& cmd);

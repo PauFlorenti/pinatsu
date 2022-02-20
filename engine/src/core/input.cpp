@@ -163,6 +163,33 @@ void inputProcessKey(keys key, bool pressed)
         // Fire event
         eventContext context;
         context.data.u16[0] = key;
+        eventFire(pressed ? EVENT_CODE_KEY_PRESSED : EVENT_CODE_KEY_RELEASED, 0, context);
+    }
+}
+
+void inputProcessButton(Buttons button, bool pressed)
+{
+    if(pState != nullptr && pState->currentMouse.buttons[button] != pressed)
+    {
+        pState->currentMouse.buttons[button] = pressed;
+
+        // Fire event
+        eventContext context;
+        context.data.u16[0] = button;
         eventFire(pressed ? EVENT_CODE_BUTTON_PRESSED : EVENT_CODE_BUTTON_RELEASED, 0, context);
+    }
+}
+
+void inputProcessMouseMove(i16 x, i16 y)
+{
+    if(pState != nullptr && (pState->currentMouse.x != x || pState->currentMouse.y != y))
+    {
+        pState->currentMouse.x = x;
+        pState->currentMouse.y = y;
+
+        eventContext context;
+        context.data.u16[0] = x;
+        context.data.u16[1] = y;
+        eventFire(EVENT_CODE_MOUSE_MOVED, 0, context);
     }
 }

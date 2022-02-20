@@ -12,7 +12,8 @@ vulkanCreateForwardShader(
 void
 vulkanDestroyForwardShader(VulkanState* pState);
 
-void vulkanForwardShaderUpdateGlobalData(VulkanState* pState);
+void 
+vulkanForwardShaderUpdateGlobalData(VulkanState* pState);
 
 bool 
 vulkanForwardShaderGetMaterial(

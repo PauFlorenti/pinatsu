@@ -14,6 +14,8 @@
 
 #define VK_CHECK(x) { PASSERT(x == VK_SUCCESS); }
 
+#define MAX_LIGHTS 16
+
 typedef struct VulkanDevice
 { 
     VkPhysicalDevice    physicalDevice;
@@ -103,6 +105,7 @@ typedef struct ViewProjectionBuffer
 {
     glm::mat4 view;
     glm::mat4 projection;
+    glm::vec3 position;
 } ViewProjectionBuffer;
 
 typedef struct VulkanImage
@@ -226,6 +229,52 @@ typedef struct VulkanForwardShader
     VulkanPipeline pipeline;
 } VulkanForwardShader;
 
+struct gbuffers
+{
+    VulkanTexture positonTxt;
+    VulkanTexture normalTxt;
+    VulkanTexture albedoTxt;
+};
+
+struct VulkanDeferredShader
+{
+    // 2 for geometry pass and 2 for deferred pass - maybe 2 more for postFX in the future.
+    VulkanShaderObject shaderStages[4];
+    
+    // Geometry pass
+    VkDescriptorPool geometryDescriptorPool;
+    VkDescriptorPool lightDescriptorPool;
+    // Per frame
+    VkDescriptorSet globalGeometryDescriptorSet;
+    VkDescriptorSetLayout globalGeometryDescriptorSetLayout;
+    // Per object
+    VkDescriptorSet objectGeometryDescriptorSet;
+    VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
+    
+    VulkanBuffer globalUbo;
+    VulkanBuffer objectUbo;
+
+    // Deferred pass
+    VkDescriptorSet lightDescriptorSet[3];
+    VkDescriptorSetLayout lightDescriptorSetLayout;
+
+    gbuffers gbuf;
+
+    VkSemaphore geometrySemaphore;
+
+    Framebuffer geometryFramebuffer;
+    Framebuffer lightFramebuffer[3];
+    VkCommandPool geometryCmdPool;
+    CommandBuffer geometryCmdBuffer;
+
+    VulkanPipeline geometryPipeline;
+    VulkanPipeline lightPipeline;
+    VulkanRenderpass geometryRenderpass;
+    VulkanRenderpass lightRenderpass;
+    
+    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
+};
+
 typedef struct VulkanSwapchain
 {
     VkSwapchainKHR      handle;
@@ -263,6 +312,7 @@ typedef struct VulkanState
 
     // Forward rendering
     VulkanForwardShader forwardShader;
+    VulkanDeferredShader deferredShader;
 
     VulkanSwapchainSupport swapchainSupport{};
     VulkanSwapchain swapchain;
@@ -271,6 +321,8 @@ typedef struct VulkanState
     u32 clientWidth;
     u32 clientHeight;
     bool resized;
+
+    void* windowHandle;
 
     VulkanRenderpass renderpass;
 

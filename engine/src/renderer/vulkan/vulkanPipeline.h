@@ -8,14 +8,16 @@
  */
 
 void vulkanCreateGraphicsPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanRenderpass* renderpass,
     u32 attributeCount,
-    VkVertexInputAttributeDescription* attributeDescription,
+    const VkVertexInputAttributeDescription* attributeDescription,
     u32 stageCount,
     VkPipelineShaderStageCreateInfo* stages,
     u32 descriptorCount,
     VkDescriptorSetLayout* descriptorSetLayouts,
+    u32 blendAttachmentCount,
+    VkPipelineColorBlendAttachmentState* blendAttachments,
     u32 stride,
     VkViewport viewport,
     VkRect2D scissors,
@@ -25,6 +27,6 @@ void vulkanCreateGraphicsPipeline(
 );
 
 void vulkanDestroyGrapchisPipeline(
-    VulkanState* pState,
+    const VulkanDevice& device,
     VulkanPipeline* pipeline
 );
