@@ -255,14 +255,17 @@ struct VulkanDeferredShader
     VulkanBuffer objectUbo;
 
     // Deferred pass
-    VkDescriptorSet lightDescriptorSet;
+    VkDescriptorSet lightDescriptorSet[3];
     VkDescriptorSetLayout lightDescriptorSetLayout;
 
     gbuffers gbuf;
 
-    Framebuffer lightFramebuffer;
+    VkSemaphore geometrySemaphore;
+
+    Framebuffer geometryFramebuffer;
+    Framebuffer lightFramebuffer[3];
     VkCommandPool geometryCmdPool;
-    CommandBuffer geometryCmd;
+    CommandBuffer geometryCmdBuffer;
 
     VulkanPipeline geometryPipeline;
     VulkanPipeline lightPipeline;

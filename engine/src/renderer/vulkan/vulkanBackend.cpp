@@ -116,6 +116,7 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+    //vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
@@ -129,16 +130,45 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
             state.forwardShader.lightData.position  = comp.position;
             state.forwardShader.lightData.radius    = comp.radius;
             vulkanBufferLoadData(
-                state.device, 
-                state.forwardShader.lightUbo, 
-                sizeof(VulkanLightData) * lightCount, 
-                sizeof(VulkanLightData), 
-                0, 
+                state.device,
+                state.forwardShader.lightUbo,
+                sizeof(VulkanLightData) * lightCount,
+                sizeof(VulkanLightData),
+                0,
                 &state.forwardShader.lightData);
             ++lightCount;
         }
     }
     vulkanForwardShaderUpdateGlobalData(&state);
+}
+
+void
+vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
+{
+    gameTime += dt;
+
+    EntitySystem* entitySystem = EntitySystem::Get();
+    auto& entities = entitySystem->getAvailableEntities();
+
+    CameraComponent camera;
+    for(auto& it = entities.begin(); it != entities.end(); it++)
+    {
+        if(it->second[entitySystem->getComponentType<CameraComponent>(it->first)]) {
+            camera = entitySystem->getComponent<CameraComponent>(it->first);
+            break;
+        }
+    }
+
+    glm::mat4 cameraView = camera.getView();
+
+    state.forwardShader.globalUboData.view        = cameraView;
+    state.forwardShader.globalUboData.projection  = projection;
+    state.forwardShader.globalUboData.position    = camera.position;
+
+    u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
+    vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+    vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);
+
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -508,7 +538,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
     }
 
     vulkanCreateForwardShader(&state, &state.forwardShader);
-    vulkanDeferredShaderCreate(state.device, state.swapchain.extent.width, state.swapchain.extent.height, &state.deferredShader);
+    vulkanDeferredShaderCreate(state.device, state.swapchain, state.swapchain.extent.width, state.swapchain.extent.height, &state.deferredShader);
     imguiInit(&state, &state.renderpass);
 
     return true;
@@ -639,6 +669,7 @@ bool vulkanBeginFrame(f32 delta)
     vulkanWaitFence(
         state.device, 
         &state.frameInFlightFences[state.currentFrame]);
+    vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
     vkAcquireNextImageKHR(
@@ -649,8 +680,36 @@ bool vulkanBeginFrame(f32 delta)
         0, 
         &state.imageIndex);
 
+    return true;
+}
+
+void
+vulkanBeginCommandBuffer(DefaultRenderPasses renderPassid)
+{
+    // TODO Solve synchronization
+    vkDeviceWaitIdle(state.device.handle);
+    VkCommandBuffer cmd;
+    switch (renderPassid)
+    {
+    case 0:
+        //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame], VK_WHOLE_SIZE);
+        //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+        cmd = state.commandBuffers[state.imageIndex].handle;
+        break;
+    case 1:
+        //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+        //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+        cmd = state.deferredShader.geometryCmdBuffer.handle;
+        break;
+    case 2:
+        cmd = state.commandBuffers[state.imageIndex].handle;
+        break;        
+    default:
+        break;
+    }
+
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    VK_CHECK(vkBeginCommandBuffer(state.commandBuffers.at(state.imageIndex).handle, &cmdBeginInfo));
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
     VkViewport viewport;
     viewport.x          = 0.0f;
@@ -666,19 +725,16 @@ bool vulkanBeginFrame(f32 delta)
     scissor.offset.x        = 0.0;
     scissor.offset.y        = 0.0;
 
-    vkCmdSetViewport(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &viewport);
-    vkCmdSetScissor(state.commandBuffers.at(state.imageIndex).handle, 0, 1, &scissor);
-
-    return true;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
 }
 
 bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
 {
-
     // TODO Abstract render pass creation.
     switch(renderPassid)
     {
-            // Forward render pass
+        // Forward render pass
         case 0:
         {
             VkClearValue clearColors[2];
@@ -707,19 +763,32 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
 
             VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
             info.renderPass         = state.deferredShader.geometryRenderpass.handle;
-            info.framebuffer        = state.deferredShader.lightFramebuffer.handle;
+            info.framebuffer        = state.deferredShader.geometryFramebuffer.handle;
             info.renderArea.offset  = {0, 0};
             info.renderArea.extent  = state.swapchain.extent;
             info.clearValueCount    = 3;
             info.pClearValues       = clearColors;
 
-            vkCmdBeginRenderPass(state.deferredShader.geometryCmd.handle, &info, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(state.deferredShader.geometryCmdBuffer.handle, &info, VK_SUBPASS_CONTENTS_INLINE);
             return true;
             break;
         }
         case 2:
         {
+            VkClearValue clearColors[2];
+            clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            clearColors[1].depthStencil.depth = 1.0f;
+            clearColors[1].depthStencil.stencil = 0;
 
+            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+            info.renderPass         = state.deferredShader.lightRenderpass.handle;
+            info.framebuffer        = state.deferredShader.lightFramebuffer[state.imageIndex].handle;
+            info.renderArea.offset  = {0, 0};
+            info.renderArea.extent  = state.swapchain.extent;
+            info.clearValueCount    = 2;
+            info.pClearValues       = clearColors;
+
+            vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
             return true;
             break;
         }
@@ -729,7 +798,7 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
     }
 }
 
-void vulkanDrawGeometry(const RenderMeshData* data)
+void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* data)
 {
     // TODO make material specify the type to render
     Material* m = data->material;
@@ -739,28 +808,44 @@ void vulkanDrawGeometry(const RenderMeshData* data)
         m = &mat;
     }
 
-    // Get Material, set shaders, update, write and bind descriptors.
-    // Bind pipeline and mesh data
-    vkCmdBindPipeline(state.commandBuffers[state.imageIndex].handle, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
-
-    // Bind material data.
-    vulkanForwardShaderSetMaterial(&state, &state.forwardShader, m);
+    VkCommandBuffer cmd;
+    switch (renderPassID)
+    {
+    case 0:
+        cmd = state.commandBuffers[state.imageIndex].handle;
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
+        vulkanForwardShaderSetMaterial(&state, &state.forwardShader, m);
+        vkCmdPushConstants(cmd, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
+        break;
+    case 1:
+        cmd = state.deferredShader.geometryCmdBuffer.handle;
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.pipeline);
+        vkCmdPushConstants(cmd, state.deferredShader.geometryPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.layout, 0, 1, &state.deferredShader.globalGeometryDescriptorSet, 0, nullptr);
+        break;
+    case 2:
+        cmd = state.commandBuffers[state.imageIndex].handle;
+        vulkanDeferredUpdateGbuffers(state.device, state.imageIndex, state.deferredShader);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.lightPipeline.pipeline);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.lightPipeline.layout, 0, 1, &state.deferredShader.lightDescriptorSet[state.imageIndex], 0, nullptr);
+        break;        
+    default:
+        break;
+    }
 
     VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
 
     VkDeviceSize offset = 0;
-    
-    vkCmdPushConstants(state.commandBuffers[state.imageIndex].handle, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-    vkCmdBindVertexBuffers(state.commandBuffers[state.imageIndex].handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
-    //vkCmdSetPrimitiveTopology(state.commandBuffers[state.imageIndex].handle, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+    vkCmdBindVertexBuffers(cmd, 0, 1, &geometry->vertexBuffer.handle, &offset);
+    //vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     if(geometry->indexCount > 0)
     {
-        vkCmdBindIndexBuffer(state.commandBuffers[state.imageIndex].handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(state.commandBuffers[state.imageIndex].handle, geometry->indexCount, 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(cmd, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmd, geometry->indexCount, 1, 0, 0, 0);
     }
     else
     {
-        vkCmdDraw(state.commandBuffers[state.imageIndex].handle, geometry->vertexCount, 1, 0, 0);
+        vkCmdDraw(cmd, geometry->vertexCount, 1, 0, 0);
     }
 }
 
@@ -773,7 +858,7 @@ void vulkanEndRenderPass(DefaultRenderPasses renderPass)
         vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
         break;
     case 1:
-        vkCmdEndRenderPass(state.deferredShader.geometryCmd.handle);
+        vkCmdEndRenderPass(state.deferredShader.geometryCmdBuffer.handle);
         break;
     case 2:
         vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
@@ -803,8 +888,8 @@ vulkanSubmitCommands(DefaultRenderPasses renderPass)
             submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
             submitInfo.pWaitDstStageMask    = pipelineStage;
 
-            vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-            vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+            //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+            //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
 
             if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
                 PERROR("Queue wasn't submitted.");
@@ -812,8 +897,44 @@ vulkanSubmitCommands(DefaultRenderPasses renderPass)
         }
             break;
         case 1:
+        {
+            VK_CHECK(vkEndCommandBuffer(state.deferredShader.geometryCmdBuffer.handle));
+
+            VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+            submitInfo.commandBufferCount   = 1;
+            submitInfo.pCommandBuffers      = &state.deferredShader.geometryCmdBuffer.handle;
+            submitInfo.waitSemaphoreCount   = 1;
+            submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pSignalSemaphores    = &state.deferredShader.geometrySemaphore;
+            submitInfo.pWaitDstStageMask    = &pipelineStage;
+
+            //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+            //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
+            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS){
+                PERROR("Queue wasn't submitted.");
+            }
             break;
+        }
         case 2:
+        {
+            VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
+
+            VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+            submitInfo.commandBufferCount   = 1;
+            submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
+            submitInfo.waitSemaphoreCount   = 1;
+            submitInfo.pWaitSemaphores      = &state.deferredShader.geometrySemaphore;
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
+            submitInfo.pWaitDstStageMask    = &pipelineStage;
+
+            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
+                PERROR("Queue wasn't submitted.");
+            }
+        }
             break;
         default:
             break;
@@ -828,27 +949,6 @@ vulkanSubmitCommands(DefaultRenderPasses renderPass)
  */
 void vulkanEndFrame(void)
 {
-    /*
-    VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
-
-    VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.commandBufferCount   = 1;
-    submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
-    submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
-    submitInfo.pWaitDstStageMask    = pipelineStage;
-
-    vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-    vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-
-    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
-        PERROR("Queue wasn't submitted.");
-    }
-*/
     // Present swapchain image
     VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.pImageIndices       = &state.imageIndex;

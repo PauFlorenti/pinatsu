@@ -6,6 +6,7 @@
 void
 vulkanDeferredShaderCreate(
     const VulkanDevice& device,
+    const VulkanSwapchain& swapchain,
     u32 width,
     u32 height,
     VulkanDeferredShader* outShader);
@@ -13,4 +14,15 @@ vulkanDeferredShaderCreate(
 void
 vulkanDeferredShaderDestroy(
     const VulkanDevice& device,
+    VulkanDeferredShader& shader);
+
+void
+vulkanDeferredUpdateGlobalData(
+    const VulkanDevice& device,
+    VulkanDeferredShader& shader);
+
+void
+vulkanDeferredUpdateGbuffers(
+    const VulkanDevice& device,
+    const u32 imageIndex,
     VulkanDeferredShader& shader);

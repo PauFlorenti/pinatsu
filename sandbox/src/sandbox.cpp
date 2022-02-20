@@ -24,6 +24,10 @@ static LightData gameLight[MAX_ENTITIES_ALLOWED];
 
 static Entity camera;
 
+#ifdef DEBUG
+static bool deferred = false;
+#endif
+
 bool gameInitialize(Game* pGameInst)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
@@ -53,8 +57,8 @@ bool gameInitialize(Game* pGameInst)
 
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
-    entitySystem->addComponent(player, TransformComponent{glm::vec3(0.0), glm::quat(), glm::vec3(1.0)});
-    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), glm::vec3(10.0f, 0.25f, 10.0f)});
+    entitySystem->addComponent(player, TransformComponent{glm::vec3(0.0f, 0.0f, -5.0f), glm::quat(), glm::vec3(1.0)});
+    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, -5.0f), glm::quat(), glm::vec3(10.0f, 0.25f, 10.0f)});
 
     Resource gltf;
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
@@ -105,6 +109,9 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 
     CameraComponent* cameraComp = &entitySystem->getComponent<CameraComponent>(camera);
 #if DEBUG
+
+    if(wasKeyDown(KEY_F1) && !isKeyDown(KEY_F1)) deferred = !deferred;
+
     f32 speed = 10.0f;
     if(isKeyDown(KEY_W)) {
         cameraComp->position = cameraComp->position + (cameraComp->front * speed * deltaTime);
@@ -182,8 +189,15 @@ bool gameRender(Game* pGameInst, f32 deltaTime)
     GameState* state = (GameState*)pGameInst->state;
     RenderPacket packet{};
     packet.deltaTime = deltaTime;
+    
+#ifdef DEBUG
+    if(!deferred)
+        renderDrawFrame(packet);
+    else
+        renderDeferredFrame(packet);
+#else
     renderDrawFrame(packet);
-
+#endif
     return true;
 }
 
