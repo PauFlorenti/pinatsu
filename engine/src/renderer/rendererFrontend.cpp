@@ -102,8 +102,8 @@ bool renderDeferredFrame(const RenderPacket& packet)
 
         pState->renderBackend.updateDeferredGlobalState(pState->projection, (f32)packet.deltaTime);
 
-        EntitySystem* entitySystem = EntitySystem::Get();
-        auto& entities          = entitySystem->getAvailableEntities();
+        EntitySystem* entitySystem  = EntitySystem::Get();
+        auto& entities              = entitySystem->getAvailableEntities();
         
         for(auto& entity : entities)
         {

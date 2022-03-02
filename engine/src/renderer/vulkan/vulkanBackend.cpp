@@ -373,6 +373,10 @@ bool vulkanCreateMaterial(Material* m)
             {
                 PERROR("vulkanCreateMaterial - could not create material '%s'.", m->name);
             }
+            if(!vulkanDeferredShaderGetMaterial(&state, &state.deferredShader, m))
+            {
+                PERROR("vulkanCreateMaterial - could not create deferred material '%s'.", m->name);
+            }
             break;
         case MATERIAL_TYPE_UI:
             break;
@@ -820,6 +824,7 @@ void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* 
     case 1:
         cmd = state.deferredShader.geometryCmdBuffer.handle;
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.pipeline);
+        vulkanDeferredShaderSetMaterial(&state, &state.deferredShader, m);
         vkCmdPushConstants(cmd, state.deferredShader.geometryPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.layout, 0, 1, &state.deferredShader.globalGeometryDescriptorSet, 0, nullptr);
         break;

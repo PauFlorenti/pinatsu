@@ -231,19 +231,22 @@ vulkanDeferredShaderCreate(
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
         &outShader->objectUbo);
 
-    VkDescriptorPoolSize objectDescriptorPoolSize[2];
-    objectDescriptorPoolSize[0].descriptorCount    = VULKAN_MAX_MATERIAL_COUNT;
-    objectDescriptorPoolSize[0].type               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    objectDescriptorPoolSize[1].descriptorCount    = VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT * VULKAN_MAX_MATERIAL_COUNT;
-    objectDescriptorPoolSize[1].type               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    VkDescriptorPoolSize geometryPoolSize[3];
+    geometryPoolSize[0].descriptorCount    = 1;
+    geometryPoolSize[0].type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-    VkDescriptorPoolCreateInfo objectDescriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    objectDescriptorPoolInfo.poolSizeCount  = 2;
-    objectDescriptorPoolInfo.pPoolSizes     = objectDescriptorPoolSize;
-    objectDescriptorPoolInfo.maxSets        = VULKAN_MAX_MATERIAL_COUNT;
-    objectDescriptorPoolInfo.flags          = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    geometryPoolSize[1].descriptorCount = 1;
+    geometryPoolSize[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-    VK_CHECK(vkCreateDescriptorPool(device.handle, &objectDescriptorPoolInfo, nullptr, &outShader->geometryDescriptorPool));
+    geometryPoolSize[2].descriptorCount = 1;
+    geometryPoolSize[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    VkDescriptorPoolCreateInfo geometryPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    geometryPoolInfo.maxSets        = 2;
+    geometryPoolInfo.poolSizeCount  = 3;
+    geometryPoolInfo.pPoolSizes     = geometryPoolSize;
+
+    VK_CHECK(vkCreateDescriptorPool(device.handle, &geometryPoolInfo, nullptr, &outShader->geometryDescriptorPool));
 
     VkDescriptorSetLayoutBinding bindings[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
 
@@ -326,23 +329,6 @@ vulkanDeferredShaderCreate(
     vulkanCreateShaderModule(device, geometryFragment, &outShader->shaderStages[1].shaderModule);
     vulkanCreateShaderModule(device, deferredVertex, &outShader->shaderStages[2].shaderModule);
     vulkanCreateShaderModule(device, deferredFragment, &outShader->shaderStages[3].shaderModule);
-
-    VkDescriptorPoolSize geometryPoolSize[3];
-    geometryPoolSize[0].descriptorCount    = 1;
-    geometryPoolSize[0].type             = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    geometryPoolSize[1].descriptorCount = 1;
-    geometryPoolSize[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    geometryPoolSize[2].descriptorCount = 1;
-    geometryPoolSize[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-    VkDescriptorPoolCreateInfo geometryPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-    geometryPoolInfo.maxSets        = 2;
-    geometryPoolInfo.poolSizeCount  = 3;
-    geometryPoolInfo.pPoolSizes     = geometryPoolSize;
-
-    VK_CHECK(vkCreateDescriptorPool(device.handle, &geometryPoolInfo, nullptr, &outShader->geometryDescriptorPool));
 
     // Global set -- Viewprojection matrix
     VkDescriptorSetLayoutBinding globalGeometryBinding{};
@@ -512,6 +498,7 @@ vulkanDeferredShaderDestroy(
 {
 
     vulkanBufferDestroy(device, shader.globalUbo);
+    vulkanBufferDestroy(device, shader.objectUbo);
 
     vkFreeMemory(device.handle, shader.gbuf.positonTxt.image.memory, nullptr);
     vkFreeMemory(device.handle, shader.gbuf.normalTxt.image.memory, nullptr);
@@ -534,8 +521,9 @@ vulkanDeferredShaderDestroy(
 
     vkDestroyDescriptorPool(device.handle, shader.lightDescriptorPool, nullptr);
     vkDestroyDescriptorPool(device.handle, shader.geometryDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(device.handle, shader.lightDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(device.handle, shader.globalGeometryDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device.handle, shader.objectGeometryDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device.handle, shader.lightDescriptorSetLayout, nullptr);
 
     vkDestroySemaphore(device.handle, shader.geometrySemaphore, nullptr);
 
@@ -607,35 +595,23 @@ vulkanDeferredUpdateGbuffers(
     vkUpdateDescriptorSets(device.handle, 1, &write, 0, nullptr);
 }
 
-bool vulkanForwardShaderGetMaterial(
+bool 
+vulkanDeferredShaderGetMaterial(
     VulkanState* pState,
     VulkanDeferredShader* shader,
     Material* m)
 {
-    m->rendererId = shader->meshInstanceBufferIndex;
-    shader->meshInstanceBufferIndex++;
+    m->rendererId = shader->objectBufferIndex;
+    shader->objectBufferIndex++;
 
-    VulkanMaterialInstance* matInstance = &shader->materialInstances[m->rendererId];
-    for(u32 i = 0; i < VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT; ++i)
-    {
-        for(u32 j = 0; j < 3; ++j)
-        {
-            matInstance->descriptorState[i].generations[j] = INVALID_ID;
-            matInstance->descriptorState[i].ids[j] = INVALID_ID;
-        }
-    }
-
-    VkDescriptorSetLayout descriptorSetLayouts[3] = {
-        shader->meshInstanceDescriptorSetLayout,
-        shader->meshInstanceDescriptorSetLayout,
-        shader->meshInstanceDescriptorSetLayout
-    };
+    shader->objectGeometryGeneration[m->rendererId] = INVALID_ID;
+    shader->objectGeometryIds[m->rendererId] = INVALID_ID;
 
     VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
     allocInfo.descriptorPool        = shader->geometryDescriptorPool;
     allocInfo.descriptorSetCount    = 1;
     allocInfo.pSetLayouts           = &shader->objectGeometryDescriptorSetLayout;
-    VK_CHECK(vkAllocateDescriptorSets(pState->device.handle, &allocInfo, matInstance->descriptorSets));
+    VK_CHECK(vkAllocateDescriptorSets(pState->device.handle, &allocInfo, &shader->objectGeometryDescriptorSet[m->rendererId]));
     return true;
 }
 
@@ -645,30 +621,48 @@ vulkanDeferredShaderSetMaterial(
     VulkanDeferredShader* shader,
     Material* m)
 {
-    // Helpers for the index and the command buffer to write to.
     u32 index = pState->imageIndex;
-    VkCommandBuffer cmd = pState->commandBuffers[index].handle;
+    VkCommandBuffer cmd = shader->geometryCmdBuffer.handle;
 
-    // Material data
-    VulkanMaterialInstance* materialInstance = &shader->materialInstances[m->rendererId];
-    VkDescriptorSet descriptorSet = materialInstance->descriptorSets[index];
-
-    // Init writes variables.
-    // TODO check if needs update
-    VkWriteDescriptorSet writes[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
-    memZero(writes, sizeof(VkWriteDescriptorSet) * 2);
+    VkDescriptorSet descriptorSet = shader->objectGeometryDescriptorSet[m->rendererId];
+    VkWriteDescriptorSet writes[1];
     u32 descriptorCount = 0;
     u32 descriptorIndex = 0;
 
-    // Descriptor 0 - Material UBO
     u32 range = sizeof(VulkanMaterialShaderUBO);
-    u32 offset = sizeof(VulkanMaterialShaderUBO) * m->rendererId;
-
-    // Upload the data to the ubo.
+    u32 offset = range * m->rendererId;
     VulkanMaterialShaderUBO ubo{};
     ubo.diffuseColor = m->diffuseColor;
     vulkanBufferLoadData(pState->device, shader->objectUbo, offset, range, 0, &ubo);
 
+    if(shader->objectGeometryGeneration[m->rendererId] == INVALID_ID ||
+        shader->objectGeometryGeneration[m->rendererId] != m->generation)
+    {
+        VkDescriptorBufferInfo bufferInfo;
+        bufferInfo.buffer = shader->objectUbo.handle;
+        bufferInfo.offset = offset;
+        bufferInfo.range = range;
+
+        VkWriteDescriptorSet objectWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        objectWrite.pBufferInfo     = &bufferInfo;
+        objectWrite.descriptorCount = 1;
+        objectWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        objectWrite.dstArrayElement = 0;
+        objectWrite.dstBinding      = 0;
+        objectWrite.dstSet          = descriptorSet;
+
+        writes[0] = objectWrite;
+        descriptorCount++;
+
+        shader->objectGeometryGeneration[m->rendererId] = m->generation;
+    }
+    descriptorIndex++;
+
+    if(descriptorCount > 0)
+        vkUpdateDescriptorSets(pState->device.handle, descriptorCount, writes, 0, nullptr);
+
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->geometryPipeline.layout, 1, 1, &descriptorSet, 0, nullptr);
+    /*
     // If descriptor has not been updated, generate the writes.
     if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)
     {
@@ -749,4 +743,5 @@ vulkanDeferredShaderSetMaterial(
         vkUpdateDescriptorSets(pState->device.handle, descriptorCount, writes, 0, nullptr);
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->pipeline.layout, 1, 1, &descriptorSet, 0, nullptr);
+    */
 }

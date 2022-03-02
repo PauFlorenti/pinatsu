@@ -244,14 +244,18 @@ struct VulkanDeferredShader
     // Geometry pass
     VkDescriptorPool geometryDescriptorPool;
     VkDescriptorPool lightDescriptorPool;
-    // Per frame
+    // Per frame - descriptor global information
     VkDescriptorSet globalGeometryDescriptorSet;
     VkDescriptorSetLayout globalGeometryDescriptorSetLayout;
-    // Per object
-    VkDescriptorSet objectGeometryDescriptorSet;
+    // Per object - descriptor material object information
+    u32 objectGeometryGeneration[VULKAN_MAX_MATERIAL_COUNT];
+    u32 objectGeometryIds[VULKAN_MAX_MATERIAL_COUNT];
+    VkDescriptorSet objectGeometryDescriptorSet[VULKAN_MAX_MATERIAL_COUNT];
     VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
     
     VulkanBuffer globalUbo;
+
+    u32 objectBufferIndex = 0;
     VulkanBuffer objectUbo;
 
     // Deferred pass
@@ -271,8 +275,6 @@ struct VulkanDeferredShader
     VulkanPipeline lightPipeline;
     VulkanRenderpass geometryRenderpass;
     VulkanRenderpass lightRenderpass;
-    
-    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
 };
 
 typedef struct VulkanSwapchain

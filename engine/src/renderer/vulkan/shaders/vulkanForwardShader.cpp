@@ -337,7 +337,8 @@ vulkanForwardShaderSetMaterial(
     vulkanBufferLoadData(pState->device, shader->meshInstanceBuffer, offset, range, 0, &ubo);
 
     // If descriptor has not been updated, generate the writes.
-    if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)
+    if(materialInstance->descriptorState[descriptorIndex].generations[index] == INVALID_ID || 
+        materialInstance->descriptorState[descriptorIndex].generations[index] != m->generation)
     {
         VkDescriptorBufferInfo bufferInfo;
         bufferInfo.buffer   = shader->meshInstanceBuffer.handle;

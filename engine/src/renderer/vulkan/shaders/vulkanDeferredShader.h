@@ -28,7 +28,7 @@ vulkanDeferredUpdateGbuffers(
     VulkanDeferredShader& shader);
 
 bool 
-vulkanForwardShaderGetMaterial(
+vulkanDeferredShaderGetMaterial(
     VulkanState* pState,
     VulkanDeferredShader* shader,
     Material* m);

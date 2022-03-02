@@ -25,7 +25,7 @@ static LightData gameLight[MAX_ENTITIES_ALLOWED];
 static Entity camera;
 
 #ifdef DEBUG
-static bool deferred = false;
+static bool deferred = true;
 #endif
 
 bool gameInitialize(Game* pGameInst)
