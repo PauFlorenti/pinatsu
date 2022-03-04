@@ -22,6 +22,7 @@ void main()
 {
     outPosition = vec4(inWorldPos, 1.0);
     outNormal = (vec4( inNormal * 0.5 + vec3(0.5), 1));
-    vec3 albedo = vec3(1);//inColor * texture(diffuseSampler, inUV).xyz;
-    outAlbedo = mat.diffuse; //vec4(albedo, 1.0);
+    vec3 color = inColor * mat.diffuse.xyz;
+    vec3 albedo = color * texture(diffuseSampler, inUV).xyz;
+    outAlbedo = vec4(albedo, 1.0);
 }

@@ -258,11 +258,14 @@ struct VulkanDeferredShader
     u32 objectBufferIndex = 0;
     VulkanBuffer objectUbo;
 
+    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
+
     // Deferred pass
     VkDescriptorSet lightDescriptorSet[3];
     VkDescriptorSetLayout lightDescriptorSetLayout;
 
     gbuffers gbuf;
+    VulkanTexture geometryDepth;
 
     VkSemaphore geometrySemaphore;
 

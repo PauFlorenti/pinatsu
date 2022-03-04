@@ -760,17 +760,19 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
         }
         case 1: // Geometry pass
         {
-            VkClearValue clearColors[3];
+            VkClearValue clearColors[4];
             clearColors[0].color = {1.0, 0.0, 0.0, 1.0};
             clearColors[1].color = {0.0, 1.0, 0.0, 1.0};
             clearColors[2].color = {0.0, 0.0, 1.0, 1.0};
+            clearColors[3].depthStencil.depth = 1.0f;
+            clearColors[3].depthStencil.stencil = 0;
 
             VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
             info.renderPass         = state.deferredShader.geometryRenderpass.handle;
             info.framebuffer        = state.deferredShader.geometryFramebuffer.handle;
             info.renderArea.offset  = {0, 0};
             info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 3;
+            info.clearValueCount    = 4;
             info.pClearValues       = clearColors;
 
             vkCmdBeginRenderPass(state.deferredShader.geometryCmdBuffer.handle, &info, VK_SUBPASS_CONTENTS_INLINE);
