@@ -253,6 +253,7 @@ struct VulkanDeferredShader
     VkDescriptorSet objectGeometryDescriptorSet[VULKAN_MAX_MATERIAL_COUNT];
     VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
     
+    ViewProjectionBuffer globalUboData;
     VulkanBuffer globalUbo;
 
     u32 objectBufferIndex = 0;

@@ -1,4 +1,5 @@
 #include "vulkanBackend.h"
+
 #include "vulkanTypes.h"
 #include "vulkanDevice.h"
 #include "vulkanSwapchain.h"
@@ -9,13 +10,15 @@
 #include "vulkanImage.h"
 #include "vulkanUtils.h"
 #include "vulkanImgui.h"
+#include "vulkanPlatform.h"
 
 #include "shaders/vulkanForwardShader.h"
 #include "shaders/vulkanDeferredShader.h"
 
 #include "core/application.h"
-#include "platform/platform.h"
+
 #include "systems/entitySystemComponent.h"
+
 #include "pmath.h"
 #include <vector>
 #include <string>
@@ -116,7 +119,6 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
-    //vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
@@ -161,12 +163,12 @@ vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
 
     glm::mat4 cameraView = camera.getView();
 
-    state.forwardShader.globalUboData.view        = cameraView;
-    state.forwardShader.globalUboData.projection  = projection;
-    state.forwardShader.globalUboData.position    = camera.position;
+    state.deferredShader.globalUboData.view        = cameraView;
+    state.deferredShader.globalUboData.projection  = projection;
+    state.deferredShader.globalUboData.position    = camera.position;
 
     u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
-    vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+    vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.deferredShader.globalUboData);
     vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);
 
 }
@@ -451,7 +453,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
 
     // Get extensions
     std::vector<const char*> requiredExtensions;
-    platformSpecificExtensions(requiredExtensions);
+    platformSpecificVulkanExtensions(requiredExtensions);
     requiredExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 #ifdef DEBUG
     requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -493,7 +495,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
     VK_CHECK(vulkanCreateDebugMessenger(&state));
 #endif
 
-    if(!platformSurfaceCreation(&state)) {
+    if(!platformCreateVulkanSurface(&state)) {
         return false;
     }
 
@@ -696,13 +698,9 @@ vulkanBeginCommandBuffer(DefaultRenderPasses renderPassid)
     switch (renderPassid)
     {
     case 0:
-        //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame], VK_WHOLE_SIZE);
-        //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
         cmd = state.commandBuffers[state.imageIndex].handle;
         break;
     case 1:
-        //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-        //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
         cmd = state.deferredShader.geometryCmdBuffer.handle;
         break;
     case 2:
@@ -761,7 +759,7 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
         case 1: // Geometry pass
         {
             VkClearValue clearColors[4];
-            clearColors[0].color = {1.0, 0.0, 0.0, 1.0};
+            clearColors[0].color = {0.2, 0.2, 0.2, 1.0};
             clearColors[1].color = {0.0, 1.0, 0.0, 1.0};
             clearColors[2].color = {0.0, 0.0, 1.0, 1.0};
             clearColors[3].depthStencil.depth = 1.0f;

@@ -2,7 +2,6 @@
 
 #include "core/input.h"
 #include "core/logger.h"
-#include "core/pstring.h"
 #include "core/application.h"
 #include "memory/pmemory.h"
 
@@ -16,6 +15,7 @@
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
+#include "platform/platform.h"
 
 static f32 rot;
 
@@ -46,12 +46,12 @@ bool gameInitialize(Game* pGameInst)
     camera = entitySystem->createEntity();
     CameraComponent cameraComp;
     cameraComp.position = glm::vec3(0.0f, 1.0f, 3.0f);
-    cameraComp.front = glm::vec3(0, 0, -1);
-    cameraComp.right = glm::vec3(1, 0, 0);
-    cameraComp.up = glm::vec3(0, 1, 0);
-    cameraComp.yaw = -90.0f;
-    cameraComp.pitch = 0.0f;
-    cameraComp.locked = false;
+    cameraComp.front    = glm::vec3(0, 0, -1);
+    cameraComp.right    = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraComp.front));
+    cameraComp.up       = glm::normalize(glm::cross(cameraComp.front, cameraComp.right));
+    cameraComp.yaw      = -90.0f;
+    cameraComp.pitch    = 0.0f;
+    cameraComp.locked   = false;
 
     entitySystem->addComponent(camera, cameraComp);
 
@@ -160,25 +160,11 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
             cameraComp->right   = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraComp->front));
             cameraComp->up      = glm::normalize(glm::cross(cameraComp->front, cameraComp->right));
             // TODO set mouse position to center
+            //setMousePosition(appState->m_width / 2, appState->m_height / 2);
         }
     }
 #endif
-    /*
-    No rotation at the moment
 
-    else if(isKeyDown(KEY_Q))
-    {
-        f32 speed = 1.0f * deltaTime;
-        state->cameraAxes.y += speed;
-        //state->view = glm::rotate(state->view, glm::radians(state->cameraAxes.y), glm::vec3(0, 1, 0));
-    }
-    else if(isKeyDown(KEY_E))
-    {
-        f32 speed = 1.0f * deltaTime;
-        state->cameraAxes.y -= speed;
-        //state->view = glm::rotate(state->view, glm::radians(state->cameraAxes.y), glm::vec3(0, 1, 0));
-    }
-    */
     setView(state->view, state->projection);
 
     return true;

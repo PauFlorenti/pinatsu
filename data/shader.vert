@@ -32,9 +32,9 @@ void main()
     mat4 model = constant.model;
 
     // Out values
+    worldPos = (model * vec4(position, 1.0)).xyz;
     fragColor = color;
     outUV = uv;
-    worldPos = (model * vec4(position, 1.0)).xyz;
     worldNormal = mat3(transpose(inverse(model))) * normal;
     camPosition = ubo.position;
 

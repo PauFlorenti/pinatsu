@@ -13,7 +13,8 @@
 #include <windowsx.h>
 #include <wingdi.h>
 
-#include "vulkan\vulkan_win32.h"
+#include "renderer/vulkan/vulkanTypes.h"
+#include <vulkan\vulkan_win32.h>
 #include <external/imgui/imgui_impl_win32.h>
 
 LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -187,14 +188,14 @@ platformUpdate()
     RedrawWindow(pState->hwnd, &rc, 0, 0);
 }
 
-void 
-platformSpecificExtensions(std::vector<const char*>& extensions)
+void
+platformSpecificVulkanExtensions(std::vector<const char*>& extensions)
 {
     extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 }
 
-bool 
-platformSurfaceCreation(VulkanState* vulkanState)
+bool
+platformCreateVulkanSurface(VulkanState* vulkanState)
 {
     VkWin32SurfaceCreateInfoKHR surfaceInfo = {};
     surfaceInfo.sType       = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
