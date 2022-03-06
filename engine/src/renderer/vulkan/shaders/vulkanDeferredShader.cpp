@@ -236,6 +236,13 @@ vulkanDeferredShaderCreate(
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &outShader->globalUbo);
 
+    vulkanBufferCreate(
+        device,
+        sizeof(VulkanLightData) * MAX_LIGHTS,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &outShader->lightUbo);
+
     u32 objectMaterialSize = sizeof(VulkanMaterialShaderUBO) * VULKAN_MAX_MATERIAL_COUNT;
     vulkanBufferCreate(
         device, 
@@ -285,16 +292,6 @@ vulkanDeferredShaderCreate(
 
     VK_CHECK(vkCreateDescriptorSetLayout(device.handle, &objectBindingInfo, nullptr, &outShader->objectGeometryDescriptorSetLayout));
 
-    // Create geometry depth attachment
-    /*
-    vulkanCreateAttachment(
-        device,
-        swapchain.depthFormat,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        width,
-        height,
-        &outShader->geometryDepth);
-*/
     createGbuffers(device, width, height, outShader);
     createGeometryRenderPass(device, swapchain, outShader);
     createLightRenderPass(device, swapchain, outShader);
@@ -449,15 +446,23 @@ vulkanDeferredShaderCreate(
 
     VK_CHECK(vkCreateDescriptorPool(device.handle, &lightPoolInfo, nullptr, &outShader->lightDescriptorPool));
 
-    VkDescriptorSetLayoutBinding lightBinding{};
-    lightBinding.binding           = 0;
-    lightBinding.descriptorCount   = 3;
-    lightBinding.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    lightBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding gbufferBinding{};
+    gbufferBinding.binding           = 0;
+    gbufferBinding.descriptorCount   = 3;
+    gbufferBinding.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    gbufferBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding lightsBinding{};
+    lightsBinding.binding           = 1;
+    lightsBinding.descriptorCount   = 1;
+    lightsBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightsBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding deferredBindings[2] = {gbufferBinding, lightsBinding};
 
     VkDescriptorSetLayoutCreateInfo lightLayoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    lightLayoutInfo.bindingCount = 1;
-    lightLayoutInfo.pBindings    = &lightBinding;
+    lightLayoutInfo.bindingCount = 2;
+    lightLayoutInfo.pBindings    = deferredBindings;
     lightLayoutInfo.flags        = 0;
 
     VK_CHECK(vkCreateDescriptorSetLayout(device.handle, &lightLayoutInfo, nullptr, &outShader->lightDescriptorSetLayout));
@@ -527,6 +532,7 @@ vulkanDeferredShaderDestroy(
 
     vulkanBufferDestroy(device, shader.globalUbo);
     vulkanBufferDestroy(device, shader.objectUbo);
+    vulkanBufferDestroy(device, shader.lightUbo);
 
     vkFreeMemory(device.handle, shader.gbuf.positonTxt.image.memory, nullptr);
     vkFreeMemory(device.handle, shader.gbuf.normalTxt.image.memory, nullptr);
@@ -578,15 +584,25 @@ vulkanDeferredUpdateGlobalData(
     info.offset = 0;
     info.range  = sizeof(ViewProjectionBuffer);
 
-    VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.descriptorCount   = 1;
-    write.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.dstArrayElement   = 0;
-    write.dstBinding        = 0;
-    write.dstSet            = shader.globalGeometryDescriptorSet;
-    write.pBufferInfo       = &info;
+    VkWriteDescriptorSet cameraWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    cameraWrite.descriptorCount   = 1;
+    cameraWrite.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraWrite.dstArrayElement   = 0;
+    cameraWrite.dstBinding        = 0;
+    cameraWrite.dstSet            = shader.globalGeometryDescriptorSet;
+    cameraWrite.pBufferInfo       = &info;
 
-    vkUpdateDescriptorSets(device.handle, 1, &write, 0, nullptr);
+    vkUpdateDescriptorSets(device.handle, 1, &cameraWrite, 0, nullptr);
+
+    vkCmdBindDescriptorSets(
+        shader.geometryCmdBuffer.handle, 
+        VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        shader.geometryPipeline.layout, 
+        0, 
+        1, 
+        &shader.globalGeometryDescriptorSet, 
+        0, 
+        nullptr);
 };
 
 void
@@ -612,15 +628,30 @@ vulkanDeferredUpdateGbuffers(
 
     VkDescriptorImageInfo descInfos[3] = {textDescPosition, textDescNormal, textDescAlbedo};
 
-    VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    write.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write.descriptorCount   = 3;
-    write.dstBinding        = 0;
-    write.dstArrayElement   = 0;
-    write.pImageInfo        = descInfos;
-    write.dstSet            = shader.lightDescriptorSet[imageIndex];
+    VkWriteDescriptorSet gbufferWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    gbufferWrite.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    gbufferWrite.descriptorCount   = 3;
+    gbufferWrite.dstBinding        = 0;
+    gbufferWrite.dstArrayElement   = 0;
+    gbufferWrite.pImageInfo        = descInfos;
+    gbufferWrite.dstSet            = shader.lightDescriptorSet[imageIndex];
+
+    VkDescriptorBufferInfo lightBufferInfo;
+    lightBufferInfo.buffer  = shader.lightUbo.handle;
+    lightBufferInfo.offset  = 0;
+    lightBufferInfo.range   = sizeof(VulkanLightData) * MAX_LIGHTS;
+
+    VkWriteDescriptorSet lightWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    lightWrite.descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightWrite.descriptorCount  = 1;
+    lightWrite.dstBinding       = 1;
+    lightWrite.dstArrayElement  = 0;
+    lightWrite.pBufferInfo      = &lightBufferInfo;
+    lightWrite.dstSet           = shader.lightDescriptorSet[imageIndex];
+
+    VkWriteDescriptorSet writes[2] = {gbufferWrite, lightWrite};
     
-    vkUpdateDescriptorSets(device.handle, 1, &write, 0, nullptr);
+    vkUpdateDescriptorSets(device.handle, 2, writes, 0, nullptr);
 }
 
 bool 

@@ -27,7 +27,7 @@ void main()
     vec3 worldPos = (model * vec4(position, 1.0)).xyz;
     outPosition = worldPos;
     outColor = color.xyz;
-    outNormal = vec3(model * vec4(normal, 1.0));
+    outNormal = mat3(transpose(inverse(model))) * normal;
     outUV = uv;
     gl_Position = ubo.proj * ubo.view * vec4(worldPos, 1.0);
 }

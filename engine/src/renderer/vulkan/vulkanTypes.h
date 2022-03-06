@@ -255,6 +255,8 @@ struct VulkanDeferredShader
     
     ViewProjectionBuffer globalUboData;
     VulkanBuffer globalUbo;
+    VulkanLightData lightData;
+    VulkanBuffer lightUbo;
 
     u32 objectBufferIndex = 0;
     VulkanBuffer objectUbo;

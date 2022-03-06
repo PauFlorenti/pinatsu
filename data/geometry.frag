@@ -1,5 +1,8 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : enable
+#include "utils.glsl"
+
 layout (location = 0) in vec3 inWorldPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inColor;
@@ -20,8 +23,14 @@ layout(set = 1, binding = 3) uniform sampler2D metallicRoughnessSampler;
 
 void main()
 {
+    vec3 wNorm  = inNormal;
+    vec3 wPos   = inWorldPos;
+    vec3 N      = normalize(texture(normalSampler, inUV).xyz);
+
+    N = perturbNormal(wNorm, wPos, inUV, N);
+
     outPosition = vec4(inWorldPos, 1.0);
-    outNormal = (vec4( inNormal * 0.5 + vec3(0.5), 1));
+    outNormal = (vec4( N * 0.5 + vec3(0.5), 1));
     vec3 color = inColor * mat.diffuse.xyz;
     vec3 albedo = color * texture(diffuseSampler, inUV).xyz;
     outAlbedo = vec4(albedo, 1.0);

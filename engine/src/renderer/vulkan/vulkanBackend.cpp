@@ -117,7 +117,6 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     state.forwardShader.globalUboData.projection  = projection;
     state.forwardShader.globalUboData.position    = camera.position; 
 
-    u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
     u32 lightCount = 0;
@@ -167,10 +166,30 @@ vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
     state.deferredShader.globalUboData.projection  = projection;
     state.deferredShader.globalUboData.position    = camera.position;
 
-    u32 index = (state.currentFrame + 1) % state.swapchain.imageCount;
     vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.deferredShader.globalUboData);
+    
+    u32 lightCount = 0;
+    for(auto& it = entities.begin(); it != entities.end(); it++)
+    {
+        u32 idx = entitySystem->getComponentType<LightPointComponent>(it->first);
+        if(it->second[idx] == 1)
+        {
+            LightPointComponent comp = entitySystem->getComponent<LightPointComponent>(it->first);
+            state.deferredShader.lightData.color     = comp.color;
+            state.deferredShader.lightData.intensity = comp.intensity;
+            state.deferredShader.lightData.position  = comp.position;
+            state.deferredShader.lightData.radius    = comp.radius;
+            vulkanBufferLoadData(
+                state.device,
+                state.deferredShader.lightUbo,
+                sizeof(VulkanLightData) * lightCount,
+                sizeof(VulkanLightData),
+                0,
+                &state.deferredShader.lightData);
+            ++lightCount;
+        }
+    }
     vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);
-
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -826,7 +845,7 @@ void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.pipeline);
         vulkanDeferredShaderSetMaterial(&state, &state.deferredShader, m);
         vkCmdPushConstants(cmd, state.deferredShader.geometryPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.layout, 0, 1, &state.deferredShader.globalGeometryDescriptorSet, 0, nullptr);
+        //vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.layout, 0, 1, &state.deferredShader.globalGeometryDescriptorSet, 0, nullptr);
         break;
     case 2:
         cmd = state.commandBuffers[state.imageIndex].handle;
