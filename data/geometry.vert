@@ -23,11 +23,11 @@ layout (push_constant) uniform pushConstant
 
 void main()
 {
-    mat4 model = constant.model;
-    vec3 worldPos = (model * vec4(position, 1.0)).xyz;
-    outPosition = worldPos;
-    outColor = color.xyz;
-    outNormal = mat3(transpose(inverse(model))) * normal;
-    outUV = uv;
-    gl_Position = ubo.proj * ubo.view * vec4(worldPos, 1.0);
+    mat4 model      = constant.model;
+    vec3 worldPos   = (model * vec4(position, 1.0)).xyz;
+    outPosition     = worldPos;
+    outColor        = color.xyz;
+    outNormal       = mat3(transpose(inverse(model))) * normal;
+    outUV           = uv;
+    gl_Position     = ubo.proj * ubo.view * vec4(worldPos, 1.0);
 }

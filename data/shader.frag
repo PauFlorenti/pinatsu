@@ -39,10 +39,9 @@ layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-    vec3 wPos = inWorldPos;
-    vec3 wNorm = inWorldNormal;
-    vec3 N = vec3(0.0);
-    vec4 color = vec4(0.0);
+    vec3 wPos   = inWorldPos;
+    vec3 wNorm  = inWorldNormal;
+    vec3 N      = vec3(0.0);
     float ambient_factor = 0.1;
     vec3 V = normalize(inCamPosition - wPos);
     float NdotV = max(dot(N, V), 0.0);
@@ -51,11 +50,10 @@ void main()
     vec4 diffuseTxt = texture(diffuseSampler, inUV);
     if(diffuseTxt.w < 1.0)
         discard;
-    vec4 diffuse = mat.diffuse * diffuseTxt;
-    color = diffuse * inColor;
-    float metallic = texture(metallicRoughnessSampler, inUV).z;
+    vec4 diffuse    = mat.diffuse * diffuseTxt;
+    float metallic  = texture(metallicRoughnessSampler, inUV).z;
     float roughness = texture(metallicRoughnessSampler, inUV).y;
-    vec3 F0 = mix(vec3(0.04), pow(diffuseTxt.xyz, vec3(2.2)), metallic);
+    vec3 F0         = mix(vec3(0.04), pow(diffuseTxt.xyz, vec3(2.2)), metallic);
 
     // Multipass lights
     vec4 light = vec4(0.0);
@@ -65,7 +63,7 @@ void main()
         vec3 L = (lightPos - wPos);
         float distanceToLight = length(L);
         L = normalize(L);
-        vec3 H = normalize(V + normalize(L));
+        vec3 H = normalize(V + L);
 
         if(distanceToLight >= lights.l[i].radius)
             continue;

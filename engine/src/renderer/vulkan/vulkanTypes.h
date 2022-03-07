@@ -208,7 +208,6 @@ typedef struct VulkanForwardShader
     ViewProjectionBuffer globalUboData;
     // Buffer holding the data from globalUboData to be uploaded to the gpu.
     VulkanBuffer globalUbo;
-
     VulkanLightData lightData;
     VulkanBuffer lightUbo;
 

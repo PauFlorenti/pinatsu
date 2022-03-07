@@ -6,8 +6,9 @@
 #include "core/logger.h"
 #include "resources/resourcesTypes.h"
 
-#include "external/glm/glm.hpp"
-#include "external/glm/gtc/quaternion.hpp"
+#include <external/imgui/imgui.h>
+#include <external/glm/glm.hpp>
+#include <external/glm/gtc/quaternion.hpp>
 #include <external/glm/gtx/matrix_decompose.hpp>
 
 #include <queue>
@@ -58,6 +59,18 @@ struct LightPointComponent
     f32 intensity;
     f32 radius;
     bool enabled;
+
+    void renderInMenu()
+    {
+        if(ImGui::TreeNode("Light"))
+        {
+            ImGui::DragFloat3("Position ", &position.x, 1.0f);
+            ImGui::DragFloat3("Colour", &color.r, 1.0f, 0.0f, 1.0f);
+            ImGui::DragFloat("Radius", &radius, 0.1f, 0.0f);
+            ImGui::DragFloat("Intensity", &intensity, 1.0f, 0.0f);
+            ImGui::TreePop();
+        }
+    }
 };
 
 struct CameraComponent

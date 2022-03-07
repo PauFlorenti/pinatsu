@@ -2,13 +2,17 @@
 #include "vulkanTypes.h"
 #include "vulkanCommandBuffer.h"
 
-#include "memory/pmemory.h"
-
-#include "systems/entitySystemComponent.h"
-
+#include <external/imgui/imgui.h>
+#include <external/imgui/imgui_impl_win32.h>
+#include <external/imgui/imgui_impl_vulkan.h>
+#include <external/imgui/ImGuizmo.h>
 #include <external/glm/gtc/type_ptr.hpp>
 #include <external/glm/gtx/quaternion.hpp>
-#include "external/imgui/ImGuizmo.h"
+
+#include "systems/entitySystemComponent.h"
+#include "systems/components/comp_transform.h"
+
+#include "memory/pmemory.h"
 
 struct imguiState
 {
@@ -80,91 +84,16 @@ imguiRender(
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
-    //ImGui::ShowDemoWindow();
 
     EntitySystem* entitySystem = EntitySystem::Get();
     auto& entities = entitySystem->getAvailableEntities();
 
     for(auto& it = entities.begin(); it != entities.end(); it++)
     {
-        if(it->second[entitySystem->getComponentType<RenderComponent>(it->first)] == 1)
+        if(it->second[entitySystem->getComponentType<TCompTransform>(it->first)] == 1)
         {
             ImGui::PushID(it->first);
-            if(ImGui::TreeNode("Mesh"))
-            {
-                static ImGuizmo::OPERATION currentOperation(ImGuizmo::TRANSLATE);
-                static ImGuizmo::MODE currentMode(ImGuizmo::WORLD);
-
-                CameraComponent* c = &entitySystem->getComponent<CameraComponent>(0);
-                TransformComponent* t = &entitySystem->getComponent<TransformComponent>(it->first);
-
-                ImGui::DragFloat3(" Position", &t->position.x, 1.0f);
-                ImGui::DragFloat3(" Scale", &t->scale.x, 1.0f);
-                if(ImGui::RadioButton("Translate", currentOperation == ImGuizmo::TRANSLATE))
-                    currentOperation = ImGuizmo::TRANSLATE;
-                ImGui::SameLine();
-                if(ImGui::RadioButton("Rotate", currentOperation == ImGuizmo::ROTATE))
-                    currentOperation = ImGuizmo::ROTATE;
-                ImGui::SameLine();
-                if(ImGui::RadioButton("Scale", currentOperation == ImGuizmo::SCALE))
-                    currentOperation = ImGuizmo::SCALE;
-                ImGui::SameLine();
-                if(currentOperation != ImGuizmo::SCALE) {
-                    if(ImGui::RadioButton("Local", currentMode == ImGuizmo::LOCAL))
-                        currentMode = ImGuizmo::LOCAL;
-                    ImGui::SameLine();
-                    if(ImGui::RadioButton("World", currentMode == ImGuizmo::WORLD))
-                        currentMode = ImGuizmo::WORLD;
-                }
-
-                glm::mat4 matrix = t->asMatrix();
-                glm::mat4 cameraView = c->getView();
-                f32 ratio = (f32)imgui->swapchain->extent.width / (f32)imgui->swapchain->extent.height;
-                glm::mat4 projection = c->getProjection(ratio);
-
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Reset"))
-                {
-                    if(currentOperation == ImGuizmo::TRANSLATE)
-                        t->position = glm::vec3(0.0f);
-                    else if(currentOperation == ImGuizmo::ROTATE)
-                        t->rotation = glm::quat();
-                    else if(currentOperation == ImGuizmo::SCALE)
-                        t->scale = glm::vec3(1.0f);
-                }
-
-                ImGui::SameLine();
-                if(ImGui::SmallButton("All"))
-                {
-                    t->position = glm::vec3(0.0f);
-                    t->rotation = glm::quat();
-                    t->scale = glm::vec3(1.0f);
-                }
-
-                ImGuizmo::BeginFrame();
-                ImGuizmo::Manipulate(
-                    glm::value_ptr(cameraView), 
-                    glm::value_ptr(projection), 
-                    currentOperation, 
-                    currentMode, 
-                    glm::value_ptr(matrix));
-
-                if(ImGuizmo::IsUsing())
-                {
-                    f32 translation[3], rotation[3], scale[3];
-                    ImGuizmo::DecomposeMatrixToComponents(
-                        glm::value_ptr(matrix),
-                        translation,
-                        rotation,
-                        scale);
-                    
-                    t->fromMatrix(matrix);
-                }
-
-                ImGuiIO& io = ImGui::GetIO();
-                ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-                ImGui::TreePop();
-            }
+            entitySystem->getComponent<TCompTransform>(it->first).debugInMenu();
             ImGui::PopID();
         }
         if(it->second[entitySystem->getComponentType<LightPointComponent>(it->first)] == 1)
@@ -173,10 +102,7 @@ imguiRender(
             if(ImGui::TreeNode("Light"))
             {
                 LightPointComponent* comp = &entitySystem->getComponent<LightPointComponent>(it->first);
-                ImGui::DragFloat3(" Position ", &comp->position.x, 1.0f);
-                ImGui::DragFloat3(" Colour", &comp->color.r, 1.0f, 0.0f, 1.0f);
-                ImGui::DragFloat(" Radius", &comp->radius, 0.1f, 0.0f);
-                ImGui::DragFloat(" Intensity", &comp->intensity, 1.0f, 0.0f);
+                comp->renderInMenu();
                 ImGui::TreePop();
             }
             ImGui::PopID();

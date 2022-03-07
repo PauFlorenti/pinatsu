@@ -2,8 +2,11 @@
 
 #include "vulkanTypes.h"
 
-bool vulkanSwapchainCreate(VulkanState* pState);
+bool 
+vulkanSwapchainCreate(VulkanState* pState);
 
-void vulkanSwapchainDestroy(VulkanState* pState);
+void 
+vulkanSwapchainDestroy(VulkanState* pState);
 
-bool vulkanSwapchainRecreate(VulkanState* pState, u32 width, u32 height);
+bool 
+vulkanSwapchainRecreate(VulkanState* pState, u32 width, u32 height);

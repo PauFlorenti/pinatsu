@@ -12,6 +12,7 @@
 #include "systems/textureSystem.h"
 #include "systems/physicsSystem.h"
 #include "systems/entitySystemComponent.h"
+#include "systems/components/comp_transform.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
@@ -38,6 +39,7 @@ bool gameInitialize(Game* pGameInst)
     ApplicationState* appState = (ApplicationState*)pGameInst->appState;
     EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
     
+    entitySystem->registerComponent<TCompTransform>();
     entitySystem->registerComponent<TransformComponent>();
     entitySystem->registerComponent<RenderComponent>();
     entitySystem->registerComponent<LightPointComponent>();
@@ -57,35 +59,44 @@ bool gameInitialize(Game* pGameInst)
 
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
-    entitySystem->addComponent(player, TransformComponent{glm::vec3(0.0f, 0.0f, -5.0f), glm::quat(), glm::vec3(1.0)});
-    entitySystem->addComponent(floor, TransformComponent{glm::vec3(0.0f, -2.0f, -5.0f), glm::quat(), glm::vec3(10.0f, 0.25f, 10.0f)});
+    TCompTransform t;
+    t.position  = glm::vec3(0.0f, 0.0f, -5.0f);
+    t.rotation  = glm::quat();
+    t.scale     = glm::vec3(1.0);
+
+    TCompTransform t2;
+    t2.position  = glm::vec3(0.0f, -2.0f, -5.0f);
+    t2.rotation  = glm::quat();
+    t2.scale     = glm::vec3(10.0f, 0.25f, 10.0f);
+    entitySystem->addComponent(player, t);
+    entitySystem->addComponent(floor, t2);
 
     Resource gltf;
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
 
     RenderComponent renderComponent{};
-    renderComponent.active = true;
-    renderComponent.material = cubeNode->material;
-    renderComponent.mesh = cubeNode->mesh;
+    renderComponent.active      = true;
+    renderComponent.material    = cubeNode->material;
+    renderComponent.mesh        = cubeNode->mesh;
     entitySystem->addComponent(player, renderComponent);
     entitySystem->addComponent(floor, renderComponent);
 
-    Entity light = entitySystem->createEntity();
-    Entity light1 = entitySystem->createEntity();
-    Entity light2 = entitySystem->createEntity();
+    Entity light    = entitySystem->createEntity();
+    Entity light1   = entitySystem->createEntity();
+    Entity light2   = entitySystem->createEntity();
 
     LightPointComponent lightComponent{};
-    lightComponent.color = glm::vec3(1, 0, 0);
-    lightComponent.position = glm::vec3(0, 2, 0);
-    lightComponent.radius = 30.0f;
-    lightComponent.intensity = 100.0f;
+    lightComponent.color        = glm::vec3(1, 0, 0);
+    lightComponent.position     = glm::vec3(0, 2, 0);
+    lightComponent.radius       = 30.0f;
+    lightComponent.intensity    = 100.0f;
 
     LightPointComponent lightComp1{};
-    lightComp1.color = glm::vec3(0, 1, 0);
-    lightComp1.position = glm::vec3(3, 2, 0);
-    lightComp1.radius = 40.0f;
-    lightComp1.intensity = 100.0f;
+    lightComp1.color        = glm::vec3(0, 1, 0);
+    lightComp1.position     = glm::vec3(3, 2, 0);
+    lightComp1.radius       = 40.0f;
+    lightComp1.intensity    = 100.0f;
 
     LightPointComponent lightComp2{};
     lightComp2.color = glm::vec3(0, 0, 1);

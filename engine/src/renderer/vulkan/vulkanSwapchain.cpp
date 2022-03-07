@@ -6,7 +6,8 @@
 static bool create(VulkanState* pState, u32 width, u32 height);
 static void destroy(VulkanState* pState);
 
-VkExtent2D getSwapchainExtent(VulkanState* pState)
+VkExtent2D 
+getSwapchainExtent(VulkanState* pState)
 {
     if(pState->swapchainSupport.capabilities.currentExtent.width != UINT32_MAX){
         return pState->swapchainSupport.capabilities.currentExtent;
@@ -21,18 +22,21 @@ VkExtent2D getSwapchainExtent(VulkanState* pState)
     }
 }
 
-bool vulkanSwapchainCreate(VulkanState* pState)
+bool 
+vulkanSwapchainCreate(VulkanState* pState)
 {
     VkExtent2D swapchainExtent = getSwapchainExtent(pState);
     return create(pState, swapchainExtent.width, swapchainExtent.height);
 }
 
-void vulkanSwapchainDestroy(VulkanState* pState)
+void 
+vulkanSwapchainDestroy(VulkanState* pState)
 {
     destroy(pState);
 }
 
-bool vulkanSwapchainRecreate(
+bool 
+vulkanSwapchainRecreate(
     VulkanState* pState, 
     u32 width, 
     u32 height)
@@ -41,7 +45,8 @@ bool vulkanSwapchainRecreate(
     return create(pState, width, height);
 }
 
-static bool create(
+static bool 
+create(
     VulkanState* pState, 
     u32 width, 
     u32 height)
@@ -154,7 +159,8 @@ static bool create(
  * and proceeds to destroy all swapchain imageViews and the swapchain
  * itself.
  */ 
-static void destroy(VulkanState *pState)
+static void 
+destroy(VulkanState *pState)
 {
     vkDeviceWaitIdle(pState->device.handle);
 

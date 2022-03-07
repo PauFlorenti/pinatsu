@@ -6,6 +6,7 @@
 
 #include "systems/entitySystemComponent.h"
 #include "systems/meshSystem.h"
+#include "systems/components/comp_transform.h"
 
 #include "external/glm/gtc/matrix_transform.hpp" // TODO temp
 
@@ -109,7 +110,7 @@ bool renderDeferredFrame(const RenderPacket& packet)
         {
             if(entity.second[entitySystem->getComponentType<RenderComponent>(entity.first)] == 1)
             {
-                TransformComponent t = entitySystem->getComponent<TransformComponent>(entity.first);
+                TCompTransform t = entitySystem->getComponent<TCompTransform>(entity.first);
                 RenderComponent r = entitySystem->getComponent<RenderComponent>(entity.first);
 
                 glm::mat4 model = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);

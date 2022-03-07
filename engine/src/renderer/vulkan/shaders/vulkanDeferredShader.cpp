@@ -458,10 +458,16 @@ vulkanDeferredShaderCreate(
     lightsBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lightsBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding deferredBindings[2] = {gbufferBinding, lightsBinding};
+    VkDescriptorSetLayoutBinding cameraBinding{};
+    cameraBinding.binding           = 2;
+    cameraBinding.descriptorCount   = 1;
+    cameraBinding.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraBinding.stageFlags        = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutBinding deferredBindings[3] = {gbufferBinding, lightsBinding, cameraBinding};
 
     VkDescriptorSetLayoutCreateInfo lightLayoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    lightLayoutInfo.bindingCount = 2;
+    lightLayoutInfo.bindingCount = 3;
     lightLayoutInfo.pBindings    = deferredBindings;
     lightLayoutInfo.flags        = 0;
 
@@ -649,9 +655,22 @@ vulkanDeferredUpdateGbuffers(
     lightWrite.pBufferInfo      = &lightBufferInfo;
     lightWrite.dstSet           = shader.lightDescriptorSet[imageIndex];
 
-    VkWriteDescriptorSet writes[2] = {gbufferWrite, lightWrite};
+    VkDescriptorBufferInfo cameraBufferInfo;
+    cameraBufferInfo.buffer = shader.globalUbo.handle;
+    cameraBufferInfo.offset = 0;
+    cameraBufferInfo.range = sizeof(ViewProjectionBuffer);
+
+    VkWriteDescriptorSet cameraWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    cameraWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraWrite.descriptorCount = 1;
+    cameraWrite.dstBinding      = 2;
+    cameraWrite.dstArrayElement = 0;
+    cameraWrite.pBufferInfo     = &cameraBufferInfo;
+    cameraWrite.dstSet          = shader.lightDescriptorSet[imageIndex];
+
+    VkWriteDescriptorSet writes[3] = {gbufferWrite, lightWrite, cameraWrite};
     
-    vkUpdateDescriptorSets(device.handle, 2, writes, 0, nullptr);
+    vkUpdateDescriptorSets(device.handle, 3, writes, 0, nullptr);
 }
 
 bool 

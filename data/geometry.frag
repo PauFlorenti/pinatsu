@@ -29,9 +29,12 @@ void main()
 
     N = perturbNormal(wNorm, wPos, inUV, N);
 
-    outPosition = vec4(inWorldPos, 1.0);
-    outNormal = (vec4( N * 0.5 + vec3(0.5), 1));
-    vec3 color = inColor * mat.diffuse.xyz;
+    float metallic  = texture(metallicRoughnessSampler, inUV).z;
+    float roughness = texture(metallicRoughnessSampler, inUV).y;
+
+    outPosition = vec4(wPos, metallic);
+    outNormal   = (vec4( N * 0.5 + vec3(0.5), roughness));
+    vec3 color  = inColor * mat.diffuse.xyz;
     vec3 albedo = color * texture(diffuseSampler, inUV).xyz;
-    outAlbedo = vec4(albedo, 1.0);
+    outAlbedo   = vec4(albedo, 1.0);
 }

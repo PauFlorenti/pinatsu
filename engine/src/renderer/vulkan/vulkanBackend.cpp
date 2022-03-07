@@ -189,6 +189,7 @@ vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
             ++lightCount;
         }
     }
+
     vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);
 }
 

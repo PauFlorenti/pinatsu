@@ -68,4 +68,5 @@ bool applicationRun();
 bool applicationRender(); // TODO receive game instance ??. Internal?
 void applicationShutdown();
 
-void applicationGetFramebufferSize(u32* width, u32* height);
+void 
+applicationGetFramebufferSize(u32* width, u32* height);
