@@ -22,6 +22,8 @@ layout(set = 0, binding = 1) uniform LightBuffer
 layout(set = 0, binding = 2) uniform cameraInfo {
     mat4 view;
     mat4 proj;
+    mat4 viewprojection;
+    mat4 inverse_viewprojection;
     vec3 position;
 }camera;
 

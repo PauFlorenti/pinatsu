@@ -59,6 +59,8 @@ bool gameInitialize(Game* pGameInst)
 
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
+    Entity helmet = entitySystem->createEntity();
+
     TCompTransform t;
     t.position  = glm::vec3(0.0f, 0.0f, -5.0f);
     t.rotation  = glm::quat();
@@ -68,12 +70,23 @@ bool gameInitialize(Game* pGameInst)
     t2.position  = glm::vec3(0.0f, -2.0f, -5.0f);
     t2.rotation  = glm::quat();
     t2.scale     = glm::vec3(10.0f, 0.25f, 10.0f);
+
+    TCompTransform t3;
+    t3.position  = glm::vec3(2.0f, 0.0f, -5.0f);
+    t3.rotation  = glm::quat();
+    t3.scale     = glm::vec3(1.0);
+
     entitySystem->addComponent(player, t);
     entitySystem->addComponent(floor, t2);
+    entitySystem->addComponent(helmet, t3);
 
     Resource gltf;
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
+
+    Resource gltfHelmet;
+    resourceSystemLoad("DamagedHelmet/DamagedHelmet.gltf", RESOURCE_TYPE_GLTF, &gltfHelmet);
+    Node* helmetNode = (Node*)gltfHelmet.data;
 
     RenderComponent renderComponent{};
     renderComponent.active      = true;
@@ -81,6 +94,12 @@ bool gameInitialize(Game* pGameInst)
     renderComponent.mesh        = cubeNode->mesh;
     entitySystem->addComponent(player, renderComponent);
     entitySystem->addComponent(floor, renderComponent);
+
+    RenderComponent helmetRenderComp{};
+    helmetRenderComp.active     = true;
+    helmetRenderComp.material   = helmetNode->material;
+    helmetRenderComp.mesh       = helmetNode->mesh;
+    entitySystem->addComponent(helmet, helmetRenderComp);
 
     Entity light    = entitySystem->createEntity();
     Entity light1   = entitySystem->createEntity();

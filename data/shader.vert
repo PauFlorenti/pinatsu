@@ -13,6 +13,8 @@ layout(location = 3) in vec3 normal;
 layout(set = 0, binding = 0) uniform UBO {
     mat4 view;
     mat4 proj;
+    mat4 viewprojection;
+    mat4 inverse_viewprojection;
     vec3 position;
 } ubo;
 

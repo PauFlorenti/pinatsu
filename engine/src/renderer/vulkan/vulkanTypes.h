@@ -105,7 +105,10 @@ typedef struct ViewProjectionBuffer
 {
     glm::mat4 view;
     glm::mat4 projection;
+    glm::mat4 viewProjection;
+    glm::mat4 inverseViewProjection;
     glm::vec3 position;
+    f32 dummy;
 } ViewProjectionBuffer;
 
 typedef struct VulkanImage
@@ -175,7 +178,7 @@ typedef struct VulkanMaterialInstance
  * @note Due to  requirements from some GPU (NVidia I guess...) this
  * should be padded to 256 bytes.
  */
-typedef struct VulkanMaterialShaderUBO{
+struct VulkanMaterialShaderUBO{
     glm::vec4 diffuseColor; // 16 bytes
     glm::vec4 reserved01;   // 16 bytes
     glm::vec4 reserved02;   // 16 bytes
@@ -183,7 +186,7 @@ typedef struct VulkanMaterialShaderUBO{
     glm::mat4 matReserved01; // 64 bytes
     glm::mat4 matReserved02; // 64 bytes
     glm::mat4 matReserved03; // 64 bytes
-} VulkanMaterialShaderUBO;
+};
 
 /** Vulkan Material Shader
  * This object should hold all information related to
@@ -252,10 +255,10 @@ struct VulkanDeferredShader
     VkDescriptorSet objectGeometryDescriptorSet[VULKAN_MAX_MATERIAL_COUNT];
     VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
     
-    ViewProjectionBuffer globalUboData;
-    VulkanBuffer globalUbo;
-    VulkanLightData lightData;
-    VulkanBuffer lightUbo;
+    ViewProjectionBuffer    globalUboData;
+    VulkanBuffer            globalUbo;
+    VulkanLightData         lightData;
+    VulkanBuffer            lightUbo;
 
     u32 objectBufferIndex = 0;
     VulkanBuffer objectUbo;
@@ -273,13 +276,14 @@ struct VulkanDeferredShader
 
     Framebuffer geometryFramebuffer;
     Framebuffer lightFramebuffer[3];
+
     VkCommandPool geometryCmdPool;
     CommandBuffer geometryCmdBuffer;
 
-    VulkanPipeline geometryPipeline;
-    VulkanPipeline lightPipeline;
-    VulkanRenderpass geometryRenderpass;
-    VulkanRenderpass lightRenderpass;
+    VulkanPipeline      geometryPipeline;
+    VulkanRenderpass    geometryRenderpass;
+    VulkanPipeline      lightPipeline;
+    VulkanRenderpass    lightRenderpass;
 };
 
 typedef struct VulkanSwapchain
