@@ -56,7 +56,7 @@ bool gameInitialize(Game* pGameInst)
     cameraComp.locked   = false;
 
     entitySystem->addComponent(camera, cameraComp);
-
+    
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
     Entity helmet = entitySystem->createEntity();

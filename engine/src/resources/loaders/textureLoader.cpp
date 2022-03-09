@@ -34,9 +34,9 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
 
     const i32 requiredChannels = 4;
     i32 width = 0, height = 0, channels = 0;
-    u8* data = stbi_load(fullPath, &width, &height, &channels, requiredChannels);
+    stbi_uc* data = stbi_load(fullPath, &width, &height, &channels, requiredChannels);
 
-    const char* fail = stbi_failure_reason();
+    /*const char* fail = stbi_failure_reason();
     if(fail) {
         PERROR("textureLoaderLoad - Texture resource failed to load file '%s' : %s.", fullPath, fail);
         if(data) {
@@ -44,7 +44,8 @@ bool textureLoaderLoad(struct ResourceLoader* self, const char* name, Resource* 
         }
         return false;
     }
-
+    */
+   
     if(!data) {
         PERROR("textureLoaderLoad - Texture resource failed to load file '%s'.", fullPath);
         return false;

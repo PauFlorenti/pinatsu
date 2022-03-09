@@ -846,7 +846,6 @@ void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.pipeline);
         vulkanDeferredShaderSetMaterial(&state, &state.deferredShader, m);
         vkCmdPushConstants(cmd, state.deferredShader.geometryPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-        //vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.layout, 0, 1, &state.deferredShader.globalGeometryDescriptorSet, 0, nullptr);
         break;
     case 2:
         cmd = state.commandBuffers[state.imageIndex].handle;

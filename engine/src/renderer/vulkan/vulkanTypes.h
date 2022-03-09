@@ -174,6 +174,13 @@ typedef struct VulkanMaterialInstance
     VulkanDescriptorState descriptorState[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
 } VulkanMaterialInstance;
 
+struct VulkanObjectDescriptor
+{
+    VkDescriptorSet descriptorSet;
+    u32 generation[4];
+    u32 id[4];
+};
+
 /**
  * @note Due to  requirements from some GPU (NVidia I guess...) this
  * should be padded to 256 bytes.
@@ -250,9 +257,10 @@ struct VulkanDeferredShader
     VkDescriptorSet globalGeometryDescriptorSet;
     VkDescriptorSetLayout globalGeometryDescriptorSetLayout;
     // Per object - descriptor material object information
-    u32 objectGeometryGeneration[VULKAN_MAX_MATERIAL_COUNT];
-    u32 objectGeometryIds[VULKAN_MAX_MATERIAL_COUNT];
-    VkDescriptorSet objectGeometryDescriptorSet[VULKAN_MAX_MATERIAL_COUNT];
+    //u32 objectGeometryGeneration[VULKAN_MAX_MATERIAL_COUNT];
+    //u32 objectGeometryIds[VULKAN_MAX_MATERIAL_COUNT];
+    //VkDescriptorSet objectGeometryDescriptorSet;
+    VulkanObjectDescriptor objectGeometryDescriptor[VULKAN_MAX_MATERIAL_COUNT];
     VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
     
     ViewProjectionBuffer    globalUboData;
