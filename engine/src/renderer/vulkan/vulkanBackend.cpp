@@ -780,8 +780,8 @@ bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
         {
             VkClearValue clearColors[4];
             clearColors[0].color = {0.2, 0.2, 0.2, 1.0};
-            clearColors[1].color = {0.0, 1.0, 0.0, 1.0};
-            clearColors[2].color = {0.0, 0.0, 1.0, 1.0};
+            clearColors[1].color = {0.2, 0.2, 0.2, 1.0};
+            clearColors[2].color = {0.2, 0.2, 0.2, 1.0};
             clearColors[3].depthStencil.depth = 1.0f;
             clearColors[3].depthStencil.stencil = 0;
 

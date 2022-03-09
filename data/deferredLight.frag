@@ -37,7 +37,7 @@ void main()
     vec3 N          = normalize(texture(gbuf[1], inUV).xyz * 2.0 - vec3(1));
 
     vec3 cameraPosition = camera.position;
-    float ambient_factor = 0.1;
+    float ambient_factor = 0.0;
 
     vec3 V = normalize(cameraPosition - position);
     float NdotV = max(dot(N, V), 0.0);
