@@ -23,6 +23,7 @@ TCompTransform::debugInMenu()
         static ImGuizmo::OPERATION currentOperation(ImGuizmo::TRANSLATE);
         static ImGuizmo::MODE currentMode(ImGuizmo::WORLD);
 
+
         ImGui::DragFloat3("Position", &position.x, 1.0f);
         ImGui::DragFloat3("Scale", &scale.x, 1.0f);
         if(ImGui::RadioButton("Translate", currentOperation == ImGuizmo::TRANSLATE))
@@ -49,6 +50,8 @@ TCompTransform::debugInMenu()
         f32 ratio = (f32)w / (f32)h;
         glm::mat4 projection = c->getProjection(ratio);
 
+        bool changed = false;
+
         ImGui::SameLine();
         if (ImGui::SmallButton("Reset"))
         {
@@ -58,6 +61,7 @@ TCompTransform::debugInMenu()
                 rotation = glm::quat();
             else if(currentOperation == ImGuizmo::SCALE)
                 scale = glm::vec3(1.0f);
+            changed = true;
         }
 
         ImGui::SameLine();
@@ -66,17 +70,18 @@ TCompTransform::debugInMenu()
             position = glm::vec3(0.0f);
             rotation = glm::quat();
             scale = glm::vec3(1.0f);
+            changed = true;
         }
 
         ImGuizmo::BeginFrame();
-        ImGuizmo::Manipulate(
+        changed |= ImGuizmo::Manipulate(
             glm::value_ptr(cameraView), 
             glm::value_ptr(projection), 
             currentOperation, 
             currentMode, 
             glm::value_ptr(matrix));
 
-        if(ImGuizmo::IsUsing())
+        /*if(ImGuizmo::IsUsing())
         {
             f32 translation[3], rotation[3], scale[3];
             ImGuizmo::DecomposeMatrixToComponents(
@@ -85,6 +90,10 @@ TCompTransform::debugInMenu()
                 rotation,
                 scale);
             
+            fromMatrix(matrix);
+        }*/
+
+        if(changed){
             fromMatrix(matrix);
         }
 
