@@ -13,6 +13,7 @@
 #include "systems/physicsSystem.h"
 #include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
+#include "systems/components/comp_name.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
@@ -39,8 +40,9 @@ bool gameInitialize(Game* pGameInst)
     ApplicationState* appState = (ApplicationState*)pGameInst->appState;
     EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
     
+    entitySystem->registerComponent<TCompName>();
     entitySystem->registerComponent<TCompTransform>();
-    entitySystem->registerComponent<TransformComponent>();
+    //entitySystem->registerComponent<TransformComponent>();
     entitySystem->registerComponent<RenderComponent>();
     entitySystem->registerComponent<LightPointComponent>();
     entitySystem->registerComponent<CameraComponent>();
@@ -56,10 +58,12 @@ bool gameInitialize(Game* pGameInst)
     cameraComp.locked   = false;
 
     entitySystem->addComponent(camera, cameraComp);
+    entitySystem->addComponent(camera, TCompName());
     
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
     Entity helmet = entitySystem->createEntity();
+    Entity avocado = entitySystem->createEntity();
 
     TCompTransform t;
     t.position  = glm::vec3(0.0f, 0.0f, -5.0f);
@@ -77,12 +81,21 @@ bool gameInitialize(Game* pGameInst)
     t3.scale     = glm::vec3(1.0);
 
     entitySystem->addComponent(player, t);
+    entitySystem->addComponent(player, TCompName());
     entitySystem->addComponent(floor, t2);
+    entitySystem->addComponent(floor, TCompName());
     entitySystem->addComponent(helmet, t3);
+    entitySystem->addComponent(helmet, TCompName());
+    entitySystem->addComponent(avocado, TCompTransform{});
+    entitySystem->addComponent(avocado, TCompName());
 
     Resource gltf;
     resourceSystemLoad("cubeMarbre/cube.gltf", RESOURCE_TYPE_GLTF, &gltf);
     Node* cubeNode = (Node*)gltf.data;
+
+    Resource gltfAvocado;
+    resourceSystemLoad("Avocado/avocado.gltf", RESOURCE_TYPE_GLTF, &gltfAvocado);
+    Node* avocadoNode = (Node*)gltfAvocado.data;
 
     Resource gltfHelmet;
     resourceSystemLoad("DamagedHelmet/DamagedHelmet.gltf", RESOURCE_TYPE_GLTF, &gltfHelmet);
@@ -100,6 +113,14 @@ bool gameInitialize(Game* pGameInst)
     helmetRenderComp.material   = helmetNode->material;
     helmetRenderComp.mesh       = helmetNode->mesh;
     entitySystem->addComponent(helmet, helmetRenderComp);
+    entitySystem->addComponent(helmet, TCompName());
+
+    RenderComponent avocadoRenderComp{};
+    avocadoRenderComp.active    = true;
+    avocadoRenderComp.material  = avocadoNode->material;
+    avocadoRenderComp.mesh      = avocadoNode->mesh;
+    entitySystem->addComponent(avocado, avocadoRenderComp);
+    entitySystem->addComponent(avocado, TCompName());
 
     Entity light    = entitySystem->createEntity();
     Entity light1   = entitySystem->createEntity();
@@ -111,6 +132,15 @@ bool gameInitialize(Game* pGameInst)
     lightComponent.radius       = 30.0f;
     lightComponent.intensity    = 100.0f;
 
+    TCompTransform tLight{};
+    tLight.position = glm::vec3(0, 2, 0);
+
+    TCompTransform tLight1{};
+    tLight1.position = glm::vec3(3, 2, 0);
+
+    TCompTransform tLight2{};
+    tLight2.position = glm::vec3(-3, 2, 0);
+
     LightPointComponent lightComp1{};
     lightComp1.color        = glm::vec3(0, 1, 0);
     lightComp1.position     = glm::vec3(3, 2, 0);
@@ -118,14 +148,20 @@ bool gameInitialize(Game* pGameInst)
     lightComp1.intensity    = 100.0f;
 
     LightPointComponent lightComp2{};
-    lightComp2.color = glm::vec3(0, 0, 1);
-    lightComp2.position = glm::vec3(-3, 2, 0);
-    lightComp2.radius = 50.0f;
-    lightComp2.intensity = 100.0f;
+    lightComp2.color        = glm::vec3(0, 0, 1);
+    lightComp2.position     = glm::vec3(-3, 2, 0);
+    lightComp2.radius       = 50.0f;
+    lightComp2.intensity    = 100.0f;
 
     entitySystem->addComponent(light, lightComponent);
+    entitySystem->addComponent(light, tLight);
+    entitySystem->addComponent(light, TCompName());
     entitySystem->addComponent(light1, lightComp1);
+    entitySystem->addComponent(light1, tLight1);
+    entitySystem->addComponent(light1, TCompName());
     entitySystem->addComponent(light2, lightComp2);
+    entitySystem->addComponent(light2, tLight2);
+    entitySystem->addComponent(light2, TCompName());
 
     return true;
 }

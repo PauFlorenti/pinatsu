@@ -477,16 +477,16 @@ vulkanDeferredShaderCreate(
     std::vector<VkPipelineShaderStageCreateInfo> lightShaderStages(2);
 
     VkPipelineShaderStageCreateInfo lightVertexShaderStage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    lightVertexShaderStage.module = outShader->shaderStages[2].shaderModule;
-    lightVertexShaderStage.pName = "main";
-    lightVertexShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    lightShaderStages.at(0) = lightVertexShaderStage;
+    lightVertexShaderStage.module   = outShader->shaderStages[2].shaderModule;
+    lightVertexShaderStage.pName    = "main";
+    lightVertexShaderStage.stage    = VK_SHADER_STAGE_VERTEX_BIT;
+    lightShaderStages.at(0)         = lightVertexShaderStage;
 
     VkPipelineShaderStageCreateInfo lightFragmentShaderStage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
     lightFragmentShaderStage.module = outShader->shaderStages[3].shaderModule;
-    lightFragmentShaderStage.pName = "main";
-    lightFragmentShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    lightShaderStages.at(1) = lightFragmentShaderStage;
+    lightFragmentShaderStage.pName  = "main";
+    lightFragmentShaderStage.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightShaderStages.at(1)         = lightFragmentShaderStage;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.blendEnable = VK_FALSE;

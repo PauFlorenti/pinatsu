@@ -18,6 +18,7 @@
 #include "core/application.h"
 
 #include "systems/entitySystemComponent.h"
+#include "systems/components/comp_transform.h"
 
 #include "pmath.h"
 #include <vector>
@@ -125,10 +126,11 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
         u32 idx = entitySystem->getComponentType<LightPointComponent>(it->first);
         if(it->second[idx] == 1)
         {
+            TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
             LightPointComponent comp = entitySystem->getComponent<LightPointComponent>(it->first);
             state.forwardShader.lightData.color     = comp.color;
             state.forwardShader.lightData.intensity = comp.intensity;
-            state.forwardShader.lightData.position  = comp.position;
+            state.forwardShader.lightData.position  = t.position;
             state.forwardShader.lightData.radius    = comp.radius;
             vulkanBufferLoadData(
                 state.device,
