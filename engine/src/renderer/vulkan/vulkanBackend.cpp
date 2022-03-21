@@ -19,6 +19,7 @@
 
 #include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
+#include "systems/components/comp_light_point.h"
 
 #include "pmath.h"
 #include <vector>
@@ -123,11 +124,10 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
     {
-        u32 idx = entitySystem->getComponentType<LightPointComponent>(it->first);
-        if(it->second[idx] == 1)
+        if(entitySystem->hasComponent<TCompLightPoint>(it->first))
         {
             TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
-            LightPointComponent comp = entitySystem->getComponent<LightPointComponent>(it->first);
+            TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
             state.forwardShader.lightData.color     = comp.color;
             state.forwardShader.lightData.intensity = comp.intensity;
             state.forwardShader.lightData.position  = t.position;
@@ -173,14 +173,15 @@ vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
     {
-        u32 idx = entitySystem->getComponentType<LightPointComponent>(it->first);
-        if(it->second[idx] == 1)
+        if(entitySystem->hasComponent<TCompLightPoint>(it->first))
         {
-            LightPointComponent comp = entitySystem->getComponent<LightPointComponent>(it->first);
+            TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
+            TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
             state.deferredShader.lightData.color     = comp.color;
             state.deferredShader.lightData.intensity = comp.intensity;
-            state.deferredShader.lightData.position  = comp.position;
+            state.deferredShader.lightData.position  = t.position;
             state.deferredShader.lightData.radius    = comp.radius;
+            state.deferredShader.lightData.enabled   = comp.enabled;
             vulkanBufferLoadData(
                 state.device,
                 state.deferredShader.lightUbo,

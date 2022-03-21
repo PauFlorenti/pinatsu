@@ -12,6 +12,11 @@ struct Light
     float intensity;
     vec3 color;
     float radius;
+    vec3 forward;
+    float cosineCutoff;
+    float spotExponent;
+    bool enabled;
+    int type;
 };
 
 layout(set = 0, binding = 0) uniform sampler2D gbuf[3];
@@ -50,6 +55,9 @@ void main()
     vec4 light = vec4(0.0);
     for(int i = 0; i < MAX_LIGHTS; i++)
     {
+        if(!lights.l[i].enabled)
+            continue;
+
         vec3 lightPos   = lights.l[i].position;
         vec3 L          = (lightPos - position);
         float distanceToLight = length(L);

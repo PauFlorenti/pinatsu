@@ -25,52 +25,12 @@ using Entity = u32;
 using Signature = std::bitset<MAX_COMPONENTS>;
 using ComponentType = u8;
 
-// Transform component
-struct TransformComponent
-{
-    glm::vec3 position;
-    glm::quat rotation;
-    glm::vec3 scale;
-
-    glm::mat4 asMatrix() {
-        return glm::translate(glm::mat4(1), position)
-                * glm::mat4_cast(rotation)
-                * glm::scale(glm::mat4(1), scale);
-    }
-
-    void fromMatrix(glm::mat4 matrix) {
-        glm::decompose(matrix, scale, rotation, position, glm::vec3(0), glm::vec4(0));
-        rotation = glm::conjugate(rotation);
-    }
-};
-
 // Render component
 struct RenderComponent
 {
     Mesh* mesh;
     Material* material;
     bool active;
-};
-
-struct LightPointComponent
-{
-    glm::vec3 color;
-    glm::vec3 position;
-    f32 intensity;
-    f32 radius;
-    bool enabled;
-
-    void renderInMenu()
-    {
-        if(ImGui::TreeNode("Light"))
-        {
-            ImGui::DragFloat3("Position ", &position.x, 1.0f);
-            ImGui::DragFloat3("Colour", &color.r, 1.0f, 0.0f, 1.0f);
-            ImGui::DragFloat("Radius", &radius, 0.1f, 0.0f);
-            ImGui::DragFloat("Intensity", &intensity, 1.0f, 0.0f);
-            ImGui::TreePop();
-        }
-    }
 };
 
 struct CameraComponent
@@ -362,6 +322,13 @@ public:
     ComponentType getComponentType(Entity entity)
     {
         return componentManager->getComponentType<T>();
+    }
+
+    template <typename T>
+    bool hasComponent(Entity entity)
+    {
+        Signature signature = entityManager->getSignature(entity);
+        return signature[componentManager->getComponentType<T>()];
     }
 
     std::unordered_map<Entity, Signature>

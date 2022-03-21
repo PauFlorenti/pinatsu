@@ -3,9 +3,12 @@
 
 #include <external/imgui/imgui.h>
 
-TCompName::TCompName()
+TCompName::TCompName(const char* newName)
 {
-    strcpy(name, "Default");
+    if(newName)
+        strcpy(name, newName);
+    else
+        strcpy(name, "Default");
 }
 
 void TCompName::setName(const char* newName)

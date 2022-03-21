@@ -12,6 +12,7 @@
 #include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_name.h"
+#include "systems/components/comp_light_point.h"
 
 #include "memory/pmemory.h"
 
@@ -89,31 +90,26 @@ imguiRender(
     EntitySystem* entitySystem = EntitySystem::Get();
     auto& entities = entitySystem->getAvailableEntities();
 
-    if(ImGui::TreeNode("Entities"))
+    if(ImGui::TreeNode("Entities ..."))
     {
         for(auto& it = entities.begin(); it != entities.end(); it++)
         {
             const char* name = entitySystem->getComponent<TCompName>(it->first).getName();
+            ImGui::PushID(it->first);
             if(ImGui::TreeNode(name))
             {
-                if(it->second[entitySystem->getComponentType<TCompTransform>(it->first)] == 1)
+                // All entities should have Name and Transform
+                entitySystem->getComponent<TCompName>(it->first).debugInMenu();
+                entitySystem->getComponent<TCompTransform>(it->first).debugInMenu();
+
+                // The rest of components should be checked before writing in debug.
+                if(entitySystem->hasComponent<TCompLightPoint>(it->first))
                 {
-                    ImGui::PushID(it->first);
-                    entitySystem->getComponent<TCompTransform>(it->first).debugInMenu();
-                    ImGui::PopID();
+                    entitySystem->getComponent<TCompLightPoint>(it->first).debugInMenu();
                 }
-                if(it->second[entitySystem->getComponentType<LightPointComponent>(it->first)] == 1)
-                {
-                    ImGui::PushID(it->first);
-                    if(ImGui::TreeNode("Light"))
-                    {
-                        LightPointComponent* comp = &entitySystem->getComponent<LightPointComponent>(it->first);
-                        comp->renderInMenu();
-                        ImGui::TreePop();
-                    }
-                    ImGui::PopID();
-                }
+                ImGui::TreePop();
             }
+            ImGui::PopID();
         }
         ImGui::TreePop();
     }

@@ -13,7 +13,17 @@ struct Light
     float intensity;
     vec3 color;
     float radius;
+    vec3 forward;
+    float cosineCutoff;
+    float spotExponent;
+    bool enabled;
+    int type;
 };
+
+vec4 ComputeLight(in Light l, in vec3 N, in vec3 pos)
+{
+    return vec4(1);
+}
 
 layout(location = 0) in vec4 inColor;
 layout(location = 1) in vec2 inUV;
@@ -59,6 +69,9 @@ void main()
     vec4 light = vec4(0.0);
     for(int i = 0; i < MAX_LIGHTS; i++)
     {
+        if(!lights.l[i].enabled)
+            continue;
+
         vec3 lightPos = lights.l[i].position;
         vec3 L = (lightPos - wPos);
         float distanceToLight = length(L);

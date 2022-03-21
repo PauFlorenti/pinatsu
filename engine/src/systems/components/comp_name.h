@@ -8,7 +8,7 @@ class TCompName : public TCompBase
     char name[maxSize];
 
 public:
-    TCompName::TCompName();
+    TCompName::TCompName(const char* newName = nullptr);
     const char* getName() {return name;}
     void setName(const char* newName);
     void debugInMenu();

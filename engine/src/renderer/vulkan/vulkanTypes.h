@@ -99,6 +99,11 @@ struct VulkanLightData
     f32 intensity;
     glm::vec3 color;
     f32 radius;
+    glm::vec3 forward;
+    f32 cosineCutoff;
+    f32 spotExponent;
+    bool enabled;
+    int type;
 };
 
 typedef struct ViewProjectionBuffer
