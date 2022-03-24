@@ -139,11 +139,13 @@ bool gameInitialize(Game* pGameInst)
     tLight2.position = glm::vec3(-3, 2, 0);
 
     TCompLightPoint lightComp1{};
+    lightComp1.enabled = true;
     lightComp1.color        = glm::vec4(0, 1, 0, 1);
     lightComp1.radius       = 40.0f;
     lightComp1.intensity    = 100.0f;
 
     TCompLightPoint lightComp2{};
+    lightComp2.enabled = true;
     lightComp2.color        = glm::vec4(0, 0, 1, 1);
     lightComp2.radius       = 50.0f;
     lightComp2.intensity    = 100.0f;

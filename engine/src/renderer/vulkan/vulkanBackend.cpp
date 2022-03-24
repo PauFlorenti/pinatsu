@@ -132,6 +132,7 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
             state.forwardShader.lightData.intensity = comp.intensity;
             state.forwardShader.lightData.position  = t.position;
             state.forwardShader.lightData.radius    = comp.radius;
+            state.forwardShader.lightData.enabled   = comp.enabled;
             vulkanBufferLoadData(
                 state.device,
                 state.forwardShader.lightUbo,

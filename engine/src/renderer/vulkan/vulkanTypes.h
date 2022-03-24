@@ -104,6 +104,7 @@ struct VulkanLightData
     f32 spotExponent;
     bool enabled;
     int type;
+    f32 dummyValue;
 };
 
 typedef struct ViewProjectionBuffer

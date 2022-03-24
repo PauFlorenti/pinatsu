@@ -17,6 +17,7 @@ struct Light
     float spotExponent;
     bool enabled;
     int type;
+    float dummyValue;
 };
 
 layout(set = 0, binding = 0) uniform sampler2D gbuf[3];
@@ -24,6 +25,7 @@ layout(set = 0, binding = 1) uniform LightBuffer
 {
     Light[MAX_LIGHTS] l;
 } lights;
+
 layout(set = 0, binding = 2) uniform cameraInfo {
     mat4 view;
     mat4 proj;

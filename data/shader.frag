@@ -18,6 +18,7 @@ struct Light
     float spotExponent;
     bool enabled;
     int type;
+    float dummy;
 };
 
 vec4 ComputeLight(in Light l, in vec3 N, in vec3 pos)
@@ -69,6 +70,7 @@ void main()
     vec4 light = vec4(0.0);
     for(int i = 0; i < MAX_LIGHTS; i++)
     {
+        Light l = lights.l[i];
         if(!lights.l[i].enabled)
             continue;
 
