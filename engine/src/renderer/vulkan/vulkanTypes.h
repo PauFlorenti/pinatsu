@@ -3,7 +3,7 @@
 #include "vulkan\vulkan.h"
 #include "core\assert.h"
 #include "core\logger.h"
-#include "math_types.h"
+//#include "math_types.h"
 
 #include <external\glm\glm.hpp>
 #include <external\glm\gtc\matrix_transform.hpp>
@@ -87,10 +87,10 @@ typedef struct VulkanBuffer
 
 typedef struct VulkanVertex
 {
-    vec3 position;
-    vec4 color;
-    vec2 uv;
-    vec3 normal;
+    glm::vec3 position;
+    glm::vec4 color;
+    glm::vec2 uv;
+    glm::vec3 normal;
 }VulkanVertex;
 
 struct VulkanLightData

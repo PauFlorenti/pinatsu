@@ -16,11 +16,9 @@
 #include "systems/meshSystem.h"
 #include "systems/textureSystem.h"
 #include "systems/materialSystem.h"
-//#include "systems/entitySystem.h"
 #include "systems/physicsSystem.h"
 
 #include "systems/entitySystemComponent.h"
-
 #include <external/imgui/imgui.h>
 
 static ApplicationState* pState;

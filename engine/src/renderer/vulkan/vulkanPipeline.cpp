@@ -78,7 +78,7 @@ void vulkanCreateGraphicsPipeline(
 
     // Push constant to upload model matrix for each geometry.
     VkPushConstantRange pushConstantRange{};
-    pushConstantRange.size          = sizeof(mat4);
+    pushConstantRange.size          = sizeof(glm::mat4);
     pushConstantRange.offset        = 0;
     pushConstantRange.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
 
