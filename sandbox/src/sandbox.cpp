@@ -125,7 +125,7 @@ bool gameInitialize(Game* pGameInst)
     Entity light2   = entitySystem->createEntity();
 
     TCompLightPoint lightComponent{};
-    lightComponent.color        = glm::vec4(1, 0, 0, 1);
+    lightComponent.color        = glm::vec4(1);
     lightComponent.radius       = 30.0f;
     lightComponent.intensity    = 100.0f;
 
@@ -133,20 +133,20 @@ bool gameInitialize(Game* pGameInst)
     tLight.position = glm::vec3(0, 2, 0);
 
     TCompTransform tLight1{};
-    tLight1.position = glm::vec3(3, 2, 0);
+    tLight1.position = glm::vec3(7, 2, -9);
 
     TCompTransform tLight2{};
-    tLight2.position = glm::vec3(-3, 2, 0);
+    tLight2.position = glm::vec3(-7, 2, -7);
 
     TCompLightPoint lightComp1{};
     lightComp1.enabled = true;
-    lightComp1.color        = glm::vec4(0, 1, 0, 1);
+    lightComp1.color        = glm::vec4(1);
     lightComp1.radius       = 40.0f;
     lightComp1.intensity    = 100.0f;
 
     TCompLightPoint lightComp2{};
     lightComp2.enabled = true;
-    lightComp2.color        = glm::vec4(0, 0, 1, 1);
+    lightComp2.color        = glm::vec4(1);
     lightComp2.radius       = 50.0f;
     lightComp2.intensity    = 100.0f;
 
@@ -155,10 +155,10 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(light, TCompName("Light"));
     entitySystem->addComponent(light1, lightComp1);
     entitySystem->addComponent(light1, tLight1);
-    entitySystem->addComponent(light1, TCompName());
+    entitySystem->addComponent(light1, TCompName("Light_01"));
     entitySystem->addComponent(light2, lightComp2);
     entitySystem->addComponent(light2, tLight2);
-    entitySystem->addComponent(light2, TCompName());
+    entitySystem->addComponent(light2, TCompName("Light_02"));
     return true;
 }
 

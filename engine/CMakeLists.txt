@@ -42,6 +42,11 @@ set(SRC_RESOURCES
              ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/meshLoader.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/textureLoader.cpp)
 
+set(SRC_EXTERNALS 
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_vulkan.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_win32.cpp)
+
 set(SRC_SYSTEMS 
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/entitySystemComponent.cpp;
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/materialSystem.cpp;
@@ -60,6 +65,7 @@ include_directories(${Vulkan_INCLUDE_DIRS})
 # Generate Engine library
 add_library(engine  STATIC ${SRC_CONTAINERS} 
                     ${SRC_CORE} 
+                    ${SRC_EXTERNALS}
                     ${SRC_PLATFORM}
                     ${SRC_RENDERER} 
                     ${SRC_MEMORY} 

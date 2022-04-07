@@ -67,6 +67,12 @@ bool applicationInit(Game* pGameInst)
     inputSystemInit(&pState->inputSystemMemoryRequirements, nullptr);
     pState->inputSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->inputSystemMemoryRequirements);
     inputSystemInit(&pState->inputSystemMemoryRequirements, pState->inputSystem);
+
+    std::vector<int> vec;
+    vec.push_back(5);
+    vec.push_back(15);
+
+    PWARN("Before registering events!");
     eventRegister(EVENT_CODE_KEY_PRESSED, 0, appOnKey);
     eventRegister(EVENT_CODE_KEY_RELEASED, 0, appOnKey);
     eventRegister(EVENT_CODE_BUTTON_PRESSED, 0, appOnButton);

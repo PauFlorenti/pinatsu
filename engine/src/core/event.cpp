@@ -4,24 +4,25 @@
 #include "logger.h"
 #include "memory/pmemory.h"
 
-typedef struct registeredEvent
+struct registeredEvent
 {
     void* listener;
     PFN_on_event callback;
-} registeredEvent;
+};
 
-typedef struct eventsCode
+struct eventsCode
 {
     std::vector<registeredEvent> events;
-} eventsCode;
+};
 
 // There should not be more than 1000 codes at the moment.
 #define MAX_REGISTERED_CODE_EVENTS 1000
 
-typedef struct eventSystemState
+struct eventSystemState
 {
     eventsCode registered[MAX_REGISTERED_CODE_EVENTS];
-} eventSystemState;
+    std::vector<registeredEvent>events;
+};
 
 static eventSystemState* pState;
 
@@ -65,12 +66,22 @@ bool eventRegister(u16 code, void* listener, PFN_on_event on_event)
     if(!pState)
         return false;
 
+    if(pState->registered[code].events.empty()){
+        //pState->registered[code].events.resize(1);
+    }
+
     for(decltype(pState->registered[code].events.size()) i = 0; i < pState->registered[code].events.size(); ++i){
         if(pState->registered[code].events.at(i).listener == listener){
             // TODO warn ¿?
             return false;
         }
     }
+
+    registeredEvent e{};
+    pState->events.resize(10);
+    //pState->events.push_back(e);
+
+    pState->registered[code].events.push_back(e);
 
     registeredEvent event;
     event.callback = on_event;

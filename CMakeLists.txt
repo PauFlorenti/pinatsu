@@ -23,6 +23,8 @@ add_definitions(-wd4996)
 add_definitions(-wd4244)
 add_definitions(-wd4305)
 add_definitions(-WX)
+add_definitions(-Zi)
+add_definitions(-DDEBUG)
 
 set(SRC_CONTAINERS ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/containers/hashtable.cpp)
 
@@ -65,6 +67,20 @@ set(SRC_RESOURCES
              ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/resources/loaders/meshLoader.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/resources/loaders/textureLoader.cpp)
 
+set(SRC_EXTERNALS 
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/GraphEditor.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/ImCurveEdit.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/ImGradient.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_demo.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_draw.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_impl_vulkan.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_impl_win32.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_tables.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui_widgets.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/imgui.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/ImGuizmo.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/external/imgui/ImSequencer.cpp)
+
 set(SRC_SYSTEMS 
              ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/systems/entitySystemComponent.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/engine/src/systems/materialSystem.cpp
@@ -85,7 +101,8 @@ add_library(engine STATIC   ${SRC_CONTAINERS}
                             ${SRC_PLATFORM}
                             ${SRC_MEMORY} 
                             ${SRC_RESOURCES} 
-                            ${SRC_SYSTEMS})
+                            ${SRC_SYSTEMS}
+                            ${SRC_EXTERNALS})
 
 set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/src/entry.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/src/sandbox.cpp)
@@ -94,9 +111,10 @@ include_directories(${PROJECT_SOURCE_DIR}/engine/src)
 add_executable(sandbox ${SRC})
 target_link_libraries(sandbox PUBLIC engine user32.lib ${Vulkan_LIBRARIES})
 
-#add_subdirectory(/engine)
-#add_subdirectory(sandbox)
 
-#target_link_libraries(Pinatsu PUBLIC /engine)
+#add_subdirectory(engine)
+#add_subdirectory(sandbox)
+#
+#target_link_libraries(Pinatsu PUBLIC engine)
 #target_include_directories(Pinatsu PUBLIC
-#                            "${PROJECT_SOURCE_DIR}//engine/engine/src")
+#                            "${PROJECT_SOURCE_DIR}/engine/engine/src")
