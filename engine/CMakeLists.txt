@@ -43,9 +43,18 @@ set(SRC_RESOURCES
              ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/textureLoader.cpp)
 
 set(SRC_EXTERNALS 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/GraphEditor.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImCurveEdit.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImGradient.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_demo.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_draw.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_vulkan.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_win32.cpp)
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_win32.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_tables.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_widgets.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImGuizmo.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImSequencer.cpp)
 
 set(SRC_SYSTEMS 
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/entitySystemComponent.cpp;
@@ -61,6 +70,16 @@ set(SRC_SYSTEMS
 # Include necessary directories             
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${Vulkan_INCLUDE_DIRS})
+
+# Warning compiler omissions
+add_definitions(-wd4805)
+add_definitions(-wd4267)
+add_definitions(-wd4996)
+add_definitions(-wd4244)
+add_definitions(-wd4305)
+add_definitions(-WX)
+add_definitions(-Zi)
+add_definitions(-DDEBUG)
 
 # Generate Engine library
 add_library(engine  STATIC ${SRC_CONTAINERS} 

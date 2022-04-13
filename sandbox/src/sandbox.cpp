@@ -209,6 +209,7 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
         getPreviousMousePosition(&oldX, &oldY);
         if(mousePosition != oldMousePosition) {
             // Rotate
+            PDEBUG("Entering!");
             glm::vec2 deltaMouse(oldX - x, oldY - y);
             cameraComp->yaw -= deltaMouse.x * 200 * deltaTime;
             cameraComp->pitch += deltaMouse.y * 200 * deltaTime;

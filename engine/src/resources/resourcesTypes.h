@@ -113,6 +113,7 @@ typedef struct MeshData {
 struct Node {
     Node* parent;
     Node* child;
+    u8 nChilds;
     Mesh* mesh;
     Material* material;
     glm::mat4 model;

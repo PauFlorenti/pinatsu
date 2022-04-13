@@ -20,8 +20,10 @@ loadNode(const tinygltf::Model& tmodel, const tinygltf::Node& tnode, Node* paren
     // Load node's children
     if(tnode.children.size() > 0)
     {
+        node->nChilds = tnode.children.size();
+        node->child = (Node*)memAllocate(sizeof(Node), MEMORY_TAG_ENTITY);
         for( size_t i = 0; i < tnode.children.size(); ++i){
-            loadNode(tmodel, tmodel.nodes[tnode.children[i]], node);
+            node->child[i] = *loadNode(tmodel, tmodel.nodes[tnode.children[i]], node);
         }
     }
 
@@ -195,10 +197,10 @@ gltfLoaderLoad(ResourceLoader* self, const char* name, Resource* outResource)
         }
     }
 
-    outResource->name = name;
-    outResource->loaderId = self->id;
-    outResource->dataSize = sizeof(Node*);
-    outResource->data = parent;
+    outResource->name       = name;
+    outResource->loaderId   = self->id;
+    outResource->dataSize   = sizeof(Node*);
+    outResource->data       = parent;
 
     return true;
 }

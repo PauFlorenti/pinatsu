@@ -328,22 +328,22 @@ vulkanDeferredShaderCreate(
 
     // Shader modules
     // Compile hardcoded shaders
-    system("glslc ./data/geometry.vert -o ./data/geometry.vert.spv");
-    system("glslc ./data/geometry.frag -o ./data/geometry.frag.spv");
-    system("glslc ./data/deferredLight.vert -o ./data/deferredLight.vert.spv");
-    system("glslc ./data/deferredLight.frag -o ./data/deferredLight.frag.spv");
+    system("glslc ./data/shaders/geometry.vert -o ./data/shaders/geometry.vert.spv");
+    system("glslc ./data/shaders/geometry.frag -o ./data/shaders/geometry.frag.spv");
+    system("glslc ./data/shaders/deferredLight.vert -o ./data/shaders/deferredLight.vert.spv");
+    system("glslc ./data/shaders/deferredLight.frag -o ./data/shaders/deferredLight.frag.spv");
 
     std::vector<char> geometryVertex, geometryFragment, deferredVertex, deferredFragment;
-    if(!readShaderFile("./data/geometry.vert.spv", geometryVertex)){
+    if(!readShaderFile("./data/shaders/geometry.vert.spv", geometryVertex)){
         PERROR("Could not read shader!");
     }
-    if(!readShaderFile("./data/geometry.frag.spv", geometryFragment)){
+    if(!readShaderFile("./data/shaders/geometry.frag.spv", geometryFragment)){
         PERROR("Could not read shader!");
     }
-    if(!readShaderFile("./data/deferredLight.vert.spv", deferredVertex)){
+    if(!readShaderFile("./data/shaders/deferredLight.vert.spv", deferredVertex)){
         PERROR("Could not read shader!");
     }
-    if(!readShaderFile("./data/deferredLight.frag.spv", deferredFragment)){
+    if(!readShaderFile("./data/shaders/deferredLight.frag.spv", deferredFragment)){
         PERROR("Could not read shader!");
     }
 

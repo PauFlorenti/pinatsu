@@ -32,17 +32,17 @@ bool vulkanCreateForwardShader(
         &outShader->lightUbo);
 
     // Compile hardcoded shaders
-    system("glslc ./data/shader.vert -o ./data/vert.spv");
-    system("glslc ./data/shader.frag -o ./data/frag.spv");
+    system("glslc ./data/shaders/shader.vert -o ./data/shaders/vert.spv");
+    system("glslc ./data/shaders/shader.frag -o ./data/shaders/frag.spv");
 
     // Shader modules creation
     std::vector<char> vertexBuffer;
-    if(!readShaderFile("./data/vert.spv", vertexBuffer)){
+    if(!readShaderFile("./data/shaders/vert.spv", vertexBuffer)){
         return false;
     }
 
     std::vector<char> fragBuffer;
-    if(!readShaderFile("./data/frag.spv", fragBuffer)){
+    if(!readShaderFile("./data/shaders/frag.spv", fragBuffer)){
         return false;
     }
 

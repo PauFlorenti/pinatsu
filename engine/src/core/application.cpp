@@ -68,10 +68,6 @@ bool applicationInit(Game* pGameInst)
     pState->inputSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->inputSystemMemoryRequirements);
     inputSystemInit(&pState->inputSystemMemoryRequirements, pState->inputSystem);
 
-    std::vector<int> vec;
-    vec.push_back(5);
-    vec.push_back(15);
-
     PWARN("Before registering events!");
     eventRegister(EVENT_CODE_KEY_PRESSED, 0, appOnKey);
     eventRegister(EVENT_CODE_KEY_RELEASED, 0, appOnKey);
@@ -104,7 +100,7 @@ bool applicationInit(Game* pGameInst)
 
     // Init resource system
     resourceSystemConfig resourceConfig;
-    resourceConfig.assetsBasePath = "sandbox/assets";
+    resourceConfig.assetsBasePath = "data/";
     resourceConfig.maxLoaderCount = 10;
 
     resourceSystemInit(&pState->resourceSystemMemoryRequirements, nullptr, resourceConfig);
@@ -149,14 +145,6 @@ bool applicationInit(Game* pGameInst)
     }
 
     // Init Entity Component System
-    //entitySystemInit(&pState->entitySystemMemoryRequirements, nullptr);
-    //pState->entitySystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->entitySystemMemoryRequirements);
-    //if(!entitySystemInit(&pState->entitySystemMemoryRequirements, pState->entitySystem))
-    //{
-    //    PFATAL("Entity system could not be initialized! Shutting down now.");
-    //    return false;
-    //}
-
     pState->entitySystem = new EntitySystem();
     pState->entitySystem->init();
 

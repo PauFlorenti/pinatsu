@@ -23,10 +23,8 @@ struct TextureSystemState
     Texture* defaultTexture;
     
     TextureSystemConfig config;
-    //u32 textureCount;
     Texture* textures;
     Hashtable hashtable;  // Change name
-    //std::unordered_map<std::string, TextureReference> map;
 };
 
 static TextureSystemState* pState;
@@ -161,6 +159,7 @@ textureSystemInit(u64* memoryRequirements, void* state, TextureSystemConfig conf
     {
         pState->textures[i].id = INVALID_ID;
         pState->textures[i].generation = INVALID_ID;
+        pState->textures[i].data = 0;
     }
 
     pState->defaultTexture = (Texture*)memAllocate(sizeof(Texture), MEMORY_TAG_TEXTURE);

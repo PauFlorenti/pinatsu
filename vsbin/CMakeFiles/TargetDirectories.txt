@@ -1,4 +1,0 @@
-D:/Projects/pinatsu/vsbin/CMakeFiles/engine.dir
-D:/Projects/pinatsu/vsbin/CMakeFiles/sandbox.dir
-D:/Projects/pinatsu/vsbin/CMakeFiles/ALL_BUILD.dir
-D:/Projects/pinatsu/vsbin/CMakeFiles/ZERO_CHECK.dir

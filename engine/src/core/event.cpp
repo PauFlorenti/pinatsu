@@ -6,6 +6,8 @@
 
 struct registeredEvent
 {
+    registeredEvent::registeredEvent(void* l, PFN_on_event c) : listener(l), callback(c)
+    {}
     void* listener;
     PFN_on_event callback;
 };
@@ -21,7 +23,6 @@ struct eventsCode
 struct eventSystemState
 {
     eventsCode registered[MAX_REGISTERED_CODE_EVENTS];
-    std::vector<registeredEvent>events;
 };
 
 static eventSystemState* pState;
@@ -36,12 +37,15 @@ static eventSystemState* pState;
  */
 void eventSystemInit(u64* memoryRequirements, void* state)
 {
-    *memoryRequirements = sizeof(eventSystemState);
-    if(!state)
-        return;
-    
-    memZero(state, sizeof(state));
-    pState = static_cast<eventSystemState*>(state);
+    //*memoryRequirements = sizeof(eventSystemState);
+    //if(!state)
+    //    return;
+    //
+    //memZero(state, sizeof(state));
+    //pState = static_cast<eventSystemState*>(state);
+    pState = new eventSystemState();
+
+    //pState->registered.resize(1000);
 }
 
 /**
@@ -77,16 +81,7 @@ bool eventRegister(u16 code, void* listener, PFN_on_event on_event)
         }
     }
 
-    registeredEvent e{};
-    pState->events.resize(10);
-    //pState->events.push_back(e);
-
-    pState->registered[code].events.push_back(e);
-
-    registeredEvent event;
-    event.callback = on_event;
-    event.listener = listener;
-    pState->registered[code].events.push_back(event);
+    pState->registered[code].events.emplace_back(listener, on_event);
     return true;
 }
 

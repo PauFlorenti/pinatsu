@@ -6,5 +6,9 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/entry.cpp
 
 include_directories(${PROJECT_SOURCE_DIR}/engine/src)
 
+add_definitions(-WX)
+add_definitions(-Zi)
+add_definitions(-DDEBUG)
+
 add_executable(sandbox ${SRC})
 target_link_libraries(sandbox PUBLIC engine user32.lib ${Vulkan_LIBRARIES})

@@ -22,6 +22,8 @@ typedef struct RenderFrontendState
 
 static RenderFrontendState* pState;
 
+static void drawEntity();
+
 bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, void* winHandle)
 {
     *memoryRequirement = sizeof(RenderFrontendState);
@@ -29,6 +31,8 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, 
         return true;
 
     pState = static_cast<RenderFrontendState*>(state);
+    pState->deferredQuad = 0;
+    
     rendererBackendInit(VULKAN_API, &pState->renderBackend);
 
     if(!pState->renderBackend.init(appName, winHandle))
@@ -169,4 +173,9 @@ void setView(const glm::mat4 view, const glm::mat4 proj)
 {
     pState->view        = view;
     pState->projection  = proj;
+}
+
+static void drawEntity(const Entity& entity)
+{
+    
 }

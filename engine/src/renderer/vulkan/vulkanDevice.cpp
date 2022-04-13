@@ -118,6 +118,15 @@ bool physicalDeviceMeetsRequirements(
         {
             outFamilyIndexInfo->GraphicsQueueFamilyIndex = i;
             currentTransferScore++;
+
+            // If it also is a present queue, we prioritize the grouping of the 2 queues.
+            // Present ??
+            VkBool32 surfaceSupported = VK_FALSE;
+            VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &surfaceSupported));
+            if(surfaceSupported){
+                outFamilyIndexInfo->PresentQueueFamilyIndex = i;
+                currentTransferScore++;
+            }
         }
 
         // Compute ??
@@ -127,20 +136,31 @@ bool physicalDeviceMeetsRequirements(
             currentTransferScore++;
         }
 
-        // Present ??
-        VkBool32 surfaceSupported = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &surfaceSupported);
-        if(surfaceSupported){
-            outFamilyIndexInfo->PresentQueueFamilyIndex = i;
-            currentTransferScore++;
-        }
-
         // Transfer ??
         if(queueFamilyProperties.at(i).queueFlags & VK_QUEUE_TRANSFER_BIT)
         {
             if(currentTransferScore <= minTransferScore) {
                 minTransferScore = currentTransferScore;
                 outFamilyIndexInfo->TransferQueueFamilyIndex = i;
+            }
+        }
+
+        // If a present queue hasn't been found, iterate again and take the first one.
+        // This should only happen if and only if there is a queue that supports graphics but 
+        // NOT present. 
+        if(outFamilyIndexInfo->PresentQueueFamilyIndex == -1){
+            for(u32 i = 0; i < queueFamilyPropertiesCount; ++i){
+                VkBool32 supportsPresent = VK_FALSE;
+                VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresent));
+                if(supportsPresent){
+                    outFamilyIndexInfo->PresentQueueFamilyIndex = i;
+                    
+                    // Warn about graphics and present queue being different.
+                    if(outFamilyIndexInfo->PresentQueueFamilyIndex != outFamilyIndexInfo->GraphicsQueueFamilyIndex){
+                        PWARN("Warning! Different queue index used for present and graphics: %u\n", i);
+                    }
+                    break;
+                }
             }
         }
     }

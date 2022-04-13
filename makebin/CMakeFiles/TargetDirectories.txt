@@ -1,4 +1,0 @@
-D:/Projects/pinatsu/makebin/CMakeFiles/engine.dir
-D:/Projects/pinatsu/makebin/CMakeFiles/sandbox.dir
-D:/Projects/pinatsu/makebin/CMakeFiles/edit_cache.dir
-D:/Projects/pinatsu/makebin/CMakeFiles/rebuild_cache.dir
