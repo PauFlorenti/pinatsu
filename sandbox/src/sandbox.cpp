@@ -200,16 +200,13 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
         cameraComp->locked = false;
     }
 
-    glm::vec2 mousePosition;
-    glm::vec2 oldMousePosition;
     if(cameraComp->locked) {
         i32 x, y;
         i32 oldX, oldY;
         getMousePosition(&x, &y);
         getPreviousMousePosition(&oldX, &oldY);
-        if(mousePosition != oldMousePosition) {
+        if(x != oldX || y != oldY) {
             // Rotate
-            PDEBUG("Entering!");
             glm::vec2 deltaMouse(oldX - x, oldY - y);
             cameraComp->yaw -= deltaMouse.x * 200 * deltaTime;
             cameraComp->pitch += deltaMouse.y * 200 * deltaTime;
