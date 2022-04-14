@@ -57,14 +57,15 @@ set(SRC_EXTERNALS
              ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImSequencer.cpp)
 
 set(SRC_SYSTEMS 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/entitySystemComponent.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/materialSystem.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/meshSystem.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/physicsSystem.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/resourceSystem.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/textureSystem.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_light_point.cpp;
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_name.cpp;
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/entitySystemComponent.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/materialSystem.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/meshSystem.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/physicsSystem.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/resourceSystem.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/textureSystem.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_light_point.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_name.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_parent.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_transform.cpp)
 
 # Include necessary directories             

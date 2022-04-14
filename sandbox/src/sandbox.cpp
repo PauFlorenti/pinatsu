@@ -15,6 +15,7 @@
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_name.h"
 #include "systems/components/comp_light_point.h"
+#include "systems/components/comp_parent.h"
 
 // TODO temp
 #include "renderer/rendererFrontend.h"
@@ -46,6 +47,7 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->registerComponent<RenderComponent>();
     entitySystem->registerComponent<TCompLightPoint>();
     entitySystem->registerComponent<CameraComponent>();
+    entitySystem->registerComponent<TCompParent>();
 
     camera = entitySystem->createEntity();
     CameraComponent cameraComp;
@@ -80,8 +82,12 @@ bool gameInitialize(Game* pGameInst)
     t3.rotation  = glm::quat();
     t3.scale     = glm::vec3(1.0);
 
+    TCompParent parent{};
+    parent.addChild(player, floor);
+
     entitySystem->addComponent(player, t);
     entitySystem->addComponent(player, TCompName("Cube"));
+    entitySystem->addComponent(player, parent);
     entitySystem->addComponent(floor, t2);
     entitySystem->addComponent(floor, TCompName("Floor"));
     entitySystem->addComponent(helmet, t3);
