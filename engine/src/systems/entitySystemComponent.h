@@ -250,6 +250,14 @@ public:
             pair.second->entityDestroyed(entity);
         }
     }
+
+    std::vector<ComponentType> getAllRegisteredComponents(){
+        std::vector<ComponentType> components;
+        for(auto c : componentTypes){
+            components.push_back(c.second);
+        }
+        return components;
+    }
 };
 
 class EntitySystem
@@ -319,6 +327,12 @@ public:
     }
 
     template <typename T>
+    T& getComponent(Entity entity, ComponentType type)
+    {
+        return componentManager->getComponent(entity, type);
+    }
+
+    template <typename T>
     ComponentType getComponentType(Entity entity)
     {
         return componentManager->getComponentType<T>();
@@ -331,9 +345,19 @@ public:
         return signature[componentManager->getComponentType<T>()];
     }
 
+    bool hasComponent(Entity entity, ComponentType type){
+        Signature signature = entityManager->getSignature(entity);
+        return signature[type];
+    }
+
     std::unordered_map<Entity, Signature>
     getAvailableEntities()
     {
         return entityManager->getAvailableEntities();
+    }
+
+    std::vector<ComponentType>
+    getAllComponentTypes(){
+        return componentManager->getAllRegisteredComponents();
     }
 };

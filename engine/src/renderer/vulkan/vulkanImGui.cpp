@@ -13,6 +13,7 @@
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_name.h"
 #include "systems/components/comp_light_point.h"
+#include "systems/components/comp_parent.h"
 
 #include "memory/pmemory.h"
 
@@ -25,6 +26,9 @@ struct imguiState
 };
 
 static imguiState* imgui = nullptr;
+
+static void
+drawComponents(const Entity& ent);
 
 void
 imguiInit(
@@ -90,6 +94,8 @@ imguiRender(
     EntitySystem* entitySystem = EntitySystem::Get();
     auto& entities = entitySystem->getAvailableEntities();
 
+    std::vector<ComponentType> registeredComponentTypes = entitySystem->getAllComponentTypes();
+
     if(ImGui::TreeNode("Entities ..."))
     {
         for(auto& it = entities.begin(); it != entities.end(); it++)
@@ -98,15 +104,7 @@ imguiRender(
             ImGui::PushID(it->first);
             if(ImGui::TreeNode(name))
             {
-                // All entities should have Name and Transform
-                entitySystem->getComponent<TCompName>(it->first).debugInMenu();
-                entitySystem->getComponent<TCompTransform>(it->first).debugInMenu();
-
-                // The rest of components should be checked before writing in debug.
-                if(entitySystem->hasComponent<TCompLightPoint>(it->first))
-                {
-                    entitySystem->getComponent<TCompLightPoint>(it->first).debugInMenu();
-                }
+                drawComponents(it->first);
                 ImGui::TreePop();
             }
             ImGui::PopID();
@@ -124,4 +122,26 @@ imguiDestroy()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
+}
+
+static void
+drawComponents(const Entity& ent)
+{
+    EntitySystem* entitySystem = EntitySystem::Get();
+    entitySystem->getComponent<TCompName>(ent).debugInMenu();
+    entitySystem->getComponent<TCompTransform>(ent).debugInMenu();
+
+    // The rest of components should be checked before writing in debug.
+    if(entitySystem->hasComponent<TCompLightPoint>(ent))
+    {
+        entitySystem->getComponent<TCompLightPoint>(ent).debugInMenu();
+    }
+
+    if(entitySystem->hasComponent<TCompParent>(ent))
+    {
+        auto component = entitySystem->getComponent<TCompParent>(ent);
+        if(component.parent == 0){
+            component.debugInMenu();
+        }
+    }
 }

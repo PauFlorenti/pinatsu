@@ -35,5 +35,9 @@ void TCompParent::delChild(const Entity ent){
 }
 
 void TCompParent::debugInMenu(){
-    // TODO Call debugInMenu for each child.
+    if(ImGui::TreeNode("Children ... "))
+    {
+        // TODO Rethink how to get all info from children ...
+        ImGui::TreePop();
+    }
 }
