@@ -1,3 +1,4 @@
+#pragma once
 #include "comp_base.h"
 
 #include <external/glm/glm.hpp>

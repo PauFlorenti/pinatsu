@@ -160,6 +160,12 @@
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handleManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\Projects\pinatsu\engine\CMakeLists.txt" />

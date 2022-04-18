@@ -66,7 +66,9 @@ set(SRC_SYSTEMS
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_light_point.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_name.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_parent.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_transform.cpp)
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_transform.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handle.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handleManager.cpp)
 
 # Include necessary directories             
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
