@@ -1,6 +1,6 @@
 #pragma once
 
-#include "handle.h"
+#include "handleDefinition.h"
 
 #include <vector>
 #include <map>
@@ -50,12 +50,17 @@ protected:
     virtual void createObj(u32 internal_idx) = 0;
     virtual void destroyObj(u32 internal_idx) = 0;
     virtual void moveObj(u32 src_internal_idx, u32 dst_internal_idx) = 0;
-    // virtual void loadObj(u32 src_internal_idx, const json& j, TEntityParseContext& ctx) = 0;
+    virtual void loadObj(u32 src_internal_idx, const json& j, TEntityParseContext& ctx) = 0;
     virtual void debugInMenuObj(u32 internal_idx) = 0;
     virtual void renderDebugObj(u32 internal_idx) = 0;
     virtual void onEntityCreatedObj(u32 internal_idx) = 0;
 
 public:
+
+    // Filled during constructor of the ObjectManagers
+    static CHandleManager*  predefinedManagers[CHandle::maxTypes];
+    static u32              nPredefinedManagers;
+
     virtual void init(u32 maxObjects) {
         PASSERT(maxObjects < maxTotalObjectsAllowed);
         PASSERT(maxObjects > 0);
@@ -92,8 +97,8 @@ public:
 
     bool isValid(CHandle h) const {
         PASSERT(h.getType() == type);
-        PASSERT(h.getExternalIndex() < capacity());
-        auto& ed = externalToInternal[h.getExternalIndex()];
+        PASSERT(h.getIndex() < capacity());
+        auto& ed = externalToInternal[h.getIndex()];
         return ed.currentAge == h.getAge();
     }
 
@@ -109,7 +114,7 @@ public:
     void debugInMenu(CHandle h);
     void renderDebug(CHandle h);
     void onEntityCreated(CHandle h);
-    void load(CHandle h); // TODO make this able to load from json
+    void load(CHandle h, const json& j, TEntityParseContext& ctx);
 
     // Methods applying to all objects
     virtual void updateAll(f32 dt) = 0;
@@ -124,4 +129,4 @@ public:
     static u32 getNumDefinedTypes();
     static void destroyAllPendingObjects();
     void dumpInternals() const;
-}
+};

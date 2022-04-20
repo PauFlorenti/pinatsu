@@ -6,6 +6,7 @@
 
 struct Game;
 class EntitySystem;
+class CModuleEntities;
 
 typedef struct ApplicationConfig {
     i16 startPositionX;
@@ -61,6 +62,7 @@ typedef struct ApplicationState
     void* physicsSystem;
 
     EntitySystem* entitySystem;
+    CModuleEntities* entities;
 } ApplicationState;
 
 bool applicationInit(Game* pGameInst);

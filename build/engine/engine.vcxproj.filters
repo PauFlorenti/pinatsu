@@ -19,6 +19,9 @@
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\core\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\pstring.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -160,10 +163,16 @@
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handle.cpp">
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handleDefinition.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handleManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\modules\module_entities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\entity.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

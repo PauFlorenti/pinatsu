@@ -31,4 +31,12 @@ struct TCompTransform : public TCompBase
             glm::vec3(0), 
             glm::vec4(0));
     }
+
+    TCompTransform combinedWith(const TCompTransform& deltaTransform) const {
+        TCompTransform newTransform;
+        newTransform.rotation = deltaTransform.rotation * rotation;
+        glm::vec3 deltaPosRotated = rotation * deltaTransform.position;
+        newTransform.scale = scale * deltaTransform.scale;
+        return newTransform;
+    }
 };

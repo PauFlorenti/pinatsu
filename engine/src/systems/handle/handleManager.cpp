@@ -1,11 +1,13 @@
 #include "handleManager.h"
 
 // Zero is predefined as invalid component
-u32 CHandleManager::nextTypeOfHandleManager = 1;
-CHandleManager* CHandleManager::allManagers[CHandle::maxTypes];
-std::map<std::string, CHandleManager*> CHandleManager::allManagersByName;
+u32                                     CHandleManager::nextTypeOfHandleManager = 1;
+CHandleManager*                         CHandleManager::allManagers[CHandle::maxTypes];
+std::map<std::string, CHandleManager*>  CHandleManager::allManagersByName;
 
-bool CHandleManager::anyHandleDestroyed = false;
+CHandleManager* CHandleManager::predefinedManagers[CHandle::maxTypes];
+u32             CHandleManager::nPredefinedManagers = 0;
+bool            CHandleManager::anyHandleDestroyed = false;
 
 void CHandleManager::destroyAllPendingObjects() {
     if(!anyHandleDestroyed)
@@ -60,7 +62,7 @@ CHandle CHandleManager::createHandle() {
 
     // Update where is the next free for the next time we create another obj.
     nextFreeHandleExternalIndex = ed.nextExternalIndex;
-    PASSERT_MSG(nextFreeHandleExternalIndex != invalidIndex, "We run out of objects of type %s.", getName())
+    PASSERT_MSG(nextFreeHandleExternalIndex != invalidIndex, "We run out of objects.")
 
     ed.nextExternalIndex = invalidIndex;
 
@@ -112,7 +114,7 @@ bool CHandleManager::destroyPendingObjects()
         if(internalIndex < internalIndexOfLastValidObject) {
             moveObj(internalIndexOfLastValidObject, internalIndex);
 
-            auto movedObjectExternalIndex = internalToExternal[internalindexOfLastValidObject];
+            auto movedObjectExternalIndex = internalToExternal[internalIndexOfLastValidObject];
             internalToExternal[internalIndex] = movedObjectExternalIndex;
 
             auto& movedObjectEd = externalToInternal[movedObjectExternalIndex];
@@ -155,5 +157,23 @@ void CHandleManager::renderDebug(CHandle who) {
         return;
 
     auto& ed = externalToInternal[who.getIndex()];
-    renderDebug(ed.internalIndex);
+    renderDebugObj(ed.internalIndex);
+}
+
+void CHandleManager::onEntityCreated(CHandle who) {
+    if(!who.isValid())
+        return;
+    auto& ed = externalToInternal[who.getIndex()];
+    onEntityCreatedObj(ed.internalIndex);
+}
+
+void CHandleManager::load(CHandle who, const json& j, TEntityParseContext& ctx) {
+    if(!who.isValid())
+        return;
+    auto& ed = externalToInternal[who.getIndex()];
+    loadObj(ed.internalIndex, j, ctx);
+}
+
+void CHandleManager::dumpInternals() const {
+    // TODO understand this functionality.
 }

@@ -277,6 +277,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\event.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\input.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\logger.cpp" />
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\core\utils.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\core\pstring.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\external\imgui\GraphEditor.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\external\imgui\ImCurveEdit.cpp" />
@@ -324,8 +325,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_name.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_parent.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_transform.cpp" />
-    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handle.cpp" />
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handleDefinition.cpp" />
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\handle\handleManager.cpp" />
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\modules\module_entities.cpp" />
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\entity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="D:\Projects\pinatsu\build\ZERO_CHECK.vcxproj">

@@ -1,0 +1,17 @@
+{
+  "sizes": {
+    "default": 1024,
+    "transform": 2048,
+    "entity": 2048
+  },
+  "init_order": {
+    "entity": 100,
+    "transform": 90
+  },
+  "update": [
+  ],
+  "render_debug": [
+  ],
+  "others_update": [
+  ]
+}

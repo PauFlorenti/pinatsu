@@ -36,25 +36,25 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 88,
+				"line" : 91,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 85,
+				"line" : 88,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 74,
+				"line" : 77,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 75,
+				"line" : 78,
 				"parent" : 0
 			}
 		]
@@ -151,7 +151,10 @@
 				51,
 				52,
 				53,
-				54
+				54,
+				55,
+				56,
+				57
 			]
 		}
 	],
@@ -229,7 +232,10 @@
 				51,
 				52,
 				53,
-				54
+				54,
+				55,
+				56,
+				57
 			]
 		}
 	],
@@ -269,6 +275,12 @@
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
 			"path" : "engine/src/core/logger.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "engine/src/core/utils.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{
@@ -556,13 +568,25 @@
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
-			"path" : "engine/src/systems/handle/handle.cpp",
+			"path" : "engine/src/systems/handle/handleDefinition.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
 			"path" : "engine/src/systems/handle/handleManager.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "engine/src/systems/modules/module_entities.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "engine/src/systems/components/entity.cpp",
 			"sourceGroupIndex" : 0
 		}
 	],

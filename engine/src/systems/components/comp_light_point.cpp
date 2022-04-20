@@ -1,6 +1,9 @@
 #include "comp_light_point.h"
+#include "systems/handle/handle.h"
 
 #include <external/imgui/imgui.h>
+
+DECL_OBJ_MANAGER("point_light", TCompLightPoint)
 
 void TCompLightPoint::debugInMenu()
 {

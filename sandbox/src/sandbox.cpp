@@ -82,6 +82,11 @@ bool gameInitialize(Game* pGameInst)
     t3.rotation  = glm::quat();
     t3.scale     = glm::vec3(1.0);
 
+    TCompTransform t4;
+    t4.position  = glm::vec3(0.0f, 0.0f, 0.0f);
+    t4.rotation  = glm::quat();
+    t4.scale     = glm::vec3(10.0);
+
     TCompParent parent{};
     parent.addChild(player, floor);
 
@@ -92,7 +97,7 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(floor, TCompName("Floor"));
     entitySystem->addComponent(helmet, t3);
     entitySystem->addComponent(helmet, TCompName("Helmet"));
-    entitySystem->addComponent(avocado, TCompTransform{});
+    entitySystem->addComponent(avocado, t4);
     entitySystem->addComponent(avocado, TCompName("Avocado"));
 
     Resource gltf;

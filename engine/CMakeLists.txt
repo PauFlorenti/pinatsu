@@ -8,6 +8,7 @@ set(SRC_CORE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/application.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/core/input.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/core/logger.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utils.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/core/pstring.cpp)
 
 set(SRC_MEMORY 
@@ -67,10 +68,12 @@ set(SRC_SYSTEMS
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_name.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_parent.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/comp_transform.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handle.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handleManager.cpp)
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handleDefinition.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/handleManager.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/modules/module_entities.cpp
+             ${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/entity.cpp)
 
-# Include necessary directories             
+# Include necessary directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${Vulkan_INCLUDE_DIRS})
 

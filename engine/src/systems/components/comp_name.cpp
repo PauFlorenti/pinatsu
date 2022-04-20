@@ -1,7 +1,9 @@
-
 #include "comp_name.h"
+#include "systems/handle/handle.h"
 
 #include <external/imgui/imgui.h>
+
+DECL_OBJ_MANAGER("name", TCompName)
 
 TCompName::TCompName(const char* newName)
 {

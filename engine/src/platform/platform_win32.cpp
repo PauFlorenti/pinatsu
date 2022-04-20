@@ -109,8 +109,6 @@ platformStartup(
     pState->hwnd = handle;
 
     ShowWindow(pState->hwnd, SW_SHOW);
-
-    std::cout << "platform init called!\n";
     return true;
 };
 

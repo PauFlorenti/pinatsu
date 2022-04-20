@@ -19,6 +19,7 @@
 #include "systems/physicsSystem.h"
 
 #include "systems/entitySystemComponent.h"
+#include "systems/modules/module_entities.h"
 #include <external/imgui/imgui.h>
 
 static ApplicationState* pState;
@@ -148,6 +149,10 @@ bool applicationInit(Game* pGameInst)
     pState->entitySystem = new EntitySystem();
     pState->entitySystem->init();
 
+    pState->entities = new CModuleEntities("entities");
+    pState->entities->start();
+    // TODO make a module manager if we're gonna use modules ...
+
     // Simple 2D physics system
     /*
     physicsSystemInit(&pState->physicsSystemMemoryRequirements, nullptr);
@@ -199,6 +204,8 @@ bool applicationRun()
                 PERROR("Game failed to update.");
                 pState->m_isRunning = false;
             }
+
+            pState->entities->update((f32)deltaTime);
             
             if(!pState->pGameInst->render(pState->pGameInst, (f32)deltaTime))
             {
