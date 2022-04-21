@@ -14,21 +14,6 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/ SRC_COM
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/ SRC_HANDLE)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/modules/ SRC_MODULES)
 
-# Make library for the imgui ...
-set(SRC_EXTERNALS 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/GraphEditor.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImCurveEdit.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImGradient.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_demo.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_draw.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_vulkan.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_impl_win32.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_tables.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui_widgets.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/imgui.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImGuizmo.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ImSequencer.cpp)
-
 # Include necessary directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${Vulkan_INCLUDE_DIRS})
@@ -47,7 +32,7 @@ add_definitions(-DDEBUG)
 add_library(engine  STATIC 
                     ${SRC_CONTAINERS}
                     ${SRC_CORE}
-                    ${SRC_EXTERNALS}
+                    #${SRC_EXTERNALS} -- In case we need some external cpp compiled ...
                     ${SRC_PLATFORM}
                     ${SRC_RENDERER}
                     ${SRC_MEMORY}
@@ -60,6 +45,10 @@ add_library(engine  STATIC
                     ${SRC_VULKAN_SHADERS}
                     ${SRC_SYSTEMS})
 
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ SRC_IMGUI)
+add_library(imgui STATIC ${SRC_IMGUI})
+
 set(PRE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/pnt_platform.h)
 
 target_precompile_headers(engine PUBLIC ${PRE_HEADERS})
+target_precompile_headers(imgui PUBLIC ${PRE_HEADERS})

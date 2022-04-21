@@ -12,7 +12,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "engine/MinSizeRel/engine.lib"
+			"path" : "engine/Release/engine.lib"
 		}
 	],
 	"backtrace" : 1,
@@ -37,31 +37,31 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 47,
+				"line" : 32,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 44,
+				"line" : 29,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 33,
+				"line" : 18,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 34,
+				"line" : 19,
 				"parent" : 0
 			},
 			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 65,
+				"line" : 53,
 				"parent" : 0
 			}
 		]
@@ -72,10 +72,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O1 /Ob1 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O2 /Ob2 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
 				},
 				{
-					"fragment" : "/YcD:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/MinSizeRel/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/engine.dir/MinSizeRel/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/MinSizeRel/cmake_pch.hxx"
+					"fragment" : "/YcD:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/Release/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/engine.dir/Release/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/Release/cmake_pch.hxx"
 				}
 			],
 			"defines" : 
@@ -121,10 +121,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O1 /Ob1 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O2 /Ob2 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
 				},
 				{
-					"fragment" : "/YuD:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/MinSizeRel/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/engine.dir/MinSizeRel/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/MinSizeRel/cmake_pch.hxx"
+					"fragment" : "/YuD:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/Release/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/engine.dir/Release/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/engine.dir/Release/cmake_pch.hxx"
 				}
 			],
 			"defines" : 
@@ -208,19 +208,7 @@
 				43,
 				44,
 				45,
-				46,
-				47,
-				48,
-				49,
-				50,
-				51,
-				52,
-				53,
-				54,
-				55,
-				56,
-				57,
-				58
+				46
 			]
 		}
 	],
@@ -290,29 +278,17 @@
 				43,
 				44,
 				45,
-				46,
-				47,
-				48,
-				49,
-				50,
-				51,
-				52,
-				53,
-				54,
-				55,
-				56,
-				57,
-				58
+				46
 			]
 		},
 		{
 			"name" : "Precompile Header File",
 			"sourceIndexes" : 
 			[
-				59,
-				60,
-				61,
-				62
+				47,
+				48,
+				49,
+				50
 			]
 		}
 	],
@@ -370,78 +346,6 @@
 			"backtrace" : 1,
 			"compileGroupIndex" : 1,
 			"path" : "engine/src/core/utils.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/GraphEditor.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/ImCurveEdit.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/ImGradient.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_demo.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_draw.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_impl_vulkan.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_impl_win32.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_tables.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui_widgets.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/imgui.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/ImGuizmo.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 1,
-			"path" : "engine/src/external/imgui/ImSequencer.cpp",
 			"sourceGroupIndex" : 0
 		},
 		{

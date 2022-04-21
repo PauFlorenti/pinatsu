@@ -177,6 +177,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{57826DF3-971E-3998-ABF2-E07F56FC4A60}</Project>
       <Name>engine</Name>
     </ProjectReference>
+    <ProjectReference Include="D:\Projects\pinatsu\build\engine\imgui.vcxproj">
+      <Project>{08449A38-9F02-3148-9F2A-4F78EDCB8A2C}</Project>
+      <Name>imgui</Name>
+    </ProjectReference>
     <ProjectReference Include="D:\Projects\pinatsu\build\sandbox\sandbox.vcxproj">
       <Project>{511525B1-F687-3703-B984-9C35592B8DD4}</Project>
       <Name>sandbox</Name>

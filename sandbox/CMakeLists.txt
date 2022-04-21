@@ -15,4 +15,4 @@ add_definitions(-Zi)
 add_definitions(-DDEBUG)
 
 add_executable(sandbox ${SRC})
-target_link_libraries(sandbox PUBLIC engine user32.lib ${Vulkan_LIBRARIES})
+target_link_libraries(sandbox PUBLIC engine imgui user32.lib ${Vulkan_LIBRARIES})

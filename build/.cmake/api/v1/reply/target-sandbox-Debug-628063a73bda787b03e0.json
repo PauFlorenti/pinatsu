@@ -2,10 +2,10 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "MinSizeRel/sandbox.exe"
+			"path" : "Debug/sandbox.exe"
 		},
 		{
-			"path" : "MinSizeRel/sandbox.pdb"
+			"path" : "Debug/sandbox.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -59,10 +59,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O1 /Ob1 /DNDEBUG   -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1   -WX -Zi"
 				},
 				{
-					"fragment" : "/YcD:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/MinSizeRel/cmake_pch.hxx /FpD:/Projects/pinatsu/build/sandbox/sandbox.dir/MinSizeRel/cmake_pch.pch /FID:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/MinSizeRel/cmake_pch.hxx"
+					"fragment" : "/YcD:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/Debug/cmake_pch.hxx /FpD:/Projects/pinatsu/build/sandbox/sandbox.dir/Debug/cmake_pch.pch /FID:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/Debug/cmake_pch.hxx"
 				}
 			],
 			"defines" : 
@@ -104,10 +104,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O1 /Ob1 /DNDEBUG   -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1   -WX -Zi"
 				},
 				{
-					"fragment" : "/YuD:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/MinSizeRel/cmake_pch.hxx /FpD:/Projects/pinatsu/build/sandbox/sandbox.dir/MinSizeRel/cmake_pch.pch /FID:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/MinSizeRel/cmake_pch.hxx"
+					"fragment" : "/YuD:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/Debug/cmake_pch.hxx /FpD:/Projects/pinatsu/build/sandbox/sandbox.dir/Debug/cmake_pch.pch /FID:/Projects/pinatsu/build/sandbox/CMakeFiles/sandbox.dir/Debug/cmake_pch.hxx"
 				}
 			],
 			"defines" : 
@@ -154,6 +154,10 @@
 			"id" : "engine::@4088515cb4035b412499"
 		},
 		{
+			"backtrace" : 2,
+			"id" : "imgui::@4088515cb4035b412499"
+		},
+		{
 			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
 		}
 	],
@@ -163,16 +167,21 @@
 		"commandFragments" : 
 		[
 			{
-				"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /O1 /Ob1 /DNDEBUG",
+				"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1",
 				"role" : "flags"
 			},
 			{
-				"fragment" : "/machine:x64 /INCREMENTAL:NO /subsystem:console",
+				"fragment" : "/machine:x64 /debug /INCREMENTAL /subsystem:console",
 				"role" : "flags"
 			},
 			{
 				"backtrace" : 2,
-				"fragment" : "..\\engine\\MinSizeRel\\engine.lib",
+				"fragment" : "..\\engine\\Debug\\engine.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "..\\engine\\Debug\\imgui.lib",
 				"role" : "libraries"
 			},
 			{
