@@ -1,8 +1,4 @@
 #pragma once
-#include "defines.h"
-
-#include <external/json/json.hpp>
-using json = nlohmann::json;
 
 struct TEntityParseContext;
 

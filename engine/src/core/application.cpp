@@ -20,7 +20,6 @@
 
 #include "systems/entitySystemComponent.h"
 #include "systems/modules/module_entities.h"
-#include <external/imgui/imgui.h>
 
 static ApplicationState* pState;
 

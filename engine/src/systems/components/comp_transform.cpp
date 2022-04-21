@@ -1,7 +1,5 @@
 #include "comp_transform.h"
 
-#include <external/imgui/imgui.h>
-#include <external/imgui/ImGuizmo.h>
 #include <external/glm/gtc/type_ptr.hpp>
 #include <external/glm/gtx/quaternion.hpp>
 

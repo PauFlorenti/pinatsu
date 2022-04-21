@@ -42,7 +42,7 @@ void CModuleEntities::stop()
 
 void CModuleEntities::update(f32 dt)
 {
-    PINFO("Updating module entities ...")
+    //PINFO("Updating module entities ...")
     for(auto om : toUpdate)
     {
         if(om)

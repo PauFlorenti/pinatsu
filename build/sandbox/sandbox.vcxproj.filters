@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="D:\Projects\pinatsu\build\sandbox\CMakeFiles\sandbox.dir\cmake_pch.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\sandbox\src\entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -9,9 +12,26 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D:\Projects\pinatsu\build\sandbox\CMakeFiles\sandbox.dir\Debug\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\pinatsu\build\sandbox\CMakeFiles\sandbox.dir\Release\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\pinatsu\build\sandbox\CMakeFiles\sandbox.dir\MinSizeRel\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\Projects\pinatsu\build\sandbox\CMakeFiles\sandbox.dir\RelWithDebInfo\cmake_pch.hxx">
+      <Filter>Precompile Header File</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
     <CustomBuild Include="D:\Projects\pinatsu\sandbox\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Precompile Header File">
+      <UniqueIdentifier>{03B7E8C5-4BEA-37F6-A55C-D5600E855A6E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{69B931D2-F9E6-3948-B4CC-255ACED4A5F6}</UniqueIdentifier>
     </Filter>
