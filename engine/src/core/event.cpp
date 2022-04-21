@@ -1,6 +1,5 @@
 #include "event.h"
 
-#include <vector>
 #include "logger.h"
 #include "memory/pmemory.h"
 

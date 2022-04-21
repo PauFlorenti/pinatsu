@@ -1,7 +1,6 @@
 #pragma once
 
 #include "comp_base.h"
-#include <vector>
 
 using Entity = u32;
 

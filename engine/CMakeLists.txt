@@ -3,21 +3,29 @@
 
 set(SRC_CONTAINERS ${CMAKE_CURRENT_SOURCE_DIR}/src/containers/hashtable.cpp)
 
-set(SRC_CORE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/application.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/clock.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/input.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/logger.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utils.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/pstring.cpp)
+#set(SRC_CORE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/application.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/clock.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/event.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/input.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/logger.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/utils.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/core/pstring.cpp)
 
-set(SRC_MEMORY 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/linearAllocator.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/pmemory.cpp)
 
-set(SRC_PLATFORM 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/filesystem.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/platform_win32.cpp)
+#set(SRC_MEMORY 
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/linearAllocator.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/pmemory.cpp)
+
+#set(SRC_PLATFORM 
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/filesystem.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/platform_win32.cpp)
+
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/core/ SRC_CORE)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/memory/ SRC_MEMORY)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/platform/ SRC_PLATFORM)
+#AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/renderer/ SRC_RENDERER)
+#AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/renderer/vulkan SRC_VULKAN)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders SRC_RESOURCES)
 
 set(SRC_RENDERER 
              ${CMAKE_CURRENT_SOURCE_DIR}/src/renderer/rendererBackend.cpp
@@ -38,10 +46,10 @@ set(SRC_RENDERER
              ${CMAKE_CURRENT_SOURCE_DIR}/src/renderer/vulkan/shaders/vulkanDeferredShader.cpp
              ${CMAKE_CURRENT_SOURCE_DIR}/src/renderer/vulkan/shaders/vulkanForwardShader.cpp)
 
-set(SRC_RESOURCES 
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/gltfLoader.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/meshLoader.cpp
-             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/textureLoader.cpp)
+#set(SRC_RESOURCES 
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/gltfLoader.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/meshLoader.cpp
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/textureLoader.cpp)
 
 set(SRC_EXTERNALS 
              ${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/GraphEditor.cpp
@@ -96,3 +104,7 @@ add_library(engine  STATIC ${SRC_CONTAINERS}
                     ${SRC_MEMORY} 
                     ${SRC_RESOURCES} 
                     ${SRC_SYSTEMS})
+
+set(PRE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/pnt_platform.h)
+
+target_precompile_headers(engine PRIVATE ${PRE_HEADERS})

@@ -2,7 +2,6 @@
 
 #include "platform\platform.h"
 #include "assert.h"
-#include <string>
 #include <cstdarg>
 #include <memory>
 

@@ -2,7 +2,6 @@
 
 #include "defines.h"
 #include "vulkan\vulkan.h"
-#include <string>
 
 struct VertexDeclaration
 {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../defines.h"
-#include <vector>
+#include "defines.h"
 
 bool platformStartup(
     u64* memoryRequirements,

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "defines.h"
-#include <string>
 
 #include "systems/handle/handle.h"
 #include "systems/components/comp_transform.h"

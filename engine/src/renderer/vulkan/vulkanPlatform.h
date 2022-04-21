@@ -1,7 +1,6 @@
 #pragma once
 
 #include "defines.h"
-#include <vector>
 
 struct VulkanState;
 

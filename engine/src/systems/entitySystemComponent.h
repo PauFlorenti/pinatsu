@@ -13,10 +13,8 @@
 
 #include <queue>
 #include <unordered_map>
-#include <vector>
 #include <bitset>
 #include <typeinfo>
-#include <array>
 
 #define MAX_ENTITIES_ALLOWED 512
 #define MAX_COMPONENTS 32

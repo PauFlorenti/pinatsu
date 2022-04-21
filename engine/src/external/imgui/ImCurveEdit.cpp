@@ -28,7 +28,6 @@
 #include "imgui_internal.h"
 #include <stdint.h>
 #include <set>
-#include <vector>
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>

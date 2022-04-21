@@ -123,13 +123,13 @@ bool gameInitialize(Game* pGameInst)
     helmetRenderComp.active     = true;
     helmetRenderComp.material   = helmetNode->material;
     helmetRenderComp.mesh       = helmetNode->mesh;
-    entitySystem->addComponent(helmet, helmetRenderComp);
+    //entitySystem->addComponent(helmet, helmetRenderComp);
 
     RenderComponent avocadoRenderComp{};
     avocadoRenderComp.active    = true;
     avocadoRenderComp.material  = avocadoNode->material;
     avocadoRenderComp.mesh      = avocadoNode->mesh;
-    entitySystem->addComponent(avocado, avocadoRenderComp);
+    //entitySystem->addComponent(avocado, avocadoRenderComp);
 
     Entity light    = entitySystem->createEntity();
     Entity light1   = entitySystem->createEntity();

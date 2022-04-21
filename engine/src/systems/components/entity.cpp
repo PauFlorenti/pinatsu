@@ -1,5 +1,7 @@
 #include "systems/entity/entity.h"
 
+// have we done any changes ... ?
+
 CEntity::~CEntity() {
     for(u32 i = 1; i < CHandleManager::getNumDefinedTypes(); ++i) {
         CHandle h = comps[i];

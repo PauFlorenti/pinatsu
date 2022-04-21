@@ -23,8 +23,6 @@
 
 #include "memory/pmemory.h"
 //#include "pmath.h"
-#include <vector>
-#include <string>
 
 #define internal static
 

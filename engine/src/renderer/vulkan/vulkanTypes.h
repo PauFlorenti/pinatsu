@@ -7,7 +7,6 @@
 
 #include <external\glm\glm.hpp>
 #include <external\glm\gtc\matrix_transform.hpp>
-#include <vector>
 
 // TEMP
 #include "resources/resourcesTypes.h"
