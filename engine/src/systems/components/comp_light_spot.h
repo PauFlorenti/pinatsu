@@ -2,8 +2,6 @@
 
 #include "comp_base.h"
 
-#include <external/glm/glm.hpp>
-
 struct TCompLightSpot : public TCompBase
 {
     bool enabled = true;

@@ -511,21 +511,21 @@ void destroyLogicalDevice(VulkanState& pState)
 static VkFormat
 findSupportedFormat(
     const VkPhysicalDevice& physicalDevice, 
+    const u64& candidateCount,
     VkFormat* candidates, 
     VkImageTiling tiling, 
     VkFormatFeatureFlags features)
 {
-    for(u32 i = 0; i < 3; ++i)
+    for(u64 i = 0; i < candidateCount; ++i)
     {
         VkFormatProperties properties;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, candidates[i], &properties);
-        if( tiling == VK_IMAGE_TILING_LINEAR && 
-            (properties.linearTilingFeatures & features ) == features)
+
+        if(( properties.linearTilingFeatures & features ) == features)
         {
             return candidates[i];
         }
-        else if(tiling == VK_IMAGE_TILING_OPTIMAL && 
-                (properties.linearTilingFeatures & features) == features)
+        else if(( properties.optimalTilingFeatures & features) == features)
         {
             return candidates[i];
         }
@@ -537,9 +537,15 @@ findSupportedFormat(
 void
 vulkanDeviceGetDepthFormat(VulkanState& state)
 {
-    VkFormat candidates[3] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+    const u64 candidateCount = 3;
+    VkFormat candidates[candidateCount] = {
+        VK_FORMAT_D32_SFLOAT, 
+        VK_FORMAT_D32_SFLOAT_S8_UINT, 
+        VK_FORMAT_D24_UNORM_S8_UINT};
+
     state.swapchain.depthFormat = findSupportedFormat(
             state.device.physicalDevice, 
+            candidateCount,
             candidates, 
             VK_IMAGE_TILING_OPTIMAL, 
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
