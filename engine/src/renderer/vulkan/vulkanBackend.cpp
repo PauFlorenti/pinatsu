@@ -22,7 +22,6 @@
 #include "systems/components/comp_light_point.h"
 
 #include "memory/pmemory.h"
-//#include "pmath.h"
 
 #define internal static
 

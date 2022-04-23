@@ -1,8 +1,5 @@
 #pragma once
 
-#include "defines.h"
-
-#include "external/glm/glm.hpp" // TODO temp
 #include "renderTypes.h"
 
 typedef enum RenderBackendAPI

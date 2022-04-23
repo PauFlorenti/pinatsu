@@ -58,6 +58,9 @@
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_light_point.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_light_spot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_name.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -65,9 +68,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_render.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\Projects\pinatsu\engine\src\systems\components\comp_tag.cpp">

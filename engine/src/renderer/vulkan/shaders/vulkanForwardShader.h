@@ -1,5 +1,4 @@
 #pragma once
-#include "defines.h"
 
 #include "../vulkanTypes.h"
 #include "resources/resourcesTypes.h"

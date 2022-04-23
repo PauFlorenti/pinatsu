@@ -1,6 +1,5 @@
 #pragma once
 
-#include "defines.h"
 #include "vulkanTypes.h"
 
 //void vulkanCommandBufferFree(VulkanState* pState, VkCommandPool pool, )

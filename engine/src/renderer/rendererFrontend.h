@@ -1,8 +1,5 @@
 #pragma once
 
-#include "defines.h"
-
-#include "external/glm/glm.hpp" // TODO temp
 #include "renderTypes.h"
 
 bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, void* winHandle);

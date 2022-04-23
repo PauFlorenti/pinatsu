@@ -3,10 +3,6 @@
 #include "vulkan\vulkan.h"
 #include "core\assert.h"
 #include "core\logger.h"
-//#include "math_types.h"
-
-#include <external\glm\glm.hpp>
-#include <external\glm\gtc\matrix_transform.hpp>
 
 // TEMP
 #include "resources/resourcesTypes.h"

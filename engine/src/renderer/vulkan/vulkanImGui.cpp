@@ -2,12 +2,8 @@
 #include "vulkanTypes.h"
 #include "vulkanCommandBuffer.h"
 
-#include <external/imgui/imgui.h>
 #include <external/imgui/imgui_impl_win32.h>
 #include <external/imgui/imgui_impl_vulkan.h>
-#include <external/imgui/ImGuizmo.h>
-#include <external/glm/gtc/type_ptr.hpp>
-#include <external/glm/gtx/quaternion.hpp>
 
 #include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"

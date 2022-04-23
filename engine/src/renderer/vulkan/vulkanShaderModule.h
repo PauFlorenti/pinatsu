@@ -1,6 +1,5 @@
 #pragma once
 
-#include "defines.h"
 #include "vulkanTypes.h"
 
 bool readShaderFile(const char* filename, std::vector<char>& buffer);

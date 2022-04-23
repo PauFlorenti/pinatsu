@@ -1,15 +1,11 @@
 #include "rendererFrontend.h"
 
 #include "rendererBackend.h"
-//#include "math_types.h"
-#include "core/logger.h"
 
 #include "systems/entitySystemComponent.h"
 #include "systems/meshSystem.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_parent.h"
-
-#include "external/glm/gtc/matrix_transform.hpp" // TODO temp
 
 typedef struct RenderFrontendState
 {

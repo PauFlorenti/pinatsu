@@ -12,7 +12,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "engine/RelWithDebInfo/imgui.lib"
+			"path" : "engine/Debug/imgui.lib"
 		}
 	],
 	"backtrace" : 1,
@@ -37,13 +37,19 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 52,
+				"line" : 51,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 30,
+				"line" : 29,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 18,
 				"parent" : 0
 			},
 			{
@@ -53,15 +59,9 @@
 				"parent" : 0
 			},
 			{
-				"command" : 2,
-				"file" : 0,
-				"line" : 20,
-				"parent" : 0
-			},
-			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 58,
+				"line" : 57,
 				"parent" : 0
 			}
 		]
@@ -72,10 +72,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /Zi /O2 /Ob1 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
 				},
 				{
-					"fragment" : "/YcD:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/RelWithDebInfo/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/imgui.dir/RelWithDebInfo/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/RelWithDebInfo/cmake_pch.hxx"
+					"fragment" : "/YcD:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/Debug/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/imgui.dir/Debug/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/Debug/cmake_pch.hxx"
 				}
 			],
 			"defines" : 
@@ -121,10 +121,10 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MD /Zi /O2 /Ob1 /DNDEBUG   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1   -wd4805 -wd4267 -wd4996 -wd4244 -wd4305 -WX -Zi"
 				},
 				{
-					"fragment" : "/YuD:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/RelWithDebInfo/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/imgui.dir/RelWithDebInfo/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/RelWithDebInfo/cmake_pch.hxx"
+					"fragment" : "/YuD:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/Debug/cmake_pch.hxx /FpD:/Projects/pinatsu/build/engine/imgui.dir/Debug/cmake_pch.pch /FID:/Projects/pinatsu/build/engine/CMakeFiles/imgui.dir/Debug/cmake_pch.hxx"
 				}
 			],
 			"defines" : 

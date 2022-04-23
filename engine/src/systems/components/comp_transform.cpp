@@ -1,8 +1,5 @@
 #include "comp_transform.h"
 
-#include <external/glm/gtc/type_ptr.hpp>
-#include <external/glm/gtx/quaternion.hpp>
-
 // temps
 #include "systems/entitySystemComponent.h"
 #include "core/application.h"

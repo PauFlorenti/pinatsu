@@ -4,5 +4,8 @@
 
 struct TCompTag : public TCompBase
 {
-    std::string tag;
+    const static u32 maxTags = 4;
+    u32 tags[maxTags];
+
+    void load(const json& j, TEntityParseContext& ctx);
 };

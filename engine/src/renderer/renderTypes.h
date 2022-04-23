@@ -1,10 +1,6 @@
 #pragma once
 
-#include "defines.h"
 #include "resources/resourcesTypes.h"
-
-// TEMP
-#include "external/glm/glm.hpp"
 
 typedef enum DefaultRenderPasses
 {
