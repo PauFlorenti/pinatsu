@@ -61,7 +61,7 @@ bool applicationInit(Game* pGameInst)
 
     // Init event system.
     eventSystemInit(&pState->eventSystemMemoryRequirements, nullptr);
-    pState->eventSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->eventSystemMemoryRequirements);
+    //pState->eventSystem = linearAllocatorAllocate(&pState->systemsAllocator, pState->eventSystemMemoryRequirements);
     eventSystemInit(&pState->eventSystemMemoryRequirements, pState->eventSystem);
 
     // Init input system.
