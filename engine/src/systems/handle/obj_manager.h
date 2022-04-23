@@ -49,17 +49,17 @@ class CObjectManager : public CHandleManager
 
 public:
     CObjectManager(const CObjectManager&) = delete;
-    CObjectManager(const char* newName) : objs(nullptr) {
+    CObjectManager(const char* newName) : objs(nullptr) 
+    {
         name = newName;
         CHandleManager::predefinedManagers[CHandleManager::nPredefinedManagers] = this;
         CHandleManager::nPredefinedManagers++;
     }
 
-    void init(u32 maxObjects) override {
+    void init(u32 maxObjects) override 
+    {
         CHandleManager::init(maxObjects);
-
         allocatedMemory.resize(maxObjects * sizeof(TObj));
-
         objs = static_cast<TObj*>((void*)allocatedMemory.data());
     }
 
@@ -72,13 +72,14 @@ public:
         return CHandle(type, externalIndex, ed.currentAge);
     }
 
-    TObj* getAddressFromHandle(CHandle h) {
+    TObj* getAddressFromHandle(CHandle h) 
+    {
         if(!h.getType())
             return nullptr;
         
         if(h.getType() != getType()){
             PFATAL("You have requested to convert a handle of type %s to a class of type %s.",
-                CHandleManager::getType(h.getType())->getName(), getName())
+                CHandleManager::getByType(h.getType())->getName(), getName())
             return nullptr;
         }
         PASSERT(h.getType() == getType())

@@ -1,5 +1,4 @@
 #include "comp_light_point.h"
-#include "systems/handle/handle.h"
 
 DECL_OBJ_MANAGER("point_light", TCompLightPoint)
 

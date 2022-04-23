@@ -20,6 +20,7 @@
 
 #include "systems/entitySystemComponent.h"
 #include "systems/modules/module_entities.h"
+#include "systems/modules/module_boot.h"
 
 static ApplicationState* pState;
 
@@ -150,7 +151,11 @@ bool applicationInit(Game* pGameInst)
 
     pState->entities = new CModuleEntities("entities");
     pState->entities->start();
+
+    //! Boot the Game or scene after all moduels have been initialized
     // TODO make a module manager if we're gonna use modules ...
+    pState->boot = new CModuleBoot("boot");
+    pState->boot->start();
 
     // Simple 2D physics system
     /*
@@ -373,3 +378,4 @@ void applicationGetFramebufferSize(u32* width, u32* height)
     *width = (u32)pState->m_width;
     *height = (u32)pState->m_height;
 }
+

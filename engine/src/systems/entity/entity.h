@@ -1,7 +1,4 @@
 #pragma once
-#include "defines.h"
-
-#include "systems/handle/handle.h"
 #include "systems/components/comp_base.h"
 
 class CEntity : public TCompBase
@@ -26,14 +23,10 @@ public:
     void debugInMenu();
     void renderDebug();
 
-    void set(uint32_t comp_type, CHandle new_comp);
+    void set(u32 comp_type, CHandle new_comp);
     void set(CHandle new_comp);
     void load(const json& j, TEntityParseContext& ctx);
     void onEntityCreated();
 
     const char* getName() const;
 };
-
-// FWD declaration
-//template<>
-//CObjectManager< CEntity >* getObjectManager<CEntity>();

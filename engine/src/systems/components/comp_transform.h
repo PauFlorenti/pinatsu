@@ -1,10 +1,6 @@
 #pragma once
 #include "comp_base.h"
 
-#include <external/glm/glm.hpp>
-#include <external/glm/gtc/quaternion.hpp>
-#include <external/glm/gtx/matrix_decompose.hpp>
-
 struct TCompTransform : public TCompBase
 {
     glm::vec3 position  = glm::vec3(1.0f);

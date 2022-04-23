@@ -1,5 +1,4 @@
 #include "comp_name.h"
-#include "systems/handle/handle.h"
 
 DECL_OBJ_MANAGER("name", TCompName)
 

@@ -1,0 +1,26 @@
+# CMake generation dependency list for this directory.
+D:/Projects/pinatsu/CMakeLists.txt
+D:/Projects/pinatsu/build/CMakeFiles/3.23.0/CMakeCCompiler.cmake
+D:/Projects/pinatsu/build/CMakeFiles/3.23.0/CMakeCXXCompiler.cmake
+D:/Projects/pinatsu/build/CMakeFiles/3.23.0/CMakeRCCompiler.cmake
+D:/Projects/pinatsu/build/CMakeFiles/3.23.0/CMakeSystem.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeCInformation.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeCXXInformation.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeCommonLanguageInclude.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeGenericSystem.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeInitializeConfigs.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeLanguageInformation.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeRCInformation.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeSystemSpecificInformation.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/CMakeSystemSpecificInitialize.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Compiler/MSVC-C.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Compiler/MSVC-CXX.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/FindPackageHandleStandardArgs.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/FindPackageMessage.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/FindVulkan.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Platform/Windows-MSVC-C.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Platform/Windows-MSVC-CXX.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Platform/Windows-MSVC.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Platform/Windows.cmake
+D:/TOOLS/CMake/share/cmake-3.23/Modules/Platform/WindowsPaths.cmake

@@ -1,5 +1,4 @@
 #pragma once
-#include "defines.h"
 #include "module.h"
 
 class CModuleEntities : public IModule

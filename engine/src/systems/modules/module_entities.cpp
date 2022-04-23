@@ -1,6 +1,5 @@
 #include "module_entities.h"
 #include "systems/entity/entity.h"
-#include "core/utils.h"
 
 bool CModuleEntities::start()
 {
@@ -27,7 +26,7 @@ bool CModuleEntities::start()
         auto om = CHandleManager::predefinedManagers[i];
         auto it = componentSizes.find(om->getName());
         i32 size = (it == componentSizes.end()) ? defaultSize : it->second;
-        PDEBUG("Initializing obj manager %s with %d\n", om->getName(), size);
+        PDEBUG("Initializing obj manager '%s' with a size of %d.", om->getName(), size);
         om->init(size);
     }
 

@@ -71,10 +71,18 @@ public:
         return operator==(h) || operator>(h);
     }
 
+    // Automatic cast
+    template <class TObj>
+    operator TObj* () const {
+        // std::remove_const<T>::type returns TObj without const
+        auto hm = getObjectManager<std::remove_const<TObj>::type>();
+        return hm->getAddressFromHandle(*this);
+    }
+
     // Create and destroy.
     template<class T>
     CHandle create() {
-        auto h = getObjectManaget<T>();
+        auto h = getObjectManager<T>();
         *this = h->createHandle();
         return *this;
     }

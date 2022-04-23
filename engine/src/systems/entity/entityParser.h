@@ -1,8 +1,5 @@
 #pragma once
 
-#include "defines.h"
-
-#include "systems/handle/handle.h"
 #include "systems/components/comp_transform.h"
 
 struct TEntityParseContext 

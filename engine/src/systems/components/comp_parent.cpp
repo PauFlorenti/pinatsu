@@ -1,8 +1,10 @@
 #include "comp_parent.h"
 #include "systems/entitySystemComponent.h"
-#include "systems/handle/handle.h"
 
 DECL_OBJ_MANAGER("parent", TCompParent)
+
+//#include "comp_render.h"
+//DECL_OBJ_MANAGER("render", TCompRender);
 
 void TCompParent::addChild(const Entity& parent, const Entity& ent){
 

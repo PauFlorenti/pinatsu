@@ -1,6 +1,6 @@
 
-# Find source files
-
+# Find source files for engine
+#some shiet
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/containers/ SRC_CONTAINERS)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/core/ SRC_CORE)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/memory/ SRC_MEMORY)
@@ -12,6 +12,7 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/resources/loaders/ SRC_RESO
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/ SRC_SYSTEMS)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/components/ SRC_COMPONENTS)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/handle/ SRC_HANDLE)
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/entity/ SRC_ENTITY)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/systems/modules/ SRC_MODULES)
 
 # Include necessary directories
@@ -39,15 +40,18 @@ add_library(engine  STATIC
                     ${SRC_RESOURCES}
                     ${SRC_COMPONENTS}
                     ${SRC_HANDLE}
+                    ${SRC_ENTITY}
                     ${SRC_MODULES}
                     ${SRC_RENDERER}
                     ${SRC_VULKAN}
                     ${SRC_VULKAN_SHADERS}
                     ${SRC_SYSTEMS})
 
+# Build imgui library
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src/external/imgui/ SRC_IMGUI)
 add_library(imgui STATIC ${SRC_IMGUI})
 
+# Set precompiled headers
 set(PRE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/pnt_platform.h)
 
 target_precompile_headers(engine PUBLIC ${PRE_HEADERS})

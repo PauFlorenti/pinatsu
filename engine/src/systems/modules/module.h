@@ -1,9 +1,5 @@
 #pragma once
 
-#include "defines.h"
-#include "core/assert.h"
-#include "core/logger.h"
-
 class IModule {
 public:
     IModule(std::string name) : name(name){};

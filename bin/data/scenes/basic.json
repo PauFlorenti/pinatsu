@@ -1,0 +1,13 @@
+[
+  {
+    "entity": {
+      "transform":{},
+      "name" : "basic",
+      "render" : [
+        {
+          "mesh": "cubeMarbre/cube.gltf"
+        }
+      ]
+    }
+  }
+]

@@ -6,13 +6,8 @@
 // temps
 #include "systems/entitySystemComponent.h"
 #include "core/application.h"
-#include "systems/handle/handle.h"
 
 DECL_OBJ_MANAGER("transform", TCompTransform);
-
-#include "systems/entity/entity.h"
-class CEntity;
-DECL_OBJ_MANAGER("entity", CEntity);
 
 void 
 TCompTransform::debugInMenu()
