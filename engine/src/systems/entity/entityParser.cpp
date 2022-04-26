@@ -44,6 +44,15 @@ bool parseScene(const std::string& filename, TEntityParseContext& ctx)
         }
 
         // TODO if multiple entities, do hierarchy
+        if(ctx.entitiesLoaded.size() > 1)
+        {
+            
+        }
+
+        if(!ctx.parsingPrefab) {
+            for(auto h : ctx.allEntitiesLoaded)
+                h.onEntityCreated();
+        }
     }
     return true;
 }

@@ -6,6 +6,12 @@
 
 DECL_OBJ_MANAGER("transform", TCompTransform);
 
+#include "systems/components/comp_light_spot.h"
+DECL_OBJ_MANAGER("spot_light", TCompLightSpot)
+
+//#include "systems/components/comp_render.h"
+//DECL_OBJ_MANAGER("render", TCompRender);
+
 void 
 TCompTransform::debugInMenu()
 {

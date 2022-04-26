@@ -1,6 +1,7 @@
 #include "comp_render.h"
 
 #include "systems/resourceSystem.h"
+#include "systems/renderSystem.h"
 
 DECL_OBJ_MANAGER("render", TCompRender);
 
@@ -19,6 +20,17 @@ bool TCompRender::TDrawCall::load(const json& j)
     meshGroup = j.value("meshGroup", 0);
     active = j.value("enabled", active);
     return true;
+}
+
+void TCompRender::onEntityCreated()
+{
+    CHandle h(this);
+    for(auto& dc : drawCalls)
+    {
+        if(!dc.active)
+            continue;
+        CRenderManager::Get()->addKey(h, dc.mesh, dc.material);
+    }
 }
 
 void TCompRender::load(const json& j, TEntityParseContext& ctx)

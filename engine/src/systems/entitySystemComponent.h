@@ -1,14 +1,8 @@
 #pragma once
 
-#include "defines.h"
-
 #include "core/assert.h"
 #include "core/logger.h"
 #include "resources/resourcesTypes.h"
-
-#include <external/glm/glm.hpp>
-#include <external/glm/gtc/quaternion.hpp>
-#include <external/glm/gtx/matrix_decompose.hpp>
 
 #include <queue>
 #include <unordered_map>

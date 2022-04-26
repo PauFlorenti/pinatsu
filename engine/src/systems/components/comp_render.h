@@ -8,8 +8,8 @@ struct TCompRender : public TCompBase
 {
     struct TDrawCall
     {
-        const Mesh* mesh;
-        const Material* material;
+        Mesh* mesh;
+        Material* material;
         u32 meshGroup;
         bool active;
 
@@ -20,7 +20,7 @@ struct TCompRender : public TCompBase
 
     void debugInMenu() {};
     void renderDebug() {};
-    void onEntityCreated() {};
+    void onEntityCreated();
     void load(const json& j, TEntityParseContext& ctx);
     
     std::vector<TDrawCall> drawCalls;

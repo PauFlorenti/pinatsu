@@ -3,6 +3,7 @@
 #include "rendererBackend.h"
 
 #include "systems/entitySystemComponent.h"
+#include "systems/renderSystem.h"
 #include "systems/meshSystem.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_parent.h"
@@ -104,6 +105,12 @@ bool renderDeferredFrame(const RenderPacket& packet)
         {
             drawEntity(RENDER_PASS_GEOMETRY, entity.first);
         }
+
+        for(auto& key : CRenderManager::Get()->keys){
+            glm::mat4 model = glm::mat4(1);
+            RenderMeshData renderData = {model, key.mesh, key.material};
+            pState->renderBackend.drawGeometry(RENDER_PASS_GEOMETRY, &renderData);
+        }
     
         pState->renderBackend.endRenderPass(RENDER_PASS_GEOMETRY);
         pState->renderBackend.submitCommands(RENDER_PASS_GEOMETRY);
@@ -183,6 +190,10 @@ static void drawEntity(DefaultRenderPasses renderPassType, const Entity& entity)
             RenderMeshData renderData = {model, r.mesh, r.material};
             pState->renderBackend.drawGeometry(renderPassType, &renderData);
         }
+    }
+    else
+    {
+
     }
 }
 
