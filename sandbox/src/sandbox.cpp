@@ -62,7 +62,6 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(camera, cameraComp);
     entitySystem->addComponent(camera, TCompName("Camera"));
     
-/*
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
     Entity helmet = entitySystem->createEntity();
@@ -124,14 +123,14 @@ bool gameInitialize(Game* pGameInst)
     helmetRenderComp.active     = true;
     helmetRenderComp.material   = helmetNode->material;
     helmetRenderComp.mesh       = helmetNode->mesh;
-    //entitySystem->addComponent(helmet, helmetRenderComp);
+    entitySystem->addComponent(helmet, helmetRenderComp);
 
     RenderComponent avocadoRenderComp{};
     avocadoRenderComp.active    = true;
     avocadoRenderComp.material  = avocadoNode->material;
     avocadoRenderComp.mesh      = avocadoNode->mesh;
-    //entitySystem->addComponent(avocado, avocadoRenderComp);
-*/
+    entitySystem->addComponent(avocado, avocadoRenderComp);
+
     Entity light    = entitySystem->createEntity();
     Entity light1   = entitySystem->createEntity();
     Entity light2   = entitySystem->createEntity();

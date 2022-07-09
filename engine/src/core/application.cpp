@@ -150,7 +150,7 @@ bool applicationInit(Game* pGameInst)
     pState->entitySystem->init();
 
     pState->entities = new CModuleEntities("entities");
-    pState->entities->start();
+    pState->entities->start(); // This should be doStart and handled by a manager
 
     //! Boot the Game or scene after all moduels have been initialized
     // TODO make a module manager if we're gonna use modules ...
@@ -167,6 +167,7 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
     */
+   
     // Init game
     if(!pState->pGameInst->init(pState->pGameInst))
     {

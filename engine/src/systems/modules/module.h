@@ -39,7 +39,7 @@ private:
         active = false;
     }
 
-    friend class CHandleManager;
+    //friend class CHandleManager;
 
     std::string name;
     bool active = false;
