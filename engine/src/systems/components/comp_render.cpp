@@ -14,23 +14,17 @@ bool TCompRender::TDrawCall::load(const json& j)
     Resource gltf;
     std::string name = j["mesh"];
     resourceSystemLoad(name.c_str(), RESOURCE_TYPE_GLTF, &gltf);
-    Node* n = (Node*)gltf.data;
-    mesh = n->mesh;
-    material = n->material;
-    meshGroup = j.value("meshGroup", 0);
-    active = j.value("enabled", active);
+    Node* n     = (Node*)gltf.data;
+    mesh        = n->mesh;
+    material    = n->material;
+    meshGroup   = j.value("meshGroup", 0);
+    active      = j.value("enabled", active);
     return true;
 }
 
 void TCompRender::onEntityCreated()
 {
-    CHandle h(this);
-    for(auto& dc : drawCalls)
-    {
-        if(!dc.active)
-            continue;
-        CRenderManager::Get()->addKey(h, dc.mesh, dc.material);
-    }
+    updateRenderManager();
 }
 
 void TCompRender::load(const json& j, TEntityParseContext& ctx)
@@ -46,4 +40,29 @@ void TCompRender::load(const json& j, TEntityParseContext& ctx)
             }
         }
     }
+}
+
+void TCompRender::updateRenderManager()
+{
+    cleanFromRenderManager();
+
+    CHandle handle(this);
+    for(auto& dc : drawCalls)
+    {
+        if(dc.active == false)
+            continue;
+        
+        CRenderManager::Get()->addKey(
+            handle,
+            dc.mesh,
+            dc.material
+        );
+    }
+}
+
+void TCompRender::cleanFromRenderManager()
+{
+    CHandle handle(this);
+    // TODO: RenderManager should clean all DrawCalls from a given component.
+    //CRenderManager::Get()
 }

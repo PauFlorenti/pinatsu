@@ -7,6 +7,7 @@
 #include "systems/meshSystem.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_parent.h"
+#include "systems/components/comp_render.h"
 
 typedef struct RenderFrontendState
 {
@@ -96,15 +97,28 @@ bool renderDeferredFrame(const RenderPacket& packet)
         pState->renderBackend.beginCommandBuffer(RENDER_PASS_GEOMETRY);
         pState->renderBackend.beginRenderPass(RENDER_PASS_GEOMETRY);
 
+        // TODO Update globals ... DeltaTime, ScreenWidth, ScreenHeight, ...
+
         pState->renderBackend.updateDeferredGlobalState(pState->projection, (f32)packet.deltaTime);
 
-        EntitySystem* entitySystem  = EntitySystem::Get();
+        // TODO Get active camera and update its data ...
+
+        /** TODO Deferred renderer ... 
+        * - Draw into GBuffers
+        * - Draw Decals
+        * - Draw AO
+        * ...
+        */
+
+        /* EntitySystem* entitySystem  = EntitySystem::Get();
         auto& entities              = entitySystem->getAvailableEntities();
         
         for(auto& entity : entities)
         {
             drawEntity(RENDER_PASS_GEOMETRY, entity.first);
-        }
+        } */
+
+        
 
         for(auto& key : CRenderManager::Get()->keys){
             glm::mat4 model = glm::mat4(1);
@@ -114,6 +128,16 @@ bool renderDeferredFrame(const RenderPacket& packet)
     
         pState->renderBackend.endRenderPass(RENDER_PASS_GEOMETRY);
         pState->renderBackend.submitCommands(RENDER_PASS_GEOMETRY);
+
+        /**
+         * TODO
+         * Draw light information
+         *  - Draw ambient pass
+         *  - Draw point lights
+         *  - Draw spot lights
+         *  - Draw emissives
+         *  - Draw Skybox
+         */
 
         // Begin command call
         pState->renderBackend.beginCommandBuffer(RENDER_PASS_DEFERRED);
@@ -167,7 +191,8 @@ void setView(const glm::mat4 view, const glm::mat4 proj)
 static void drawEntity(DefaultRenderPasses renderPassType, const Entity& entity)
 {
     EntitySystem* entitySystem = EntitySystem::Get();
-    if(entitySystem->hasComponent<RenderComponent>(entity))
+    //if(entitySystem->hasComponent<RenderComponent>(entity))
+    if(entitySystem->hasComponent<TCompRender>(entity))
     {
         if(entitySystem->hasComponent<TCompParent>(entity) /*&& entitySystem->getComponent<TCompParent>(entity).parent == 0*/)
         {

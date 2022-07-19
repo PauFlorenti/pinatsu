@@ -41,7 +41,6 @@ bool gameInitialize(Game* pGameInst)
 
     ApplicationState* appState = (ApplicationState*)pGameInst->appState;
     EntitySystem* entitySystem = (EntitySystem*)appState->entitySystem;
-    
     entitySystem->registerComponent<TCompName>();
     entitySystem->registerComponent<TCompTransform>();
     entitySystem->registerComponent<RenderComponent>();
@@ -62,6 +61,7 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(camera, cameraComp);
     entitySystem->addComponent(camera, TCompName("Camera"));
     
+    /* 
     Entity player = entitySystem->createEntity();
     Entity floor = entitySystem->createEntity();
     Entity helmet = entitySystem->createEntity();
@@ -169,7 +169,8 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(light1, TCompName("Light_01"));
     entitySystem->addComponent(light2, lightComp2);
     entitySystem->addComponent(light2, tLight2);
-    entitySystem->addComponent(light2, TCompName("Light_02"));
+    entitySystem->addComponent(light2, TCompName("Light_02")); 
+    */
     return true;
 }
 

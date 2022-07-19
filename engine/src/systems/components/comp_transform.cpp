@@ -4,7 +4,7 @@
 #include "systems/entitySystemComponent.h"
 #include "core/application.h"
 
-DECL_OBJ_MANAGER("transform", TCompTransform);
+ DECL_OBJ_MANAGER("transform", TCompTransform);
 
 void 
 TCompTransform::debugInMenu()
