@@ -9,6 +9,7 @@
     "transform": 90
   },
   "update": [
+    "transform"
   ],
   "render_debug": [
   ],

@@ -30,6 +30,15 @@ bool appOnKey(u16 code, void* sender, void* listener, eventContext data);
 bool appOnButton(u16 code, void* sender, void* listener, eventContext data);
 bool appOnMouseMove(u16 code, void* sender, void* listener, eventContext data);
 
+ApplicationState* appGet()
+{
+    if(pState)
+        return pState;
+    
+    PFATAL("No application instance found.")
+    return nullptr;
+}
+
 /**
  * Initialize all systems needed for the app to run.
  */
@@ -145,18 +154,26 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
+
     // Init Entity Component System
     pState->entitySystem = new EntitySystem();
     pState->entitySystem->init();
 
+
     pState->entities = new CModuleEntities("entities");
-    pState->entities->start(); // This should be doStart and handled by a manager
+    //pState->entities->start(); // This should be doStart and handled by a manager
 
     //! Boot the Game or scene after all moduels have been initialized
     // TODO make a module manager if we're gonna use modules ...
     pState->boot = new CModuleBoot("boot");
-    pState->boot->start();
+    //pState->boot->start();
 
+    pState->moduleManager = new CModuleManager();
+
+    pState->moduleManager->registerServiceModule(pState->entities);
+    pState->moduleManager->registerServiceModule(pState->boot);
+
+    pState->moduleManager->boot();
     // Simple 2D physics system
     /*
     physicsSystemInit(&pState->physicsSystemMemoryRequirements, nullptr);
@@ -210,13 +227,15 @@ bool applicationRun()
                 pState->m_isRunning = false;
             }
 
-            pState->entities->update((f32)deltaTime);
+            pState->moduleManager->update((f32)deltaTime);
             
             if(!pState->pGameInst->render(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to render.");
                 pState->m_isRunning = false;
             }
+
+            pState->moduleManager->render();
 
             inputSystemUpdate((f32)deltaTime);
             pState->lastTime = currentTime;

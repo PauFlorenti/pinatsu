@@ -9,6 +9,7 @@ struct TCompTransform : public TCompBase
 
     void debugInMenu();
     void renderDebug();
+    void load(const json& j, TEntityParseContext& ctx);
 
     glm::mat4 asMatrix() 
     {

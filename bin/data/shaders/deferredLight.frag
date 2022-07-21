@@ -44,7 +44,7 @@ void main()
     vec3 N          = normalize(texture(gbuf[1], inUV).xyz * 2.0 - vec3(1));
 
     vec3 cameraPosition = camera.position;
-    float ambient_factor = 0.0;
+    float ambient_factor = 0.1;
 
     vec3 V = normalize(cameraPosition - position);
     float NdotV = max(dot(N, V), 0.0);
@@ -57,7 +57,7 @@ void main()
     vec4 light = vec4(0.0);
     for(int i = 0; i < MAX_LIGHTS; i++)
     {
-        if(!lights.l[i].enabled || lights.l[i].intensity < 0.0)
+        if(!lights.l[i].enabled || lights.l[i].intensity < 0.1)
             continue;
 
         vec3 lightPos   = lights.l[i].position;
@@ -92,9 +92,9 @@ void main()
 
         vec3 kS = F;
 
-        light.xyz += (kD * pow(albedo, vec3(2.2)) / PI + specular) * radiance * NdotL;
+        light.xyz += (kD * pow(albedo, vec3(2.2)) / PI + specular) * radiance * NdotL * lightIntensity;
     }
 
-    light += vec4(ambient_factor);
+    //light += vec4(ambient_factor);
     fragColor = light;
 }

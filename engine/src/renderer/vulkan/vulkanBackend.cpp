@@ -119,7 +119,7 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
 
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-    u32 lightCount = 0;
+/*     u32 lightCount = 0;
     for(auto& it = entities.begin(); it != entities.end(); it++)
     {
         if(entitySystem->hasComponent<TCompLightPoint>(it->first))
@@ -140,7 +140,28 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
                 &state.forwardShader.lightData);
             ++lightCount;
         }
-    }
+    } */
+
+    u32 lightCount = 0;
+    getObjectManager<TCompLightPoint>()->forEach([&](TCompLightPoint* l){
+        if(l->enabled == false)
+            return;
+
+        state.forwardShader.lightData.color     = l->color;
+        state.forwardShader.lightData.intensity = l->intensity;
+        state.forwardShader.lightData.position  = l->getPosition();
+        state.forwardShader.lightData.radius    = l->radius;
+        state.forwardShader.lightData.enabled   = l->enabled;
+        vulkanBufferLoadData(
+            state.device,
+            state.forwardShader.lightUbo,
+            sizeof(VulkanLightData) * lightCount,
+            sizeof(VulkanLightData),
+            0,
+            &state.forwardShader.lightData);
+        ++lightCount;
+    });
+
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 
@@ -169,27 +190,49 @@ vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
 
     vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.deferredShader.globalUboData);
     
-    u32 lightCount = 0;
-    for(auto& it = entities.begin(); it != entities.end(); it++)
+    //u32 lightCount = 0;
+    //for(auto& it = entities.begin(); it != entities.end(); it++)
+    //{
+    //    if(entitySystem->hasComponent<TCompLightPoint>(it->first))
+    //    {
+    //        TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
+    //        TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
+    //        state.deferredShader.lightData.color     = comp.color;
+    //        state.deferredShader.lightData.intensity = comp.intensity;
+    //        state.deferredShader.lightData.position  = t.position;
+    //        state.deferredShader.lightData.radius    = comp.radius;
+    //        state.deferredShader.lightData.enabled   = comp.enabled;
+    //        vulkanBufferLoadData(
+    //            state.device,
+    //            state.deferredShader.lightUbo,
+    //            sizeof(VulkanLightData) * lightCount,
+    //            sizeof(VulkanLightData),
+    //            0,
+    //            &state.deferredShader.lightData);
+    //        ++lightCount;
+    //    }
+    //}
+
+    TCompLightPoint* lightsAddress = getObjectManager<TCompLightPoint>()->getAddress();
+    for(u32 i = 0; i < getObjectManager<TCompLightPoint>()->size(); ++i)
     {
-        if(entitySystem->hasComponent<TCompLightPoint>(it->first))
-        {
-            TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
-            TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
-            state.deferredShader.lightData.color     = comp.color;
-            state.deferredShader.lightData.intensity = comp.intensity;
-            state.deferredShader.lightData.position  = t.position;
-            state.deferredShader.lightData.radius    = comp.radius;
-            state.deferredShader.lightData.enabled   = comp.enabled;
-            vulkanBufferLoadData(
-                state.device,
-                state.deferredShader.lightUbo,
-                sizeof(VulkanLightData) * lightCount,
-                sizeof(VulkanLightData),
-                0,
-                &state.deferredShader.lightData);
-            ++lightCount;
-        }
+        TCompLightPoint* l = &lightsAddress[i];
+
+        if (l->enabled == false)
+            return;
+
+        state.deferredShader.lightData.color = l->color;
+        state.deferredShader.lightData.intensity = l->intensity;
+        state.deferredShader.lightData.position = l->getPosition();
+        state.deferredShader.lightData.radius = l->radius;
+        state.deferredShader.lightData.enabled = l->enabled;
+        vulkanBufferLoadData(
+            state.device,
+            state.deferredShader.lightUbo,
+            sizeof(VulkanLightData) * i,
+            sizeof(VulkanLightData),
+            0,
+            &state.deferredShader.lightData);
     }
 
     vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);

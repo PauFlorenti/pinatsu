@@ -1,6 +1,18 @@
 #include "module_entities.h"
 #include "systems/entity/entity.h"
 
+void CModuleEntities::loadManagers(const json& j, std::vector<CHandleManager*>& managers)
+{
+    managers.clear();
+    std::vector<std::string> names = j;
+    for(auto& n : names)
+    {
+        auto om = CHandleManager::getByName(n.c_str());
+        PASSERT_MSG(om, "Can't find a manager of type (SHOULD ADD PARAMETERS TO PASSERT_MSG) to update. Check file components.json.")
+        managers.push_back(om);
+    }
+}
+
 bool CModuleEntities::start()
 {
     json j = loadJson("data/components/components.json");
@@ -30,12 +42,14 @@ bool CModuleEntities::start()
         om->init(size);
     }
 
+    loadManagers(j["update"], toUpdate);
+    //TODO to render debug? loadManagers(j["render"], )
+
     return true;
 }
 
 void CModuleEntities::stop()
 {
-    
     CHandleManager::destroyAllPendingObjects();
 }
 
@@ -52,6 +66,11 @@ void CModuleEntities::update(f32 dt)
 
 void CModuleEntities::renderInMenu() {
     // TODO imgui rendering here ...
+    for(auto om : toUpdate)
+    {
+        if(om)
+            om->debugInMenuAll();
+    }
 }
 
 void CModuleEntities::renderDebug() {

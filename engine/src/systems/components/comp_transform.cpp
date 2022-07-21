@@ -6,6 +6,14 @@
 
  DECL_OBJ_MANAGER("transform", TCompTransform);
 
+void
+TCompTransform::load(const json& j, TEntityParseContext& ctx)
+{
+    if(j.count("pos")){
+        position = loadVec3(j, "pos");
+    }
+}
+
 void 
 TCompTransform::debugInMenu()
 {

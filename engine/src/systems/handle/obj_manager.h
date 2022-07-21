@@ -112,7 +112,7 @@ public:
     void forEach(TFn fn) {
         PASSERT(objs)
         for(u32 i = 0; i < nObjectsUsed; ++i) {
-            fn(bojs + i);
+            fn(objs + i);
         }
     }
 
@@ -124,10 +124,22 @@ public:
         }
     }
 
+    TObj* getAddress() {return objs;}
+
     void debugInMenuAll() {
         PASSERT(objs)
 
-        //char buf[80];
+        char buf[80];
+        sprintf_s(buf, "%s [%d/%d (%dKb)]###OM%d", getName(), (int)size(), (int)capacity(), (int)(allocatedMemory.size() >> 10), getType());
+        if (ImGui::TreeNode(buf)) {
+        for (uint32_t i = 0; i < nObjectsUsed; ++i) {
+            ImGui::PushID(i);
+            objs[i].debugInMenu();
+            ImGui::PopID();
+            ImGui::Separator();
+        }
+        ImGui::TreePop();
+        }
         // Report usage information about the object type ...
     }
 

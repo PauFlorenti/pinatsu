@@ -130,7 +130,7 @@ bool gameInitialize(Game* pGameInst)
     avocadoRenderComp.material  = avocadoNode->material;
     avocadoRenderComp.mesh      = avocadoNode->mesh;
     entitySystem->addComponent(avocado, avocadoRenderComp);
-
+    
     Entity light    = entitySystem->createEntity();
     Entity light1   = entitySystem->createEntity();
     Entity light2   = entitySystem->createEntity();
@@ -170,6 +170,7 @@ bool gameInitialize(Game* pGameInst)
     entitySystem->addComponent(light2, lightComp2);
     entitySystem->addComponent(light2, tLight2);
     entitySystem->addComponent(light2, TCompName("Light_02")); 
+    
     */
     return true;
 }

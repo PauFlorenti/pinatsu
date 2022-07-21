@@ -10,6 +10,11 @@
 #include "systems/components/comp_name.h"
 #include "systems/components/comp_light_point.h"
 #include "systems/components/comp_parent.h"
+#include "systems/modules/module_manager.h"
+
+// TODO Should be done through a module manager
+#include "core/application.h"
+#include "systems/modules/module_entities.h"
 
 #include "memory/pmemory.h"
 
@@ -87,26 +92,12 @@ imguiRender(
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    EntitySystem* entitySystem = EntitySystem::Get();
-    auto& entities = entitySystem->getAvailableEntities();
-
-    std::vector<ComponentType> registeredComponentTypes = entitySystem->getAllComponentTypes();
-
-    if(ImGui::TreeNode("Entities ..."))
+    ApplicationState* app = appGet();
+    if(app)
     {
-        for(auto& it = entities.begin(); it != entities.end(); it++)
-        {
-            const char* name = entitySystem->getComponent<TCompName>(it->first).getName();
-            ImGui::PushID(it->first);
-            if(ImGui::TreeNode(name))
-            {
-                drawComponents(it->first);
-                ImGui::TreePop();
-            }
-            ImGui::PopID();
-        }
-        ImGui::TreePop();
+        app->moduleManager->renderInMenu();
     }
+
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 }

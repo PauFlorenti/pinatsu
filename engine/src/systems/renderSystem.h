@@ -27,7 +27,14 @@ public:
 
     /** All active DrawCalls.*/ 
     std::vector<TKey> keys;
+protected:
+    bool keysAreDirty = false;
 
+    /** Function to update DrawCalls each frame before rendering.
+     * Updates transforms and should filter given some parameters such as transparency.*/
+    void sortKeys();
+
+public:
     /** Add a DrawCall if active to render it.*/
     void addKey(
         CHandle owner,
@@ -38,8 +45,8 @@ public:
     /** Delete all DrawCalls from specific handler/component. */
     void deleteKeysFromOwner(CHandle hOwner);
 
-    // TODO Sort keys function
-
     /** Render all submitted draw calls. */
     void render();
+
+    void setDirty() { keysAreDirty = true; }
 };

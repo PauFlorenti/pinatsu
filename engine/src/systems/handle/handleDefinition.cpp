@@ -53,6 +53,6 @@ void CHandle::setOwner(CHandle newOwner) {
 CHandle CHandle::getOwner() {
     auto hm = CHandleManager::getByType(type);
     if(hm)
-        hm->getOwner(*this);
+        return hm->getOwner(*this);
     return CHandle();
 }

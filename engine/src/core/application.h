@@ -3,6 +3,7 @@
 #include "defines.h"
 #include "memory/linearAllocator.h"
 #include "clock.h"
+#include "systems/modules/module_manager.h"
 
 struct Game;
 class EntitySystem;
@@ -65,7 +66,12 @@ typedef struct ApplicationState
     EntitySystem* entitySystem;
     CModuleEntities* entities;
     CModuleBoot* boot;
+
+    CModuleManager* moduleManager;
+
 } ApplicationState;
+
+ApplicationState* appGet();
 
 bool applicationInit(Game* pGameInst);
 bool applicationRun();

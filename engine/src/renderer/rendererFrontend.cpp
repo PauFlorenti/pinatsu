@@ -118,11 +118,13 @@ bool renderDeferredFrame(const RenderPacket& packet)
             drawEntity(RENDER_PASS_GEOMETRY, entity.first);
         } */
 
-        
+        CRenderManager::Get()->render();        
 
         for(auto& key : CRenderManager::Get()->keys){
             glm::mat4 model = glm::mat4(1);
-            RenderMeshData renderData = {model, key.mesh, key.material};
+            TCompTransform* cTransform = key.hTransform;
+            PASSERT(cTransform)
+            RenderMeshData renderData = {cTransform->asMatrix(), key.mesh, key.material};
             pState->renderBackend.drawGeometry(RENDER_PASS_GEOMETRY, &renderData);
         }
     

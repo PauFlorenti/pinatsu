@@ -43,6 +43,27 @@ void CEntity::renderDebug() {
 
 void CEntity::debugInMenu() {
     // TODO ImGui shit
+    ImGui::PushID(this);
+    if(ImGui::TreeNode(getName()))
+    {
+        for(int i = 0; i < CHandle::maxTypes; ++i)
+        {
+            CHandle h = comps[i];
+            if(h.isValid())
+            {
+                if(ImGui::TreeNode(h.getTypeName()))
+                {
+                    h.debugInMenu();
+                    ImGui::TreePop();
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    // TODO if hovered, render menu
+
+    ImGui::PopID();
 }
 
 void CEntity::load(const json& j, TEntityParseContext& ctx)
