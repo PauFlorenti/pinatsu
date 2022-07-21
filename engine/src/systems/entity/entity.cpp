@@ -1,6 +1,6 @@
 #include "systems/entity/entity.h"
+#include "systems/components/comp_name.h"
 
-// have we done any changes ... ?
 DECL_OBJ_MANAGER("entity", CEntity);
 
 CEntity::~CEntity() {
@@ -23,7 +23,10 @@ void CEntity::set(CHandle newComp) {
 }
 
 const char* CEntity::getName() const {
-    return "<Unnamed>"; // TODO use TCompName when available
+    TCompName* n = get<TCompName>();
+    if(n)
+        return n->getName();
+    return "<Unnamed>";
 }
 
 void CEntity::onEntityCreated() {
@@ -41,8 +44,8 @@ void CEntity::renderDebug() {
     }
 }
 
-void CEntity::debugInMenu() {
-    // TODO ImGui shit
+void CEntity::debugInMenu() 
+{
     ImGui::PushID(this);
     if(ImGui::TreeNode(getName()))
     {

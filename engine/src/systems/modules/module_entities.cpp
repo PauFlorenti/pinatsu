@@ -43,7 +43,7 @@ bool CModuleEntities::start()
     }
 
     loadManagers(j["update"], toUpdate);
-    //TODO to render debug? loadManagers(j["render"], )
+    loadManagers(j["render_debug"], toRenderDebug);
 
     return true;
 }
@@ -65,11 +65,19 @@ void CModuleEntities::update(f32 dt)
 }
 
 void CModuleEntities::renderInMenu() {
-    // TODO imgui rendering here ...
-    for(auto om : toUpdate)
+    if(ImGui::TreeNode("Entities ..."))
     {
-        if(om)
-            om->debugInMenuAll();
+        auto om = getObjectManager<CEntity>();
+        om->forEach([](CEntity* e){
+            CHandle h(e);
+            if(h.getOwner().isValid())
+                return;
+            ImGui::PushID(e);
+            e->debugInMenu();
+            ImGui::PopID();
+            
+        });
+        ImGui::TreePop();
     }
 }
 

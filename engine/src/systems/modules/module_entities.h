@@ -4,6 +4,7 @@
 class CModuleEntities : public IModule
 {
     std::vector<CHandleManager*> toUpdate;
+    std::vector<CHandleManager*> toRenderDebug;
 
     void loadManagers(const json& j, std::vector<CHandleManager*>& managers);
     void renderDebugOfComponents();

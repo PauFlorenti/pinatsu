@@ -1,5 +1,6 @@
 #pragma once
 #include "systems/components/comp_base.h"
+#include "systems/handle/handle.h"
 
 class CEntity : public TCompBase
 {

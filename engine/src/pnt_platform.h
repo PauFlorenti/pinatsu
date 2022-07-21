@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <unordered_map>
 
 // Externals files
 #include "external/glm/glm.hpp"

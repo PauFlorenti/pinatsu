@@ -12,9 +12,9 @@
     "transform"
   ],
   "render_debug": [
+    "transform",
+    "name"
   ],
   "others_update": [
-    "transform",
-    "light_point"
   ]
 }
