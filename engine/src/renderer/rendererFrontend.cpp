@@ -103,15 +103,6 @@ bool renderDeferredFrame(const RenderPacket& packet)
         * - Draw AO
         * ...
         */
-
-        /* EntitySystem* entitySystem  = EntitySystem::Get();
-        auto& entities              = entitySystem->getAvailableEntities();
-        
-        for(auto& entity : entities)
-        {
-            drawEntity(RENDER_PASS_GEOMETRY, entity.first);
-        } */
-
         CRenderManager::Get()->render();        
 
         for(auto& key : CRenderManager::Get()->keys){

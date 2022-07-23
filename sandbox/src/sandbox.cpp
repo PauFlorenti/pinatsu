@@ -1,9 +1,7 @@
 #include "sandbox.h"
 
 #include "core/input.h"
-#include "core/logger.h"
 #include "core/application.h"
-#include "memory/pmemory.h"
 
 // TODO If application.h is included, does system need to be included too?
 #include "systems/resourceSystem.h"
@@ -11,7 +9,6 @@
 #include "systems/materialSystem.h"
 #include "systems/textureSystem.h"
 #include "systems/physicsSystem.h"
-//#include "systems/entitySystemComponent.h"
 #include "systems/components/comp_camera.h"
 #include "systems/components/comp_transform.h"
 
@@ -26,8 +23,6 @@ static f32 rot;
 
 static RenderMeshData gameMeshes[MAX_ENTITIES_ALLOWED];
 static LightData gameLight[MAX_ENTITIES_ALLOWED];
-
-//static Entity camera;
 
 #ifdef DEBUG
 static bool deferred = true;
