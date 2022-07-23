@@ -107,12 +107,19 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
             // Rotate
             glm::vec2 deltaMouse(oldX - x, oldY - y);
             yaw -= deltaMouse.x * 10.0f * deltaTime;
-            pitch += deltaMouse.y * 10.0f * deltaTime;            
+            pitch += deltaMouse.y * 10.0f * deltaTime;
 
             // TODO set mouse position to center
             //setMousePosition(appState->m_width / 2, appState->m_height / 2);
         }
     }
+
+    f32 max_pitch = glm::radians(89.95f);
+    if (pitch > max_pitch)
+      pitch = max_pitch;
+    else if (pitch < -max_pitch)
+      pitch = -max_pitch;
+
 #endif
     front = yawPitchToVector(yaw, pitch);
     front = glm::normalize(front);

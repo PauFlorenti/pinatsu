@@ -5,7 +5,6 @@
 #include <external/imgui/imgui_impl_win32.h>
 #include <external/imgui/imgui_impl_vulkan.h>
 
-#include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_name.h"
 #include "systems/components/comp_light_point.h"
@@ -27,9 +26,6 @@ struct imguiState
 };
 
 static imguiState* imgui = nullptr;
-
-static void
-drawComponents(const Entity& ent);
 
 void
 imguiInit(
@@ -109,26 +105,4 @@ imguiDestroy()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
-}
-
-static void
-drawComponents(const Entity& ent)
-{
-    EntitySystem* entitySystem = EntitySystem::Get();
-    entitySystem->getComponent<TCompName>(ent).debugInMenu();
-    entitySystem->getComponent<TCompTransform>(ent).debugInMenu();
-
-    // The rest of components should be checked before writing in debug.
-    if(entitySystem->hasComponent<TCompLightPoint>(ent))
-    {
-        entitySystem->getComponent<TCompLightPoint>(ent).debugInMenu();
-    }
-
-    if(entitySystem->hasComponent<TCompParent>(ent))
-    {
-        auto component = entitySystem->getComponent<TCompParent>(ent);
-        if(component.parent == 0){
-            component.debugInMenu();
-        }
-    }
 }

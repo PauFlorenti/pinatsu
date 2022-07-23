@@ -1,14 +1,10 @@
 #include "comp_parent.h"
-#include "systems/entitySystemComponent.h"
 
 DECL_OBJ_MANAGER("parent", TCompParent)
 
-//#include "comp_render.h"
-//DECL_OBJ_MANAGER("render", TCompRender);
-
 void TCompParent::addChild(const Entity& parent, const Entity& ent){
 
-    // Make sure child has no other parent, only one is valid.
+/*     // Make sure child has no other parent, only one is valid.
     if(EntitySystem::Get()->hasComponent<TCompParent>(ent)){
         TCompParent* childParentComponent = &EntitySystem::Get()->getComponent<TCompParent>(ent);
         if(childParentComponent->parent != 0){
@@ -23,12 +19,12 @@ void TCompParent::addChild(const Entity& parent, const Entity& ent){
     TCompParent parentComponent{};
     parentComponent.parent = parent;
     EntitySystem::Get()->addComponent<TCompParent>(ent, parentComponent);
-    children.push_back(ent);
+    children.push_back(ent); */
 }
 
 void TCompParent::delChild(const Entity ent){
 
-    i32 idx = 0;
+/*     i32 idx = 0;
     for(auto child : children){
         if(child == ent){
             children.erase(children.begin() + idx);
@@ -36,7 +32,7 @@ void TCompParent::delChild(const Entity ent){
         idx++;
     }
     TCompParent* parentComponent = &EntitySystem::Get()->getComponent<TCompParent>(ent);
-    parentComponent->parent = 0;
+    parentComponent->parent = 0; */
 }
 
 void TCompParent::debugInMenu(){

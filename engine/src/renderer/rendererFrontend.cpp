@@ -2,11 +2,9 @@
 
 #include "rendererBackend.h"
 
-#include "systems/entitySystemComponent.h"
 #include "systems/renderSystem.h"
 #include "systems/meshSystem.h"
 #include "systems/components/comp_transform.h"
-#include "systems/components/comp_parent.h"
 #include "systems/components/comp_render.h"
 
 typedef struct RenderFrontendState
@@ -20,9 +18,6 @@ typedef struct RenderFrontendState
 } RenderFrontendState;
 
 static RenderFrontendState* pState;
-
-static void drawEntity(DefaultRenderPasses renderPassType, const Entity& ent);
-static glm::mat4 getGlobalMatrix(const Entity& ent);
 
 bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, void* winHandle)
 {
@@ -70,12 +65,11 @@ bool renderDrawFrame(const RenderPacket& packet)
         // Update light descriptor
         pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
 
-        EntitySystem* entitySystem = EntitySystem::Get();
-        auto& entities = entitySystem->getAvailableEntities();
-
-        for(auto& entity : entities)
-        {
-            drawEntity(RENDER_PASS_FORWARD, entity.first);
+        for(auto& key : CRenderManager::Get()->keys){
+            TCompTransform* cTransform = key.hTransform;
+            PASSERT(cTransform)
+            RenderMeshData renderData = {cTransform->asMatrix(), key.mesh, key.material};
+            pState->renderBackend.drawGeometry(RENDER_PASS_FORWARD, &renderData);
         }
 
         pState->renderBackend.drawGui(packet);
@@ -181,48 +175,4 @@ void renderDestroyTexture(Texture* t)
 bool renderCreateMaterial(Material* m)
 {
     return pState->renderBackend.onCreateMaterial(m);
-}
-
-static void drawEntity(DefaultRenderPasses renderPassType, const Entity& entity)
-{
-    EntitySystem* entitySystem = EntitySystem::Get();
-    //if(entitySystem->hasComponent<RenderComponent>(entity))
-    if(entitySystem->hasComponent<TCompRender>(entity))
-    {
-        if(entitySystem->hasComponent<TCompParent>(entity) /*&& entitySystem->getComponent<TCompParent>(entity).parent == 0*/)
-        {
-            TCompTransform t = entitySystem->getComponent<TCompTransform>(entity);
-            RenderComponent r = entitySystem->getComponent<RenderComponent>(entity);
-
-            glm::mat4 model = getGlobalMatrix(entity);
-            RenderMeshData renderData = {model, r.mesh, r.material};
-            pState->renderBackend.drawGeometry(renderPassType, &renderData);
-
-            for(auto child : entitySystem->getComponent<TCompParent>(entity).children){
-                drawEntity(renderPassType, child);
-            }
-        }
-        else {
-            TCompTransform t = entitySystem->getComponent<TCompTransform>(entity);
-            RenderComponent r = entitySystem->getComponent<RenderComponent>(entity);
-
-            glm::mat4 model = getGlobalMatrix(entity);
-            RenderMeshData renderData = {model, r.mesh, r.material};
-            pState->renderBackend.drawGeometry(renderPassType, &renderData);
-        }
-    }
-    else
-    {
-
-    }
-}
-
-glm::mat4 getGlobalMatrix(const Entity& entity){
-    EntitySystem* entitySystem = EntitySystem::Get();
-    TCompTransform t = entitySystem->getComponent<TCompTransform>(entity);
-    glm::mat4 matrix = glm::translate(glm::mat4(1), t.getPosition()) * glm::mat4_cast(t.getRotation()) * glm::scale(glm::mat4(1), t.getScale());
-    if(entitySystem->hasComponent<TCompParent>(entity) && entitySystem->getComponent<TCompParent>(entity).parent != 0){
-        return getGlobalMatrix(entitySystem->getComponent<TCompParent>(entity).parent) * matrix;
-    }
-    return matrix;
 }
