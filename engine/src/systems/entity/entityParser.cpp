@@ -1,7 +1,7 @@
 #include "entityParser.h"
 #include "systems/entity/entity.h"
 
-TEntityParseContext::TEntityParseContext(TEntityParseContext& another, const TCompTransform& deltaTransform)
+TEntityParseContext::TEntityParseContext(TEntityParseContext& another, const CTransform& deltaTransform)
 {
     parent = &another;
     recursionLevel = another.recursionLevel + 1;
@@ -9,7 +9,7 @@ TEntityParseContext::TEntityParseContext(TEntityParseContext& another, const TCo
     rootTransform = another.rootTransform.combinedWith(deltaTransform);
 }
 
-CHandle spawn(const std::string& filename, TCompTransform root)
+CHandle spawn(const std::string& filename, CTransform root)
 {
     TEntityParseContext ctx;
     ctx.rootTransform = root;

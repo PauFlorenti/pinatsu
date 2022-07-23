@@ -9,7 +9,7 @@
     "transform": 90
   },
   "update": [
-    "transform"
+    "camera"
   ],
   "render_debug": [
     "transform",

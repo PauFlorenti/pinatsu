@@ -17,9 +17,11 @@
 
 #include "core/application.h"
 
-#include "systems/entitySystemComponent.h"
+//#include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_light_point.h"
+#include "systems/components/comp_name.h"
+#include "systems/components/comp_camera.h"
 
 #include "memory/pmemory.h"
 
@@ -95,55 +97,23 @@ void vulkanRegenerateFramebuffers(
 bool recreateSwapchain();
 
 // TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projection, f32 dt)
+void vulkanForwardUpdateGlobalState(f32 dt)
 {
     gameTime += dt;
 
-    EntitySystem* entitySystem = EntitySystem::Get();
-    auto& entities = entitySystem->getAvailableEntities();
+    CEntity* hcamera = getEntityByName("camera");
+    TCompCamera* cCamera = hcamera->get<TCompCamera>();
 
-    CameraComponent camera;
-    for(auto& it = entities.begin(); it != entities.end(); it++)
-    {
-        if(it->second[entitySystem->getComponentType<CameraComponent>(it->first)]) {
-            camera = entitySystem->getComponent<CameraComponent>(it->first);
-            break;
-        }
-    }
-
-    glm::mat4 cameraView = camera.getView();
-
-    state.forwardShader.globalUboData.view        = cameraView;
-    state.forwardShader.globalUboData.projection  = projection;
-    state.forwardShader.globalUboData.position    = camera.position; 
+    state.forwardShader.globalUboData.view        = cCamera->getView();
+    state.forwardShader.globalUboData.projection  = cCamera->getProjection();
+    state.forwardShader.globalUboData.position    = cCamera->getEye();
 
     vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
 
-/*     u32 lightCount = 0;
-    for(auto& it = entities.begin(); it != entities.end(); it++)
+    TCompLightPoint* lightsAddress = getObjectManager<TCompLightPoint>()->getAddress();
+    for(u32 i = 0; i < getObjectManager<TCompLightPoint>()->size(); ++i)
     {
-        if(entitySystem->hasComponent<TCompLightPoint>(it->first))
-        {
-            TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
-            TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
-            state.forwardShader.lightData.color     = comp.color;
-            state.forwardShader.lightData.intensity = comp.intensity;
-            state.forwardShader.lightData.position  = t.position;
-            state.forwardShader.lightData.radius    = comp.radius;
-            state.forwardShader.lightData.enabled   = comp.enabled;
-            vulkanBufferLoadData(
-                state.device,
-                state.forwardShader.lightUbo,
-                sizeof(VulkanLightData) * lightCount,
-                sizeof(VulkanLightData),
-                0,
-                &state.forwardShader.lightData);
-            ++lightCount;
-        }
-    } */
-
-    u32 lightCount = 0;
-    getObjectManager<TCompLightPoint>()->forEach([&](TCompLightPoint* l){
+        TCompLightPoint* l = &lightsAddress[i];
         if(l->enabled == false)
             return;
 
@@ -155,63 +125,29 @@ void vulkanForwardUpdateGlobalState(const glm::mat4 view, const glm::mat4 projec
         vulkanBufferLoadData(
             state.device,
             state.forwardShader.lightUbo,
-            sizeof(VulkanLightData) * lightCount,
+            sizeof(VulkanLightData) * i,
             sizeof(VulkanLightData),
             0,
             &state.forwardShader.lightData);
-        ++lightCount;
-    });
+    }
 
     vulkanForwardShaderUpdateGlobalData(&state);
 }
 
 void
-vulkanDeferredUpdateGlobaState(const glm::mat4 projection, f32 dt)
+vulkanDeferredUpdateGlobaState(f32 dt)
 {
     gameTime += dt;
 
-    EntitySystem* entitySystem = EntitySystem::Get();
-    auto& entities = entitySystem->getAvailableEntities();
+    // TODO at the moment
+    CEntity* hcamera = getEntityByName("camera");
+    TCompCamera* cCamera = hcamera->get<TCompCamera>();
 
-    CameraComponent camera;
-    for(auto& it = entities.begin(); it != entities.end(); it++)
-    {
-        if(it->second[entitySystem->getComponentType<CameraComponent>(it->first)]) {
-            camera = entitySystem->getComponent<CameraComponent>(it->first);
-            break;
-        }
-    }
-
-    glm::mat4 cameraView = camera.getView();
-
-    state.deferredShader.globalUboData.view        = cameraView;
-    state.deferredShader.globalUboData.projection  = projection;
-    state.deferredShader.globalUboData.position    = camera.position;
+    state.deferredShader.globalUboData.view        = cCamera->getView();
+    state.deferredShader.globalUboData.projection  = cCamera->getProjection();
+    state.deferredShader.globalUboData.position    = cCamera->getEye();
 
     vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.deferredShader.globalUboData);
-    
-    //u32 lightCount = 0;
-    //for(auto& it = entities.begin(); it != entities.end(); it++)
-    //{
-    //    if(entitySystem->hasComponent<TCompLightPoint>(it->first))
-    //    {
-    //        TCompLightPoint comp = entitySystem->getComponent<TCompLightPoint>(it->first);
-    //        TCompTransform t = entitySystem->getComponent<TCompTransform>(it->first);
-    //        state.deferredShader.lightData.color     = comp.color;
-    //        state.deferredShader.lightData.intensity = comp.intensity;
-    //        state.deferredShader.lightData.position  = t.position;
-    //        state.deferredShader.lightData.radius    = comp.radius;
-    //        state.deferredShader.lightData.enabled   = comp.enabled;
-    //        vulkanBufferLoadData(
-    //            state.device,
-    //            state.deferredShader.lightUbo,
-    //            sizeof(VulkanLightData) * lightCount,
-    //            sizeof(VulkanLightData),
-    //            0,
-    //            &state.deferredShader.lightData);
-    //        ++lightCount;
-    //    }
-    //}
 
     TCompLightPoint* lightsAddress = getObjectManager<TCompLightPoint>()->getAddress();
     for(u32 i = 0; i < getObjectManager<TCompLightPoint>()->size(); ++i)

@@ -28,5 +28,5 @@ glm::vec3 TCompLightPoint::getPosition()
 {
     TCompTransform* t = get<TCompTransform>();
     PASSERT(t)
-    return t->position;
+    return t->getPosition();
 }

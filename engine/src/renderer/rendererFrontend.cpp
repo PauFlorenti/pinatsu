@@ -68,7 +68,7 @@ bool renderDrawFrame(const RenderPacket& packet)
         }
 
         // Update light descriptor
-        pState->renderBackend.updateGlobalState(pState->view, pState->projection, (f32)packet.deltaTime);
+        pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
 
         EntitySystem* entitySystem = EntitySystem::Get();
         auto& entities = entitySystem->getAvailableEntities();
@@ -99,7 +99,7 @@ bool renderDeferredFrame(const RenderPacket& packet)
 
         // TODO Update globals ... DeltaTime, ScreenWidth, ScreenHeight, ...
 
-        pState->renderBackend.updateDeferredGlobalState(pState->projection, (f32)packet.deltaTime);
+        pState->renderBackend.updateDeferredGlobalState((f32)packet.deltaTime);
 
         // TODO Get active camera and update its data ...
 
@@ -121,7 +121,6 @@ bool renderDeferredFrame(const RenderPacket& packet)
         CRenderManager::Get()->render();        
 
         for(auto& key : CRenderManager::Get()->keys){
-            glm::mat4 model = glm::mat4(1);
             TCompTransform* cTransform = key.hTransform;
             PASSERT(cTransform)
             RenderMeshData renderData = {cTransform->asMatrix(), key.mesh, key.material};
@@ -184,12 +183,6 @@ bool renderCreateMaterial(Material* m)
     return pState->renderBackend.onCreateMaterial(m);
 }
 
-void setView(const glm::mat4 view, const glm::mat4 proj)
-{
-    pState->view        = view;
-    pState->projection  = proj;
-}
-
 static void drawEntity(DefaultRenderPasses renderPassType, const Entity& entity)
 {
     EntitySystem* entitySystem = EntitySystem::Get();
@@ -227,7 +220,7 @@ static void drawEntity(DefaultRenderPasses renderPassType, const Entity& entity)
 glm::mat4 getGlobalMatrix(const Entity& entity){
     EntitySystem* entitySystem = EntitySystem::Get();
     TCompTransform t = entitySystem->getComponent<TCompTransform>(entity);
-    glm::mat4 matrix = glm::translate(glm::mat4(1), t.position) * glm::mat4_cast(t.rotation) * glm::scale(glm::mat4(1), t.scale);
+    glm::mat4 matrix = glm::translate(glm::mat4(1), t.getPosition()) * glm::mat4_cast(t.getRotation()) * glm::scale(glm::mat4(1), t.getScale());
     if(entitySystem->hasComponent<TCompParent>(entity) && entitySystem->getComponent<TCompParent>(entity).parent != 0){
         return getGlobalMatrix(entitySystem->getComponent<TCompParent>(entity).parent) * matrix;
     }

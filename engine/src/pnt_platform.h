@@ -24,3 +24,5 @@ using json = nlohmann::json;
 #include "core/assert.h"
 #include "core/logger.h"
 #include "core/helper.h"
+#include "core/transform.h"
+#include "renderer/camera.h"

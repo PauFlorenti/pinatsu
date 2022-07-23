@@ -15,6 +15,7 @@ TCompName::TCompName(const char* newName)
 void TCompName::setName(const char* newName)
 {
     strcpy(name, newName);
+    allNames[name] = CHandle(this);
 }
 
 void TCompName::debugInMenu()

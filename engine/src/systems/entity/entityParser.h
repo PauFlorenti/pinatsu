@@ -1,7 +1,5 @@
 #pragma once
 
-#include "systems/components/comp_transform.h"
-
 struct TEntityParseContext 
 {
     TEntityParseContext* parent = nullptr;
@@ -20,13 +18,13 @@ struct TEntityParseContext
 
     CHandle currentEntity;
 
-    TCompTransform rootTransform;
+    CTransform rootTransform;
 
     CHandle findEntityByName(const std::string& name) const;
 
     TEntityParseContext() = default;
-    TEntityParseContext(TEntityParseContext& another, const TCompTransform& deltaTransform);
+    TEntityParseContext(TEntityParseContext& another, const CTransform& deltaTransform);
 };
 
 bool parseScene(const std::string& filename, TEntityParseContext& ctx);
-CHandle spawn(const std::string& filename, TCompTransform root);
+CHandle spawn(const std::string& filename, CTransform root);

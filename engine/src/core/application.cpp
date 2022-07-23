@@ -6,8 +6,6 @@
 
 #include "event.h"
 #include "input.h"
-#include "logger.h"
-#include "assert.h"
 #include "game.h"
 
 #include "renderer/rendererFrontend.h"
@@ -18,7 +16,6 @@
 #include "systems/materialSystem.h"
 #include "systems/physicsSystem.h"
 
-#include "systems/entitySystemComponent.h"
 #include "systems/modules/module_entities.h"
 #include "systems/modules/module_boot.h"
 
@@ -154,12 +151,7 @@ bool applicationInit(Game* pGameInst)
         return false;
     }
 
-
     // Init Entity Component System
-    pState->entitySystem = new EntitySystem();
-    pState->entitySystem->init();
-
-
     pState->entities = new CModuleEntities("entities");
     //pState->entities->start(); // This should be doStart and handled by a manager
 
@@ -209,6 +201,7 @@ bool applicationRun()
 
     while(pState->m_isRunning)
     {
+        // Take care of all platform messages
         if(!platformPumpMessages())
             pState->m_isRunning = false;
 
@@ -219,6 +212,7 @@ bool applicationRun()
             f64 currentTime = pState->clock.elapsedTime; // convert to seconds
             f64 deltaTime = currentTime - pState->lastTime;
 
+            // Update ---
             platformUpdate();
             
             if(!pState->pGameInst->update(pState->pGameInst, (f32)deltaTime))
@@ -229,6 +223,7 @@ bool applicationRun()
 
             pState->moduleManager->update((f32)deltaTime);
             
+            // Render ---
             if(!pState->pGameInst->render(pState->pGameInst, (f32)deltaTime))
             {
                 PERROR("Game failed to render.");
@@ -237,6 +232,7 @@ bool applicationRun()
 
             pState->moduleManager->render();
 
+            // Input update ---
             inputSystemUpdate((f32)deltaTime);
             pState->lastTime = currentTime;
         }

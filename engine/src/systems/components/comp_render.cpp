@@ -63,6 +63,5 @@ void TCompRender::updateRenderManager()
 void TCompRender::cleanFromRenderManager()
 {
     CHandle handle(this);
-    // TODO: RenderManager should clean all DrawCalls from a given component.
-    //CRenderManager::Get()
+    CRenderManager::Get()->deleteKeysFromOwner(handle);
 }

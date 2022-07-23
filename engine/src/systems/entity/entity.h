@@ -2,6 +2,8 @@
 #include "systems/components/comp_base.h"
 #include "systems/handle/handle.h"
 
+extern CHandle getEntityByName(const std::string& name);
+
 class CEntity : public TCompBase
 {
     CHandle comps[CHandle::maxTypes];

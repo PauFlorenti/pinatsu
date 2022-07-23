@@ -2,7 +2,8 @@
   {
     "entity": {
       "transform":{
-        "pos" : "0 0 0"
+        "pos" : "0 -1 0",
+        "scale": "1 1 1"
       },
       "name" : "cube",
       "render" : [
@@ -38,6 +39,17 @@
         "color": "1 0 0 1",
         "intensity" : 25.0,
         "radius" : 100.0
+      }
+    }
+  },
+  {
+    "entity": {
+      "name" : "camera",
+      "transform":{
+        "pos" : "0 1 -5"
+      },
+      "camera": {
+        "fov":45.0
       }
     }
   }

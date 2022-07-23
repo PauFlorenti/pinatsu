@@ -13,6 +13,3 @@ bool renderCreateMesh(Mesh* m, u32 vertexCount, Vertex* vertices, u32 indexCount
 bool renderCreateTexture(void* data, Texture* texture);
 void renderDestroyTexture(Texture* t);
 bool renderCreateMaterial(Material* m);
-
-// TODO temp
-void setView(const glm::mat4 view, const glm::mat4 proj);

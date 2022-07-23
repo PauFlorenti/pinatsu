@@ -45,7 +45,7 @@ void CRenderManager::deleteKeysFromOwner(CHandle hOwner)
         keys.end(), 
         [hOwner](const TKey& k1){return k1.hOwner == hOwner;});
     
-    keys.erase(it);
+    keys.erase(it, keys.end());
 }
 
 void CRenderManager::render()

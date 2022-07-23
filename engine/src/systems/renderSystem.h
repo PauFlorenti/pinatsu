@@ -17,7 +17,8 @@ public:
         return instance;
     }
 
-    /** Necessary information to pass to the Renderer to draw.*/
+    /** Necessary information to pass to the Renderer to draw. 
+     * This is the DrawCall definition.*/
     struct TKey {
         Mesh* mesh = nullptr;
         Material* material = nullptr;

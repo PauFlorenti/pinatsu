@@ -1,8 +1,7 @@
 #pragma once
 
-#include "defines.h"
-#include "memory/linearAllocator.h"
 #include "clock.h"
+#include "memory/linearAllocator.h"
 #include "systems/modules/module_manager.h"
 
 struct Game;
