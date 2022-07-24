@@ -16,7 +16,7 @@ void TCompCamera::update(f32 dt)
     TCompTransform* cTransform = get<TCompTransform>();
     PASSERT(cTransform);
     glm::mat4 t = cTransform->asMatrix();
-    const glm::vec3 fwd = glm::normalize(glm::vec3(glm::inverse(t)[2]));
+    const glm::vec3 fwd = glm::normalize(glm::vec3(t[2]));
     lookAt(cTransform->getPosition(), cTransform->getPosition() + fwd);
 }
 

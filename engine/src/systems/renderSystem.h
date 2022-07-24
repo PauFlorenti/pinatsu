@@ -49,5 +49,11 @@ public:
     /** Render all submitted draw calls. */
     void render();
 
+    void setActiveCamera(CHandle hCamera) { activeCamera = hCamera; }
+    CHandle getActiveCamera() const { return activeCamera; }
+
     void setDirty() { keysAreDirty = true; }
+
+private:
+    CHandle activeCamera;
 };

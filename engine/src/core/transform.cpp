@@ -90,7 +90,7 @@ bool CTransform::fromJson(const json& j)
     {
         position = loadVec3(j, "pos");
     }
-    if(j.count("lookAt"))
+    if(j.count("lookat"))
     {
         lookAt(getPosition(), loadVec3(j, "lookAt"), glm::vec3(0, 1, 0));
     }

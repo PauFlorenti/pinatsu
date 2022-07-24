@@ -16,8 +16,6 @@
 #include "renderer/rendererFrontend.h"
 #include "platform/platform.h"
 
-static f32 rot;
-
 // TODO Should it be here ??? probably not ...
 #define MAX_ENTITIES_ALLOWED 512
 
@@ -42,85 +40,6 @@ bool gameUpdate(Game* pGameInst, f32 deltaTime)
 {
     GameState* state = static_cast<GameState*>(pGameInst->state);
     state->deltaTime = deltaTime;
-
-    CEntity* eCamera = getEntityByName("camera");
-    PASSERT(eCamera)
-    TCompCamera* cCamera = eCamera->get<TCompCamera>();
-    TCompTransform* cT = eCamera->get<TCompTransform>();
-    PASSERT(cCamera)
-    
-#if DEBUG
-
-    if(wasKeyDown(KEY_F1) && !isKeyDown(KEY_F1)) deferred = !deferred;
-
-    glm::vec3 offset = glm::vec3(0.0f);
-    f32 speed = 10.0f;
-    if(isKeyDown(KEY_W)) {
-        offset = (cCamera->getForward() * speed * deltaTime);
-    }
-    if(isKeyDown(KEY_S)) {
-        offset = (-cCamera->getForward() * speed * deltaTime);
-    }
-    if(isKeyDown(KEY_UP)) {
-        offset = (cCamera->getUp() * speed * deltaTime);
-    }
-    if(isKeyDown(KEY_DOWN)) {
-        offset = (-cCamera->getUp() * speed * deltaTime);
-    }
-    if(isKeyDown(KEY_A)) {
-        offset = (-cCamera->getRight() * speed * deltaTime);
-    }
-    else if(isKeyDown(KEY_D)) {
-        offset = (cCamera->getRight() * speed * deltaTime);
-    }
-    if(isMouseButtonDown(RIGHT_MOUSE_BUTTON)) {
-        cCamera->locked = true;
-    } 
-    else {
-        cCamera->locked = false;
-    }
-
-    glm::vec3 front = cT->getForward();
-    f32 yaw, pitch;
-    vectorToYawPitch(front, &yaw, &pitch);
-
-    if(isKeyDown(KEY_E)) {
-        yaw += 1.0f * deltaTime;
-    }
-
-    if(isKeyDown(KEY_Q)) {
-        yaw -= 1.0f * deltaTime;
-    }
-
-    if(cCamera->locked) {
-        i32 x, y;
-        i32 oldX, oldY;
-        getMousePosition(&x, &y);
-        getPreviousMousePosition(&oldX, &oldY);
-        if(x != oldX || y != oldY) 
-        {
-            // Rotate
-            glm::vec2 deltaMouse(oldX - x, oldY - y);
-            yaw -= deltaMouse.x * 10.0f * deltaTime;
-            pitch += deltaMouse.y * 10.0f * deltaTime;
-
-            // TODO set mouse position to center
-            //setMousePosition(appState->m_width / 2, appState->m_height / 2);
-        }
-    }
-
-    f32 max_pitch = glm::radians(89.95f);
-    if (pitch > max_pitch)
-      pitch = max_pitch;
-    else if (pitch < -max_pitch)
-      pitch = -max_pitch;
-
-#endif
-    front = yawPitchToVector(yaw, pitch);
-    front = glm::normalize(front);
-
-    glm::vec3 newPosition = cT->getPosition() + offset;
-    cT->lookAt(newPosition, newPosition + front, glm::vec3(0.0f, 1.0f, 0.0f));
     return true;
 }
 

@@ -1,5 +1,6 @@
 {
   "scenes_to_load":[
-    "basic.json"
+    "basic.json",
+    "camera.json"
   ]
 }

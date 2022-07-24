@@ -1,0 +1,16 @@
+[
+  {
+    "entity":{
+      "name": "camera",
+      "transform" : {
+        "pos": "10 14 8",
+        "lookat": "0 0 0"
+      },
+      "camera":{
+      },
+      "flyover_controller":{
+
+      }
+    }
+  }
+]

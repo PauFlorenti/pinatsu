@@ -9,7 +9,8 @@
     "transform": 90
   },
   "update": [
-    "camera"
+    "camera",
+    "flyover_controller"
   ],
   "render_debug": [
     "transform",

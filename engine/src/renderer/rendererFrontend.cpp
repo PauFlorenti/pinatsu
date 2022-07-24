@@ -4,8 +4,10 @@
 
 #include "systems/renderSystem.h"
 #include "systems/meshSystem.h"
-#include "systems/components/comp_transform.h"
+#include "systems/components/comp_camera.h"
 #include "systems/components/comp_render.h"
+#include "systems/components/comp_transform.h"
+#include "systems/components/comp_name.h"
 
 typedef struct RenderFrontendState
 {
@@ -18,6 +20,9 @@ typedef struct RenderFrontendState
 } RenderFrontendState;
 
 static RenderFrontendState* pState;
+
+static i16 w, h;
+static void activateMainCamera();
 
 bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, void* winHandle)
 {
@@ -93,6 +98,8 @@ bool renderDeferredFrame(const RenderPacket& packet)
 
         // TODO Update globals ... DeltaTime, ScreenWidth, ScreenHeight, ...
 
+        activateMainCamera();
+
         pState->renderBackend.updateDeferredGlobalState((f32)packet.deltaTime);
 
         // TODO Get active camera and update its data ...
@@ -145,6 +152,8 @@ bool renderDeferredFrame(const RenderPacket& packet)
 
 void renderOnResize(u16 width, u16 height)
 {
+    w = width;
+    h = height;
     pState->renderBackend.onResize(width, height);
 }
 
@@ -166,4 +175,18 @@ void renderDestroyTexture(Texture* t)
 bool renderCreateMaterial(Material* m)
 {
     return pState->renderBackend.onCreateMaterial(m);
+}
+
+static void activateMainCamera()
+{
+    CEntity* eCamera = CRenderManager::Get()->getActiveCamera();
+    if(eCamera = nullptr)
+        eCamera = getEntityByName("camera");
+    if(eCamera)
+    {
+        PASSERT(eCamera)
+        TCompCamera* cCamera = eCamera->get<TCompCamera>();
+        PASSERT(cCamera);
+        cCamera->setAspectRatio((f32)w / (f32)h);
+    }
 }

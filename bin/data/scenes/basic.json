@@ -2,8 +2,8 @@
   {
     "entity": {
       "transform":{
-        "pos" : "0 -1 0",
-        "scale": "1 1 1"
+        "pos" : "0 0 0",
+        "lookat" : "1 1 0"
       },
       "name" : "cube",
       "render" : [
@@ -20,12 +20,12 @@
     "entity": {
       "name" : "light",
       "transform": {
-        "pos" : "0 2 0"
+        "pos" : "0 2 -3"
       },
       "point_light": {
         "color": "1 1 1 1",
         "intensity": 10.0,
-        "radius": 50.0
+        "radius": 100.0
       }
     }
   },
@@ -37,20 +37,22 @@
       },
       "point_light":{
         "color": "1 0 0 1",
-        "intensity" : 25.0,
+        "intensity" : 5.0,
         "radius" : 100.0
       }
     }
   },
   {
-    "entity": {
+    "xentity": {
       "name" : "camera",
       "transform":{
-        "pos" : "0 1 -5"
+        "pos" : "0 2 -2",
+        "lookat" : "0 0 0"
       },
       "camera": {
-        "fov":45.0
-      }
+        "fov":60.0
+      },
+      "flyover_controller":{}
     }
   }
 ]

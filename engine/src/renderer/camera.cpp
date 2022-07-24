@@ -7,9 +7,9 @@ void CCamera::updateViewProjection()
 
 void CCamera::lookAt(glm::vec3 newEye, glm::vec3 newTarget, glm::vec3 newUp)
 {
-    eye = newEye;
-    target = newTarget;
-    view = glm::lookAt(newEye, newTarget, newUp);
+    eye     = newEye;
+    target  = newTarget;
+    view    = glm::lookAt(newEye, newTarget, newUp);
     updateViewProjection();
 
     front = glm::normalize(target - eye);
