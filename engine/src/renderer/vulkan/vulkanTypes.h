@@ -67,14 +67,6 @@ typedef struct VulkanRenderpass
     VkRenderPass handle;
 } VulkanRenderpass;
 
-typedef struct Framebuffer
-{
-    VkFramebuffer handle;
-    std::vector<VkImageView> attachments;
-    VulkanRenderpass* renderpass;
-} Framebuffer;
-
-
 typedef struct CommandBuffer
 {
     VkCommandBuffer handle;
@@ -92,6 +84,7 @@ typedef struct VulkanBuffer
     VkDeviceMemory memory;
 } VulkanBuffer;
 
+/** @brief The Vertex data structure for Vulkan.*/
 typedef struct VulkanVertex
 {
     glm::vec3 position;
@@ -100,6 +93,7 @@ typedef struct VulkanVertex
     glm::vec3 normal;
 }VulkanVertex;
 
+/** @brief The Light data structure for Vulkan.*/
 struct VulkanLightData
 {
     glm::vec3 position;
@@ -114,7 +108,8 @@ struct VulkanLightData
     f32 dummyValue;
 };
 
-typedef struct ViewProjectionBuffer
+/** @brief The global uniform buffer that will load to gpu every frame.*/
+struct GlobalUniformBufferData
 {
     glm::mat4 view;
     glm::mat4 projection;
@@ -122,7 +117,7 @@ typedef struct ViewProjectionBuffer
     glm::mat4 inverseViewProjection;
     glm::vec3 position;
     f32 dummy;
-} ViewProjectionBuffer;
+};
 
 typedef struct VulkanImage
 {
@@ -268,113 +263,9 @@ typedef struct VulkanPipeline
     /** @brief Instance states for all instances. */
     VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
 
-    // TODO Temp ¿? This should probably be dynamic
-    ViewProjectionBuffer uniformData;
-
     // TODO Temp, maybe move to a generic pipeline for all APIS
-    u32 boudnUboOffset;
+    u32 boundUboOffset;
 } VulkanPipeline;
-
-/** Vulkan Material Shader
- * This object should hold all information related to
- * the shader pass.
- *  - Descriptors
- *  - Shader Stages
- */
-/*
-typedef struct VulkanForwardShader
-{
-    // Vertex and fragment
-    VulkanShaderObject shaderStages[VULKAN_MAX_SHADER_STAGES];
-
-    // Global objects - Currently view and projection matrices.
-    // global descriptors will be allocated from this pool
-    VkDescriptorPool globalDescriptorPool;
-
-     // One DescriptorSet per each buffer from the triple buffer
-    VkDescriptorSet globalDescriptorSet[3];
-    VkDescriptorSetLayout globalDescriptorSetLayout;
-
-    // Struct to be loaded into global Ubo buffer.
-    ViewProjectionBuffer globalUboData;
-    // Buffer holding the data from globalUboData to be uploaded to the gpu.
-    VulkanBuffer globalUbo;
-    VulkanLightData lightData;
-    VulkanBuffer lightUbo;
-
-    // Mesh instance objects
-    VkDescriptorPool meshInstanceDescriptorPool;
-    VkDescriptorSet meshInstanceDescriptorSet;
-    VkDescriptorSetLayout meshInstanceDescriptorSetLayout;
-
-    // This will grow
-    VulkanMaterialShaderUBO objectMaterialData;
-    u32 meshInstanceBufferIndex;
-    VulkanBuffer meshInstanceBuffer;
-
-    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
-
-    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
-
-    VulkanPipeline pipeline;
-} VulkanForwardShader;
-
-struct gbuffers
-{
-    VulkanTexture positonTxt;
-    VulkanTexture normalTxt;
-    VulkanTexture albedoTxt;
-};
-
-struct VulkanDeferredShader
-{
-    // 2 for geometry pass and 2 for deferred pass - maybe 2 more for postFX in the future.
-    VulkanShaderObject shaderStages[4];
-    
-    // Geometry pass
-    VkDescriptorPool geometryDescriptorPool;
-    VkDescriptorPool lightDescriptorPool;
-    // Per frame - descriptor global information
-    VkDescriptorSet globalGeometryDescriptorSet;
-    VkDescriptorSetLayout globalGeometryDescriptorSetLayout;
-    // Per object - descriptor material object information
-    //u32 objectGeometryGeneration[VULKAN_MAX_MATERIAL_COUNT];
-    //u32 objectGeometryIds[VULKAN_MAX_MATERIAL_COUNT];
-    //VkDescriptorSet objectGeometryDescriptorSet;
-    VulkanObjectDescriptor objectGeometryDescriptor[VULKAN_MAX_MATERIAL_COUNT];
-    VkDescriptorSetLayout objectGeometryDescriptorSetLayout;
-    
-    ViewProjectionBuffer    globalUboData;
-    VulkanBuffer            globalUbo;
-    VulkanLightData         lightData;
-    VulkanBuffer            lightUbo;
-
-    u32 objectBufferIndex = 0;
-    VulkanBuffer objectUbo;
-
-    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
-
-    // Deferred pass
-    VkDescriptorSet lightDescriptorSet[3];
-    VkDescriptorSetLayout lightDescriptorSetLayout;
-
-    gbuffers gbuf;
-    VulkanTexture geometryDepth;
-
-    VkSemaphore geometrySemaphore;
-
-    Framebuffer geometryFramebuffer;
-    Framebuffer lightFramebuffer[3];
-
-    VkCommandPool geometryCmdPool;
-    CommandBuffer geometryCmdBuffer;
-
-    VulkanPipeline      geometryPipeline;
-    VulkanRenderpass    geometryRenderpass;
-    VulkanPipeline      lightPipeline;
-    VulkanRenderpass    lightRenderpass;
-};
-*/
 
 /** @brief Vulkan Swapchain structure. */
 typedef struct VulkanSwapchain
@@ -391,7 +282,6 @@ typedef struct VulkanSwapchain
 
     std::vector<VkImage>        images;
     std::vector<VkImageView>    imageViews;
-    std::vector<Framebuffer>    framebuffers;
 } VulkanSwapchain;
 
 /** @brief The vulkan structure holding all necessary data referred to the renderer.*/

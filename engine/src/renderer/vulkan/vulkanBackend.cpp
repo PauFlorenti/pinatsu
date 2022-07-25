@@ -107,11 +107,12 @@ void vulkanForwardUpdateGlobalState(f32 dt)
     CEntity* hcamera = getEntityByName("camera");
     TCompCamera* cCamera = hcamera->get<TCompCamera>();
 
-    state.boundPipeline->uniformData.view        = cCamera->getView();
-    state.boundPipeline->uniformData.projection  = cCamera->getProjection();
-    state.boundPipeline->uniformData.position    = cCamera->getEye();
+    GlobalUniformBufferData data;
+    data.view        = cCamera->getView();
+    data.projection  = cCamera->getProjection();
+    data.position    = cCamera->getEye();
 
-    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, 0, sizeof(ViewProjectionBuffer), 0, &state.boundPipeline->uniformData);
+    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, 0, sizeof(GlobalUniformBufferData), 0, &data);
 
     vulkanBindGlobals();
     vulkanApplyGlobals();
@@ -863,10 +864,6 @@ bool recreateSwapchain()
     }
     state.commandBuffers.clear();
 
-    for(const auto& framebuffer : state.swapchain.framebuffers){
-        vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
-    }
-
     vulkanRegenerateFramebuffers(
         &state.swapchain,
         &state.pipelines["debug.pipeline"]->renderpass);
@@ -1080,10 +1077,8 @@ bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, con
         pipeline
     );
 
-    pipeline->globalUboStride = sizeof(ViewProjectionBuffer);
-
     // Uniform buffer // TODO Make dynamic.
-    u64 totalSize = sizeof(pipeline->uniformData) + (pipeline->uboStride * VULKAN_MAX_MATERIAL_COUNT);
+    u64 totalSize = sizeof(GlobalUniformBufferData) + (pipeline->uboStride * VULKAN_MAX_MATERIAL_COUNT);
     if(!vulkanBufferCreate(
         state.device, 
         totalSize, 
@@ -1172,8 +1167,6 @@ bool vulkanBindGlobals()
         PFATAL("There is no pipeline bound.");
         return false;
     }
-    
-    state.boundPipeline->boudnUboOffset = 0;
     return true;
 }
 
@@ -1186,8 +1179,8 @@ bool vulkanApplyGlobals()
 
     VkDescriptorBufferInfo bufferInfo;
     bufferInfo.buffer = pipeline->uniformBuffer.handle;
-    bufferInfo.offset = 0; // TODO Make dynamic from info
-    bufferInfo.range = pipeline->globalUboStride;
+    bufferInfo.offset = 0; // This is hardcoded since globals will always be stored at the beginning of the buffer.
+    bufferInfo.range = sizeof(GlobalUniformBufferData);
 
     VkWriteDescriptorSet uboWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     uboWrite.dstSet = pipeline->globalDescriptorSet[imageIdx];

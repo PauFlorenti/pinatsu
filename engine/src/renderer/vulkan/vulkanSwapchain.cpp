@@ -76,7 +76,6 @@ create(
 
     pState->swapchain.imageCount        = pState->swapchainSupport.capabilities.minImageCount + 1;
     pState->swapchain.maxImageInFlight  = pState->swapchain.imageCount;
-    pState->swapchain.framebuffers.resize(pState->swapchain.imageCount);
 
     VkSwapchainCreateInfoKHR swapchainInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
     swapchainInfo.surface           = pState->surface;
