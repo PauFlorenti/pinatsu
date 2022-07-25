@@ -12,6 +12,7 @@
  *  - Prepare descriptors for feeding the shader.
  *  - Create the graphics pipeline accordingly.
  */
+/* 
 bool vulkanCreateForwardShader(
     VulkanState* pState,
     VulkanForwardShader* outShader)
@@ -172,10 +173,10 @@ bool vulkanCreateForwardShader(
     colorBlendAttachment.colorWriteMask = 0xf;
 
     const VertexDeclaration* vtx = getVertexDeclarationByName("PosColorUvN");
-
+ 
     vulkanCreateGraphicsPipeline(
         pState->device,
-        &pState->renderpass,
+        pState->renderpass,
         vtx->size,
         vtx->layout,
         shaderStages.size(),
@@ -191,7 +192,7 @@ bool vulkanCreateForwardShader(
         true,
         &outShader->pipeline
     );
-
+ 
     VkDescriptorSetLayout globalLayouts[3] = {
         outShader->globalDescriptorSetLayout,
         outShader->globalDescriptorSetLayout,
@@ -225,7 +226,7 @@ vulkanDestroyForwardShader(VulkanState* pState)
     vkDestroyDescriptorPool(pState->device.handle, pState->forwardShader.meshInstanceDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(pState->device.handle, pState->forwardShader.meshInstanceDescriptorSetLayout, nullptr);
 
-    vkDestroyPipeline(pState->device.handle, pState->forwardShader.pipeline.pipeline, nullptr);
+    vkDestroyPipeline(pState->device.handle, pState->forwardShader.pipeline.handle, nullptr);
     vkDestroyPipelineLayout(pState->device.handle, pState->forwardShader.pipeline.layout, nullptr);
 }
 
@@ -418,3 +419,4 @@ vulkanForwardShaderSetMaterial(
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->pipeline.layout, 1, 1, &descriptorSet, 0, nullptr);
 }
+ */

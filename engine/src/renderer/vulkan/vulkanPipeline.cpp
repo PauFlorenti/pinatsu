@@ -106,7 +106,7 @@ void vulkanCreateGraphicsPipeline(
     info.renderPass             = renderpass->handle;
     info.subpass                = 0;
 
-    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->handle));
 }
 
 void vulkanDestroyGrapchisPipeline(
@@ -123,6 +123,6 @@ void vulkanDestroyGrapchisPipeline(
     
     vkDestroyPipeline(
         device.handle,
-        pipeline->pipeline,
+        pipeline->handle,
         nullptr);
 }

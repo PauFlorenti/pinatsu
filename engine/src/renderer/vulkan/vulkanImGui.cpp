@@ -81,8 +81,7 @@ imguiInit(
 
 void
 imguiRender(
-    VkCommandBuffer& cmd,
-    const RenderPacket& packet)
+    VkCommandBuffer& cmd)
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplWin32_NewFrame();

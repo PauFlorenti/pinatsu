@@ -23,7 +23,7 @@ static RenderMeshData gameMeshes[MAX_ENTITIES_ALLOWED];
 static LightData gameLight[MAX_ENTITIES_ALLOWED];
 
 #ifdef DEBUG
-static bool deferred = true;
+static bool deferred = false;
 #endif
 
 bool gameInitialize(Game* pGameInst)

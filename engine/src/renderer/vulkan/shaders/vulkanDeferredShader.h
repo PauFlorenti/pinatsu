@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../vulkanTypes.h"
-
+/* 
 void
 vulkanDeferredShaderCreate(
     const VulkanDevice& device,
@@ -37,3 +37,4 @@ vulkanDeferredShaderSetMaterial(
     VulkanState* pState,
     VulkanDeferredShader* shader,
     Material* m);
+     */

@@ -10,8 +10,7 @@ imguiInit(
 
 void
 imguiRender(
-    VkCommandBuffer& cmd, 
-    const RenderPacket& packet);
+    VkCommandBuffer& cmd);
 
 void
 imguiDestroy();

@@ -2,7 +2,7 @@
 
 #include "../vulkanTypes.h"
 #include "resources/resourcesTypes.h"
-
+/* 
 bool 
 vulkanCreateForwardShader(
     VulkanState* pState,
@@ -24,4 +24,4 @@ void
 vulkanForwardShaderSetMaterial(
     VulkanState* pState,
     VulkanForwardShader* shader,
-    Material* m);
+    Material* m); */

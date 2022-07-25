@@ -1,10 +1,5 @@
 #include "vulkanRenderpass.h"
 
-/**
- * @brief Right now creates the main hardcoded renderpass.
- * @param VulkanState* pState
- * @return bool if succeded.
- */
 bool vulkanRenderPassCreate(VulkanState* pState)
 {
     // Colour attachment
@@ -70,22 +65,17 @@ bool vulkanRenderPassCreate(VulkanState* pState)
     info.dependencyCount    = 2;
     info.pDependencies      = subpassDependencies;
 
-    if(vkCreateRenderPass(pState->device.handle, &info, nullptr, &pState->renderpass.handle) != VK_SUCCESS)
+/*     if(vkCreateRenderPass(pState->device.handle, &info, nullptr, &pState->renderpass->handle) != VK_SUCCESS)
     {
         PFATAL("Render pass could not be created!");
         return false;
-    }
+    } */
 
     PINFO("Main renderpass created!");
     return true;
 }
 
-/**
- * @brief Destroys the main render pass.
- * @param VulkanState* pState
- * @return void
- */
 void vulkanRenderPassDestroy(VulkanState* pState)
 {
-    vkDestroyRenderPass(pState->device.handle, pState->renderpass.handle, nullptr);
+    //vkDestroyRenderPass(pState->device.handle, pState->renderpass->handle, nullptr);
 }

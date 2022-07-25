@@ -10,6 +10,7 @@
 #include "../vulkanFramebuffer.h"
 #include "../vulkanBuffer.h"
 
+/* 
 static void
 createGbuffers(
     const VulkanDevice& device,
@@ -798,3 +799,4 @@ vulkanDeferredShaderSetMaterial(
 
     vkCmdBindDescriptorSets(shader->geometryCmdBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, shader->geometryPipeline.layout, 1, 1, &descriptor->descriptorSet, 0, nullptr);
 }
+ */

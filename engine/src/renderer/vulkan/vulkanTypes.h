@@ -44,8 +44,26 @@ typedef struct VulkanSwapchainSupport
     VkPresentModeKHR* presentModes;
 } VulkanSwapchainSupport;
 
+struct VulkanRenderTarget
+{
+    /** @brief The vector of attachments hold in this render target. */
+    std::vector<VkImageView> attachments;
+    /** @brief The handle for the render target. */
+    VkFramebuffer handle;
+};
+
 typedef struct VulkanRenderpass
 {
+    /** @brief The clear color of the render pass. By default it's black.*/
+    glm::vec4 clearColor = glm::vec4(0.0f);
+
+    /** @brief The clear flags for this render pass. */
+    u8 clearFlags;
+
+    /** @brief The render target this render pass points to. */
+    std::vector<VulkanRenderTarget> renderTargets;
+
+    /** @brief The render pass handle.*/
     VkRenderPass handle;
 } VulkanRenderpass;
 
@@ -61,12 +79,6 @@ typedef struct CommandBuffer
 {
     VkCommandBuffer handle;
 } CommandBuffer;
-
-typedef struct VulkanPipeline
-{
-    VkPipelineLayout layout;
-    VkPipeline pipeline;
-} VulkanPipeline;
 
 typedef struct VulkanFence
 {
@@ -145,8 +157,6 @@ typedef struct VulkanMesh
     VulkanBuffer indexBuffer;
 } VulkanMesh;
 
-#define VULKAN_MAX_SHADER_STAGES 2
-
 typedef struct VulkanShaderObject
 {
     VkShaderModule shaderModule;
@@ -167,6 +177,8 @@ typedef struct VulkanDescriptorState
 
 // At the moment it can hold samplers for diffuse, normal and MetallicRoughness
 #define VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT 3
+
+#define VULKAN_MAX_SHADER_STAGES 2
 
 // Holding the descriptors (3 per frame) for each material instance.
 typedef struct VulkanMaterialInstance
@@ -196,12 +208,80 @@ struct VulkanMaterialShaderUBO{
     glm::mat4 matReserved03; // 64 bytes
 };
 
+struct VulkanDescriptorSetConfig
+{
+    u8 bindingCount;
+    VkDescriptorSetLayoutBinding bindings[2];
+    u8 samplerBindingIndex;
+};
+
+typedef struct VulkanPipeline
+{
+    /** @brief The render pass to be used in the pipeline. */
+    VulkanRenderpass renderpass;
+
+    /** @brief Vertex and fragment shader stages at the moment.*/
+    VulkanShaderObject shaderStages[VULKAN_MAX_SHADER_STAGES];
+
+    /** @brief The descriptor pool used in this shader. */
+    VkDescriptorPool descriptorPool;
+
+    /** @brief Array of pool sizes. */
+    VkDescriptorPoolSize poolSizes[2];
+
+    /** @brief Descriptor set layouts, max of 2. Idx 0=global, 1=instance. */
+    VkDescriptorSetLayout descriptorSetLayout[2];
+
+    /** @brief Total number of descriptor sets. 1 if only using globals, 2 otherwise. */
+    u8 descriptorSetCount;
+    /** @brief Descriptor sets, max of 2. Idx 0=global, 1=instance. */
+    VulkanDescriptorSetConfig descriptorSets[2];
+
+    /** @brief One DescriptorSet per each buffer from the triple buffer. */
+    VkDescriptorSet globalDescriptorSet[3];
+
+    /** @brief The uniform buffer used by this shader. Globals + locals. */
+    VulkanBuffer uniformBuffer;
+
+    /** @brief The VulkanPipeline layout. */ 
+    VkPipelineLayout layout;
+    /** @brief The VkPipeline handle. */
+    VkPipeline handle;
+
+    /** @brief The global UBO size.*/
+    u64 globalUboSize;
+    /** @brief The global UBO stride. */
+    u64 globalUboStride;
+
+    /** @brief The UBO size. */
+    u64 uboSize;
+    /** @brief The UBO stride. */
+    u64 uboStride;
+
+    /*** @brief The push constant size. */
+    u64 pushConstantSize;
+    /**  @brief The push constant stride. */
+    u64 pushConstantStride;
+
+    /** @brief Texture uses. Idx 0=Difusse, 1=Normal, 2=MetallicRoughness. */
+    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
+    /** @brief Instance states for all instances. */
+    VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
+
+    // TODO Temp ¿? This should probably be dynamic
+    ViewProjectionBuffer uniformData;
+
+    // TODO Temp, maybe move to a generic pipeline for all APIS
+    u32 boudnUboOffset;
+} VulkanPipeline;
+
 /** Vulkan Material Shader
  * This object should hold all information related to
  * the shader pass.
  *  - Descriptors
  *  - Shader Stages
  */
+/*
 typedef struct VulkanForwardShader
 {
     // Vertex and fragment
@@ -294,7 +374,9 @@ struct VulkanDeferredShader
     VulkanPipeline      lightPipeline;
     VulkanRenderpass    lightRenderpass;
 };
+*/
 
+/** @brief Vulkan Swapchain structure. */
 typedef struct VulkanSwapchain
 {
     VkSwapchainKHR      handle;
@@ -312,17 +394,62 @@ typedef struct VulkanSwapchain
     std::vector<Framebuffer>    framebuffers;
 } VulkanSwapchain;
 
+/** @brief The vulkan structure holding all necessary data referred to the renderer.*/
 typedef struct VulkanState
 {
+    /** @brief Handle to the Vulkan internal instance. */
     VkInstance      instance;
+    /** @brief Handle to the Vulkan logical device. */
     VulkanDevice    device;
 
+#if defined(DEBUG)
+    /** @brief The debug messenger if app is in DEBUG mode. */
     VkDebugUtilsMessengerEXT debugMessenger;
+#endif
 
+    /** @brief The surface for the window to be drawn. */
     VkSurfaceKHR    surface;
+    /** @brief The curren image index. */
+    u32 imageIndex;
+    /** @brief The actual index frame. */
+    u32 currentFrame;
 
-    u32 imageIndex; // Index to the swapchain image to paint.
-    u32 currentFrame; // The actual index frame.
+    VulkanSwapchainSupport swapchainSupport{};
+    /** @brief The swapchain. */
+    VulkanSwapchain swapchain;
+    /** @brief Bool indicating if we are in the process of recreating. */
+    bool recreatingSwapchain;
+
+    /** @brief The framebuffer widht. */
+    u32 clientWidth;
+    /** @brief The framebuffer height. */
+    u32 clientHeight;
+    /** @brief Bool indicating if the window has been resized and we need to recreate the renderer. */
+    bool resized;
+
+    void* windowHandle;
+
+    /** @brief The map holding a Pipeline with its name as a key. */
+    std::map<std::string, VulkanPipeline*> pipelines;
+    //std::map<std::string, VulkanRenderpass*> renderpasses;
+
+    // TODO Temporal render pass.
+    //VulkanRenderpass* renderpass;
+
+    /** @brief Graphics command buffers, one per frame (3). */
+    std::vector<CommandBuffer> commandBuffers;
+    /** @brief Semaphores to indicate image availability, one per frame. */
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    /** @brief Semaphores to indicate queue availability, one per frame. */
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    /** @brief Fences to indicate when a frame is busy. */
+    std::vector<VulkanFence> frameInFlightFences;
+    /** @brief Array holding if the image is still in use. */
+    VkFence imagesInFlight[3];
+
+    // TODO temp ¿?
+    // Store the current pipeline bound.
+    VulkanPipeline* boundPipeline = nullptr;
 
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
@@ -330,25 +457,7 @@ typedef struct VulkanState
     // TODO Temporal variables
     VulkanMesh* vulkanMeshes;
 
-    // Forward rendering
-    VulkanForwardShader forwardShader;
-    VulkanDeferredShader deferredShader;
-
-    VulkanSwapchainSupport swapchainSupport{};
-    VulkanSwapchain swapchain;
-    bool recreatingSwapchain;
-
-    u32 clientWidth;
-    u32 clientHeight;
-    bool resized;
-
-    void* windowHandle;
-
-    VulkanRenderpass renderpass;
-
-    std::vector<CommandBuffer> commandBuffers;
-
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VulkanFence> frameInFlightFences;
+    // TODO Temporal shaders
+/*     VulkanForwardShader forwardShader;
+    VulkanDeferredShader deferredShader; */
 } VulkanState;

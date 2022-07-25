@@ -3,7 +3,6 @@
 #include "vulkanTypes.h"
 #include "vulkanDevice.h"
 #include "vulkanSwapchain.h"
-#include "vulkanRenderpass.h"
 #include "vulkanFramebuffer.h"
 #include "vulkanBuffer.h"
 #include "vulkanCommandBuffer.h"
@@ -11,13 +10,12 @@
 #include "vulkanUtils.h"
 #include "vulkanImgui.h"
 #include "vulkanPlatform.h"
-
-#include "shaders/vulkanForwardShader.h"
-#include "shaders/vulkanDeferredShader.h"
+#include "vulkanPipeline.h"
+#include "vulkanShaderModule.h"
+#include "vulkanVertexDeclaration.h"
 
 #include "core/application.h"
 
-//#include "systems/entitySystemComponent.h"
 #include "systems/components/comp_transform.h"
 #include "systems/components/comp_light_point.h"
 #include "systems/components/comp_name.h"
@@ -85,6 +83,11 @@ void vulkanDestroyDebugMessenger(VulkanState& state)
     }
 }
 
+/** @brief Compiles a shaders and returns its .spv filename.
+ * @param string The name of the shader to compile.
+ */
+static std::string compileShader(const std::string& name);
+
 void createCommandBuffers();
 
 /**
@@ -104,74 +107,45 @@ void vulkanForwardUpdateGlobalState(f32 dt)
     CEntity* hcamera = getEntityByName("camera");
     TCompCamera* cCamera = hcamera->get<TCompCamera>();
 
-    state.forwardShader.globalUboData.view        = cCamera->getView();
-    state.forwardShader.globalUboData.projection  = cCamera->getProjection();
-    state.forwardShader.globalUboData.position    = cCamera->getEye();
+    state.boundPipeline->uniformData.view        = cCamera->getView();
+    state.boundPipeline->uniformData.projection  = cCamera->getProjection();
+    state.boundPipeline->uniformData.position    = cCamera->getEye();
 
-    vulkanBufferLoadData(state.device, state.forwardShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.forwardShader.globalUboData);
+    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, 0, sizeof(ViewProjectionBuffer), 0, &state.boundPipeline->uniformData);
 
-    TCompLightPoint* lightsAddress = getObjectManager<TCompLightPoint>()->getAddress();
-    for(u32 i = 0; i < getObjectManager<TCompLightPoint>()->size(); ++i)
-    {
-        TCompLightPoint* l = &lightsAddress[i];
-        if(l->enabled == false)
-            return;
-
-        state.forwardShader.lightData.color     = l->color;
-        state.forwardShader.lightData.intensity = l->intensity;
-        state.forwardShader.lightData.position  = l->getPosition();
-        state.forwardShader.lightData.radius    = l->radius;
-        state.forwardShader.lightData.enabled   = l->enabled;
-        vulkanBufferLoadData(
-            state.device,
-            state.forwardShader.lightUbo,
-            sizeof(VulkanLightData) * i,
-            sizeof(VulkanLightData),
-            0,
-            &state.forwardShader.lightData);
-    }
-
-    vulkanForwardShaderUpdateGlobalData(&state);
+    vulkanBindGlobals();
+    vulkanApplyGlobals();
 }
 
-void
-vulkanDeferredUpdateGlobaState(f32 dt)
+void vulkanLoadPipelines()
 {
-    gameTime += dt;
+    json j = loadJson("data/pipelines.json");
 
-    // TODO at the moment
-    CEntity* hcamera = getEntityByName("camera");
-    TCompCamera* cCamera = hcamera->get<TCompCamera>();
-
-    state.deferredShader.globalUboData.view        = cCamera->getView();
-    state.deferredShader.globalUboData.projection  = cCamera->getProjection();
-    state.deferredShader.globalUboData.position    = cCamera->getEye();
-
-    vulkanBufferLoadData(state.device, state.deferredShader.globalUbo, 0, sizeof(ViewProjectionBuffer), 0, &state.deferredShader.globalUboData);
-
-    TCompLightPoint* lightsAddress = getObjectManager<TCompLightPoint>()->getAddress();
-    for(u32 i = 0; i < getObjectManager<TCompLightPoint>()->size(); ++i)
+    // Create all render passes from json.
+    for(auto it : j.items())
     {
-        TCompLightPoint* l = &lightsAddress[i];
+        const std::string& key = it.key();
+        const json& jdef = it.value();
+        std::string name = key + ".pipeline";
+        vulkanCreateRenderPassFromJson(name, jdef);
+    }
+}
 
-        if (l->enabled == false)
-            return;
+void vulkanCreateRenderPassFromJson(const std::string& name, const json& j)
+{
+    VulkanPipeline* pipeline = nullptr;
 
-        state.deferredShader.lightData.color = l->color;
-        state.deferredShader.lightData.intensity = l->intensity;
-        state.deferredShader.lightData.position = l->getPosition();
-        state.deferredShader.lightData.radius = l->radius;
-        state.deferredShader.lightData.enabled = l->enabled;
-        vulkanBufferLoadData(
-            state.device,
-            state.deferredShader.lightUbo,
-            sizeof(VulkanLightData) * i,
-            sizeof(VulkanLightData),
-            0,
-            &state.deferredShader.lightData);
+    auto it = state.pipelines.find(name.c_str());
+    if(it == state.pipelines.end())
+    {
+        pipeline = new VulkanPipeline();
+        state.pipelines[name] = pipeline;
+    }
+    else{
+        pipeline = it->second;
     }
 
-    vulkanDeferredUpdateGlobalData(state.device, state.deferredShader);
+    vulkanCreatePipeline(pipeline, name, j);
 }
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
@@ -367,6 +341,8 @@ void vulkanDestroyTexture(Texture* texture)
 
 bool vulkanCreateMaterial(Material* m)
 {
+    return true;
+    /* 
     if(m)
     {
         switch (m->type)
@@ -388,7 +364,7 @@ bool vulkanCreateMaterial(Material* m)
         }
         return true;
     }
-    return false;
+    return false; */
 }
 
 /**
@@ -509,15 +485,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
         return false;
     }
 
-    // Render pass
-    if(!vulkanRenderPassCreate(&state)){
-        return false;
-    }
-
-    // Framebuffers
-    vulkanRegenerateFramebuffers(
-        &state.swapchain, 
-        &state.renderpass);
+    vulkanLoadPipelines();
 
     createCommandBuffers();
 
@@ -539,14 +507,16 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
         }
     }
 
+    // Make sure we set the images in use to NULL
+    for(u32 i = 0; i < 3; ++i)
+        state.imagesInFlight[i] = VK_NULL_HANDLE;
+
     state.vulkanMeshes = (VulkanMesh*)memAllocate(sizeof(VulkanMesh) * VULKAN_MAX_MESHES, MEMORY_TAG_RENDERER);
     for(u32 i = 0; i < VULKAN_MAX_MESHES; ++i) {
         state.vulkanMeshes[i].id = INVALID_ID;
     }
 
-    vulkanCreateForwardShader(&state, &state.forwardShader);
-    vulkanDeferredShaderCreate(state.device, state.swapchain, state.swapchain.extent.width, state.swapchain.extent.height, &state.deferredShader);
-    imguiInit(&state, &state.renderpass);
+    imguiInit(&state, &state.pipelines["debug.pipeline"]->renderpass);
 
     return true;
 }
@@ -605,17 +575,19 @@ void vulkanBackendShutdown(void)
 
     imguiDestroy();
 
-    PDEBUG("Destroying Vulkan Shaders ...");
-    vulkanDestroyForwardShader(&state);
-    vulkanDeferredShaderDestroy(state.device, state.deferredShader);
 
-    PDEBUG("Destroying Vulkan Render passes ...");
-    vkDestroyRenderPass(state.device.handle, state.renderpass.handle, nullptr);
+    PDEBUG("Destroying Vulkan Pipelines ...");
+    for(std::map<std::string, VulkanPipeline*>::iterator it = state.pipelines.begin(); it != state.pipelines.end(); ++it)
+        vulkanPipelineDestroy(it->second);
 
+    //vkDestroyRenderPass(state.device.handle, state.pipelines["debug.pipeline"]->renderpass.handle, nullptr);
+
+    /*
     for(auto framebuffer : state.swapchain.framebuffers)
     {
         vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
     }
+    */
 
     PDEBUG("Destroying Vulkan Swapchain ...");
     vulkanSwapchainDestroy(&state);
@@ -647,7 +619,6 @@ void vulkanBackendShutdown(void)
  * @param void
  * @return bool if succeded.
  */
-
 bool vulkanBeginFrame(f32 delta)
 {
     // Wait for the device to finish recreating the swapchain.
@@ -673,10 +644,10 @@ bool vulkanBeginFrame(f32 delta)
     }
 
     // Wait for the previous frame to finish.
+    //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
     vulkanWaitFence(
         state.device, 
         &state.frameInFlightFences[state.currentFrame]);
-    vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
 
     // Acquire next image index.
     vkAcquireNextImageKHR(
@@ -687,30 +658,9 @@ bool vulkanBeginFrame(f32 delta)
         0, 
         &state.imageIndex);
 
-    return true;
-}
 
-void
-vulkanBeginCommandBuffer(DefaultRenderPasses renderPassid)
-{
-    // TODO Solve synchronization
-    vkDeviceWaitIdle(state.device.handle);
-    VkCommandBuffer cmd;
-    switch (renderPassid)
-    {
-    case 0:
-        cmd = state.commandBuffers[state.imageIndex].handle;
-        break;
-    case 1:
-        cmd = state.deferredShader.geometryCmdBuffer.handle;
-        break;
-    case 2:
-        cmd = state.commandBuffers[state.imageIndex].handle;
-        break;        
-    default:
-        break;
-    }
-
+    // Start recording the command buffer
+    VkCommandBuffer cmd = state.commandBuffers[state.imageIndex].handle;
     VkCommandBufferBeginInfo cmdBeginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
 
@@ -730,80 +680,38 @@ vulkanBeginCommandBuffer(DefaultRenderPasses renderPassid)
 
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+    return true;
 }
 
-bool vulkanBeginRenderPass(DefaultRenderPasses renderPassid)
+bool vulkanBeginRenderPass(const std::string& renderpass)
 {
-    // TODO Abstract render pass creation.
-    switch(renderPassid)
-    {
-        // Forward render pass
-        case 0:
-        {
-            VkClearValue clearColors[2];
-            clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
-            clearColors[1].depthStencil.depth = 1.0f;
-            clearColors[1].depthStencil.stencil = 0;
+    CommandBuffer cmd = state.commandBuffers[state.imageIndex];
 
-            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-            info.renderPass         = state.renderpass.handle;
-            info.framebuffer        = state.swapchain.framebuffers.at(state.imageIndex).handle;
-            info.renderArea.offset  = {0, 0};
-            info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 2;
-            info.pClearValues       = clearColors;
-            
-            vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
-            return true;
-            break;
-        }
-        case 1: // Geometry pass
-        {
-            VkClearValue clearColors[4];
-            clearColors[0].color = {0.2, 0.2, 0.2, 1.0};
-            clearColors[1].color = {0.2, 0.2, 0.2, 1.0};
-            clearColors[2].color = {0.2, 0.2, 0.2, 1.0};
-            clearColors[3].depthStencil.depth = 1.0f;
-            clearColors[3].depthStencil.stencil = 0;
+    // TODO This should be thought to be changed.
+    VulkanRenderpass* renderPass = &state.pipelines[renderpass]->renderpass; //state.renderpasses[renderpass];
 
-            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-            info.renderPass         = state.deferredShader.geometryRenderpass.handle;
-            info.framebuffer        = state.deferredShader.geometryFramebuffer.handle;
-            info.renderArea.offset  = {0, 0};
-            info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 4;
-            info.pClearValues       = clearColors;
+    VkRenderPassBeginInfo renderpassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    renderpassInfo.renderPass = renderPass->handle;
+    renderpassInfo.framebuffer = renderPass->renderTargets[state.imageIndex].handle;
+    // TODO This should be given by the renderpas.
+    renderpassInfo.renderArea.offset = {0, 0};
+    renderpassInfo.renderArea.extent = state.swapchain.extent;
 
-            vkCmdBeginRenderPass(state.deferredShader.geometryCmdBuffer.handle, &info, VK_SUBPASS_CONTENTS_INLINE);
-            return true;
-            break;
-        }
-        case 2:
-        {
-            VkClearValue clearColors[2];
-            clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
-            clearColors[1].depthStencil.depth = 1.0f;
-            clearColors[1].depthStencil.stencil = 0;
+    // TODO Should be driven by the renderpass info
+    VkClearValue clearColors[2];
+    clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
+    clearColors[1].depthStencil.depth = 1.0f;
+    clearColors[1].depthStencil.stencil = 0;
 
-            VkRenderPassBeginInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-            info.renderPass         = state.deferredShader.lightRenderpass.handle;
-            info.framebuffer        = state.deferredShader.lightFramebuffer[state.imageIndex].handle;
-            info.renderArea.offset  = {0, 0};
-            info.renderArea.extent  = state.swapchain.extent;
-            info.clearValueCount    = 2;
-            info.pClearValues       = clearColors;
+    renderpassInfo.clearValueCount = 2;
+    renderpassInfo.pClearValues = clearColors;
 
-            vkCmdBeginRenderPass(state.commandBuffers.at(state.imageIndex).handle, &info, VK_SUBPASS_CONTENTS_INLINE);
-            return true;
-            break;
-        }
-        default:
-            return false;
-            break;
-    }
+    vkCmdBeginRenderPass(cmd.handle, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    return true;
 }
 
-void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* data)
+void vulkanDrawGeometry(const RenderMeshData* data)
 {
     // TODO make material specify the type to render
     Material* m = data->material;
@@ -813,137 +721,28 @@ void vulkanDrawGeometry(DefaultRenderPasses renderPassID, const RenderMeshData* 
         m = &mat;
     }
 
-    VkCommandBuffer cmd;
-    switch (renderPassID)
-    {
-    case 0:
-        cmd = state.commandBuffers[state.imageIndex].handle;
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.forwardShader.pipeline.pipeline);
-        vulkanForwardShaderSetMaterial(&state, &state.forwardShader, m);
-        vkCmdPushConstants(cmd, state.forwardShader.pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-        break;
-    case 1:
-        cmd = state.deferredShader.geometryCmdBuffer.handle;
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.geometryPipeline.pipeline);
-        vulkanDeferredShaderSetMaterial(&state, &state.deferredShader, m);
-        vkCmdPushConstants(cmd, state.deferredShader.geometryPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
-        break;
-    case 2:
-        cmd = state.commandBuffers[state.imageIndex].handle;
-        vulkanDeferredUpdateGbuffers(state.device, state.imageIndex, state.deferredShader);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.lightPipeline.pipeline);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state.deferredShader.lightPipeline.layout, 0, 1, &state.deferredShader.lightDescriptorSet[state.imageIndex], 0, nullptr);
-        break;        
-    default:
-        break;
-    }
-
+    CommandBuffer cmd = state.commandBuffers[state.imageIndex];
     VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
 
     VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(cmd, 0, 1, &geometry->vertexBuffer.handle, &offset);
+    vkCmdBindVertexBuffers(cmd.handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
     //vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+    vkCmdPushConstants(cmd.handle, state.boundPipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
     if(geometry->indexCount > 0)
     {
-        vkCmdBindIndexBuffer(cmd, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(cmd, geometry->indexCount, 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(cmd.handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(cmd.handle, geometry->indexCount, 1, 0, 0, 0);
     }
     else
     {
-        vkCmdDraw(cmd, geometry->vertexCount, 1, 0, 0);
+        vkCmdDraw(cmd.handle, geometry->vertexCount, 1, 0, 0);
     }
 }
 
-void vulkanEndRenderPass(DefaultRenderPasses renderPass)
+void vulkanEndRenderPass(const std::string& renderPass)
 {
-    // TODO end the given render pass
-    switch (renderPass)
-    {
-    case 0:
-        vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
-        break;
-    case 1:
-        vkCmdEndRenderPass(state.deferredShader.geometryCmdBuffer.handle);
-        break;
-    case 2:
-        vkCmdEndRenderPass(state.commandBuffers[state.imageIndex].handle);
-        break;
-    default:
-        break;
-    }
-}
-
-void
-vulkanSubmitCommands(DefaultRenderPasses renderPass)
-{
-    switch(renderPass)
-    {
-        case 0:
-        {
-            VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
-
-            VkPipelineStageFlags pipelineStage[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
-            submitInfo.commandBufferCount   = 1;
-            submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
-            submitInfo.waitSemaphoreCount   = 1;
-            submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
-            submitInfo.pWaitDstStageMask    = pipelineStage;
-
-            //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-            //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-
-            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
-                PERROR("Queue wasn't submitted.");
-            }
-        }
-            break;
-        case 1:
-        {
-            VK_CHECK(vkEndCommandBuffer(state.deferredShader.geometryCmdBuffer.handle));
-
-            VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
-            submitInfo.commandBufferCount   = 1;
-            submitInfo.pCommandBuffers      = &state.deferredShader.geometryCmdBuffer.handle;
-            submitInfo.waitSemaphoreCount   = 1;
-            submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores    = &state.deferredShader.geometrySemaphore;
-            submitInfo.pWaitDstStageMask    = &pipelineStage;
-
-            //vulkanWaitFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-            //vulkanResetFence(state.device, &state.frameInFlightFences[state.currentFrame]);
-            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS){
-                PERROR("Queue wasn't submitted.");
-            }
-            break;
-        }
-        case 2:
-        {
-            VK_CHECK(vkEndCommandBuffer(state.commandBuffers[state.imageIndex].handle));
-
-            VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
-            submitInfo.commandBufferCount   = 1;
-            submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
-            submitInfo.waitSemaphoreCount   = 1;
-            submitInfo.pWaitSemaphores      = &state.deferredShader.geometrySemaphore;
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
-            submitInfo.pWaitDstStageMask    = &pipelineStage;
-
-            if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
-                PERROR("Queue wasn't submitted.");
-            }
-        }
-            break;
-        default:
-            break;
-    }
+    CommandBuffer cmd = state.commandBuffers[state.imageIndex];
+    vkCmdEndRenderPass(cmd.handle);
 }
 
 /**
@@ -954,6 +753,31 @@ vulkanSubmitCommands(DefaultRenderPasses renderPass)
  */
 void vulkanEndFrame(void)
 {
+    // End command buffer.
+    VkCommandBuffer cmd = state.commandBuffers[state.imageIndex].handle;
+    vkEndCommandBuffer(cmd);
+
+    // We wait for fences only if the previous frame was in use of the image.
+    if(state.imagesInFlight[state.imageIndex] != VK_NULL_HANDLE)
+        VK_CHECK(vkWaitForFences(state.device.handle, 1, &state.imagesInFlight[state.imageIndex], VK_TRUE, UINT64_MAX));
+
+    state.imagesInFlight[state.imageIndex] = state.frameInFlightFences[state.imageIndex].handle;
+    VK_CHECK(vkResetFences(state.device.handle, 1, &state.frameInFlightFences[state.imageIndex].handle));
+
+    VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.pCommandBuffers      = &state.commandBuffers[state.imageIndex].handle;
+    submitInfo.waitSemaphoreCount   = 1;
+    submitInfo.pWaitSemaphores      = &state.imageAvailableSemaphores[state.currentFrame];
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores    = &state.renderFinishedSemaphores[state.currentFrame];
+    submitInfo.pWaitDstStageMask    = &pipelineStage;
+
+    if(vkQueueSubmit(state.device.graphicsQueue, 1, &submitInfo, state.frameInFlightFences[state.currentFrame].handle) != VK_SUCCESS){
+        PERROR("Queue wasn't submitted.");
+    }
+
     // Present swapchain image
     VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.pImageIndices       = &state.imageIndex;
@@ -968,27 +792,20 @@ void vulkanEndFrame(void)
 
 /**
  * @brief Regenerate the framebuffers given a new swapchain
- * @param VulkanSwapchain* swapchain
- * @param VulkanRenderpass* renderpass
+ * @param VulkanSwapchain swapchain
+ * @param VulkanRenderpass renderpass
  * @return void
  */
 void vulkanRegenerateFramebuffers(
     VulkanSwapchain* swapchain, 
     VulkanRenderpass* renderpass)
 {
-    for(u32 i = 0; i < swapchain->imageViews.size(); ++i){
-
-        // TODO Make modular
-        std::vector<VkImageView> attachments = {swapchain->imageViews.at(i), swapchain->depthImage.view};
-
-        vulkanFramebufferCreate(
-            state.device,
-            renderpass,
-            state.clientWidth, state.clientHeight,
-            static_cast<u32>(attachments.size()),
-            attachments,
-            &swapchain->framebuffers.at(i)
-        );
+    for(u8 i = 0; i < state.swapchain.imageViews.size(); ++i)
+    {
+        std::vector<VkImageView> attachments = {state.swapchain.imageViews.at(i), state.swapchain.depthImage.view};
+        VulkanRenderTarget* renderTarget = new VulkanRenderTarget();
+        vulkanRenderTargetCreate(state.device, attachments, renderpass, state.swapchain.extent.width, state.swapchain.extent.height, renderTarget);
+        renderpass->renderTargets.emplace_back(*renderTarget);
     }
 }
 
@@ -1028,6 +845,10 @@ bool recreateSwapchain()
 
     vkDeviceWaitIdle(state.device.handle);
 
+    // Make sure we set the images in use to NULL
+    for(u32 i = 0; i < 3; ++i)
+        state.imagesInFlight[i] = VK_NULL_HANDLE;
+
     if(!vulkanSwapchainRecreate(
         &state, 
         state.clientWidth, 
@@ -1048,14 +869,349 @@ bool recreateSwapchain()
 
     vulkanRegenerateFramebuffers(
         &state.swapchain,
-        &state.renderpass);
+        &state.pipelines["debug.pipeline"]->renderpass);
     
     createCommandBuffers();
     state.recreatingSwapchain = false;
     return true;
 }
 
-void vulkanImguiRender(const RenderPacket& packet)
+void vulkanImguiRender()
 {
-    imguiRender(state.commandBuffers[state.imageIndex].handle, packet);
+    imguiRender(state.commandBuffers[state.imageIndex].handle);
+}
+
+void vulkanRenderPassCreate(VulkanRenderpass* outRenderpass, const json& j)
+{
+    // TODO Make configurable from json file ...
+    // Colour attachment
+    VkAttachmentDescription attachmentDescription = {};
+    attachmentDescription.format        = state.swapchain.format.format;
+    attachmentDescription.samples       = VK_SAMPLE_COUNT_1_BIT;
+    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachmentDescription.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachmentDescription.loadOp        = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachmentDescription.storeOp       = VK_ATTACHMENT_STORE_OP_STORE;
+    attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachmentDescription.stencilStoreOp= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    VkAttachmentDescription depthAttachmentDescription{};
+    depthAttachmentDescription.format           = state.swapchain.depthFormat;
+    depthAttachmentDescription.samples          = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachmentDescription.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachmentDescription.finalLayout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachmentDescription.loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachmentDescription.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachmentDescription.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachmentDescription.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+    VkAttachmentReference attachmentRef = {};
+    attachmentRef.attachment    = 0;
+    attachmentRef.layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthRef{};
+    depthRef.attachment = 1;
+    depthRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    // Subpass
+    VkSubpassDescription subpassDescription = {};
+    subpassDescription.pipelineBindPoint        = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescription.colorAttachmentCount     = 1;
+    subpassDescription.pColorAttachments        = &attachmentRef;
+    subpassDescription.pDepthStencilAttachment  = &depthRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass       = 0;
+    dependency.srcStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask    = 0;
+    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkSubpassDependency depthDependency{};
+    depthDependency.srcSubpass      = VK_SUBPASS_EXTERNAL;
+    depthDependency.dstSubpass      = 0;
+    depthDependency.srcStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.srcAccessMask   = 0;
+    depthDependency.dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    VkAttachmentDescription attachmentDesc[2] = {attachmentDescription, depthAttachmentDescription};
+    VkSubpassDependency subpassDependencies[2] = {dependency, depthDependency};
+
+    VkRenderPassCreateInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    info.attachmentCount    = 2;
+    info.pAttachments       = attachmentDesc;
+    info.subpassCount       = 1;
+    info.pSubpasses         = &subpassDescription;
+    info.dependencyCount    = 2;
+    info.pDependencies      = subpassDependencies;
+
+    if(vkCreateRenderPass(state.device.handle, &info, nullptr, &outRenderpass->handle) != VK_SUCCESS)
+    {
+        PFATAL("Render pass could not be created!");
+    }
+}
+
+void vulkanRenderPassDestroy(VulkanRenderpass* renderpass)
+{
+    for(auto r : renderpass->renderTargets)
+    {
+        vkDestroyFramebuffer(state.device.handle, r.handle, nullptr);
+        r.attachments.clear();
+    }
+
+    vkDestroyRenderPass(state.device.handle, renderpass->handle, nullptr);
+}
+
+bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, const json& j)
+{
+    vulkanRenderPassCreate(&pipeline->renderpass, j);
+
+    // Compile shaders --- One for each stage. At the moment only Vertex and Fragment shader.
+    const std::string vsFilename = j.value("vs", "");
+    const std::string psFilename = j.value("ps", "");
+    // Shader modules creation ---
+    std::vector<char> vertexBuffer;
+    if(!readShaderFile(compileShader(vsFilename).c_str(), vertexBuffer)) {
+        return false;
+    }
+
+    std::vector<char> fragBuffer;
+    if(!readShaderFile(compileShader(psFilename).c_str(), fragBuffer)) {
+        return false;
+    }
+
+    vulkanCreateShaderModule(state.device, vertexBuffer, &pipeline->shaderStages[0].shaderModule);
+    vulkanCreateShaderModule(state.device, fragBuffer, &pipeline->shaderStages[1].shaderModule);
+
+    // Set the samplers index
+    pipeline->samplerUses[0] = TEXTURE_USE_DIFFUSE;
+    pipeline->samplerUses[1] = TEXTURE_USE_NORMAL;
+    pipeline->samplerUses[2] = TEXTURE_USE_METALLIC_ROUGHNESS;
+
+    // HARDCODED
+    pipeline->poolSizes[0] = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024};
+    pipeline->poolSizes[1] = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096};
+
+    // Create descriptor pool
+    VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    descriptorPoolInfo.poolSizeCount    = 2;
+    descriptorPoolInfo.pPoolSizes       = pipeline->poolSizes;
+    descriptorPoolInfo.maxSets          = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolInfo.flags            = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
+    VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &pipeline->descriptorPool));
+
+    // Create descriptor set
+    pipeline->descriptorSets[0].bindings->binding = 0;  // TODO Make configurable
+    pipeline->descriptorSets[0].bindings->descriptorCount = 1;
+    pipeline->descriptorSets[0].bindings->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    pipeline->descriptorSets[0].bindings->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    //pipeline->descriptorSets[0].bindings->binding = 1;  // TODO Make configurable
+    //pipeline->descriptorSets[0].bindings->descriptorCount = 1; // TODO Make configurable
+    //pipeline->descriptorSets[0].bindings->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //pipeline->descriptorSets[0].bindings->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    // TODO HARDCODED - Only globals at the moment
+    pipeline->descriptorSetCount = 1;
+
+    // Create Descriptor set layouts.
+    for(u32 i = 0; i < pipeline->descriptorSetCount; ++i)
+    {
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        layoutInfo.bindingCount = 1; //pipeline->descriptorSets[i].bindingCount;
+        layoutInfo.pBindings = pipeline->descriptorSets[i].bindings;
+        VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[i]));
+    }
+
+    // TODO Create shader stages, should be done in separated functions. 
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
+
+    VkPipelineShaderStageCreateInfo vertexStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    vertexStageInfo.stage   = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexStageInfo.module  = pipeline->shaderStages[0].shaderModule;
+    vertexStageInfo.pName   = "main";
+    shaderStages.at(0) = (vertexStageInfo);
+
+    VkPipelineShaderStageCreateInfo fragmentStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    fragmentStageInfo.stage     = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragmentStageInfo.module    = pipeline->shaderStages[1].shaderModule;
+    fragmentStageInfo.pName     = "main";
+    shaderStages.at(1) = (fragmentStageInfo);
+
+    // Viewport
+    VkViewport viewport;
+    viewport.x          = 0;
+    viewport.y          = state.clientHeight;
+    viewport.width      = state.clientWidth;
+    viewport.height     = -(f32)state.clientHeight;
+    viewport.maxDepth   = 1;
+    viewport.minDepth   = 0;
+
+    // Scissors
+    VkRect2D scissors;
+    scissors.extent = {state.clientWidth, state.clientHeight};
+    scissors.offset = {0, 0};
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.blendEnable = VK_FALSE;
+    colorBlendAttachment.colorWriteMask = 0xf;
+
+    const VertexDeclaration* vtx = getVertexDeclarationByName("PosColor");
+
+    vulkanCreateGraphicsPipeline(
+        state.device,
+        &pipeline->renderpass,
+        vtx->size,
+        vtx->layout,
+        shaderStages.size(),
+        shaderStages.data(),
+        1,
+        pipeline->descriptorSetLayout,
+        1,
+        &colorBlendAttachment,
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        viewport,
+        scissors,
+        false,
+        true,
+        pipeline
+    );
+
+    pipeline->globalUboStride = sizeof(ViewProjectionBuffer);
+
+    // Uniform buffer // TODO Make dynamic.
+    u64 totalSize = sizeof(pipeline->uniformData) + (pipeline->uboStride * VULKAN_MAX_MATERIAL_COUNT);
+    if(!vulkanBufferCreate(
+        state.device, 
+        totalSize, 
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &pipeline->uniformBuffer))
+    {
+        PERROR("Vulkan buffer creation failed on pipeline creation.")
+        return false;
+    }
+
+    VkDescriptorSetLayout globalLayouts[3] = {
+        pipeline->descriptorSetLayout[0],
+        pipeline->descriptorSetLayout[0],
+        pipeline->descriptorSetLayout[0]
+    };
+
+    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    descriptorSetAllocInfo.descriptorPool       = pipeline->descriptorPool;
+    descriptorSetAllocInfo.descriptorSetCount   = static_cast<u32>(state.swapchain.images.size());
+    descriptorSetAllocInfo.pSetLayouts          = globalLayouts;
+
+    // ! This should be moved and created base on pipelines.json json config.
+    for(u8 i = 0; i < state.swapchain.imageViews.size(); ++i)
+    {
+        std::vector<VkImageView> attachments = {state.swapchain.imageViews.at(i), state.swapchain.depthImage.view};
+        VulkanRenderTarget* renderTarget = new VulkanRenderTarget();
+        vulkanRenderTargetCreate(state.device, attachments, &pipeline->renderpass, state.swapchain.extent.width, state.swapchain.extent.height, renderTarget);
+        pipeline->renderpass.renderTargets.emplace_back(*renderTarget);
+    }
+    
+    VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, pipeline->globalDescriptorSet));
+    return true;
+}
+
+void vulkanPipelineDestroy(VulkanPipeline* pipeline)
+{
+    if(!pipeline){
+        PERROR("vulkanPipelineDestroy - No pipeline to destroy.");
+        return;
+    }
+
+    for(u8 i = 0; i < pipeline->descriptorSetCount; ++i){
+        vkDestroyDescriptorSetLayout(state.device.handle, pipeline->descriptorSetLayout[i], nullptr);
+    }
+
+    if(pipeline->descriptorPool)
+        vkDestroyDescriptorPool(state.device.handle, pipeline->descriptorPool, nullptr);
+
+    vulkanBufferDestroy(state.device, pipeline->uniformBuffer);
+
+    vulkanRenderPassDestroy(&pipeline->renderpass);
+
+    if(pipeline->handle)
+    {
+        vkDestroyPipeline(state.device.handle, pipeline->handle, nullptr);
+        pipeline->handle = nullptr;
+    }
+    if(pipeline->layout)
+    {
+        vkDestroyPipelineLayout(state.device.handle, pipeline->layout, nullptr);
+        pipeline->layout = nullptr;
+    }
+
+    for(auto stage : pipeline->shaderStages)
+        vkDestroyShaderModule(state.device.handle, stage.shaderModule, nullptr);
+
+}
+
+void vulkanUsePipeline(const std::string& name)
+{
+    VulkanPipeline* pipeline = state.pipelines[name];
+    vulkanBindPipeline(&state.commandBuffers[state.imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+}
+
+void vulkanBindPipeline(CommandBuffer* cmd, VkPipelineBindPoint bindPoint, VulkanPipeline* pipeline)
+{
+    vkCmdBindPipeline(cmd->handle, bindPoint, pipeline->handle);
+    state.boundPipeline = pipeline;
+}
+
+bool vulkanBindGlobals()
+{
+    if(state.boundPipeline == nullptr)
+    {
+        PFATAL("There is no pipeline bound.");
+        return false;
+    }
+    
+    state.boundPipeline->boudnUboOffset = 0;
+    return true;
+}
+
+bool vulkanApplyGlobals()
+{
+    VulkanPipeline* pipeline = state.boundPipeline;
+    u32 imageIdx = state.imageIndex;
+    VkCommandBuffer cmdBuffer = state.commandBuffers[imageIdx].handle;
+    VkDescriptorSet descriptor = pipeline->globalDescriptorSet[imageIdx];
+
+    VkDescriptorBufferInfo bufferInfo;
+    bufferInfo.buffer = pipeline->uniformBuffer.handle;
+    bufferInfo.offset = 0; // TODO Make dynamic from info
+    bufferInfo.range = pipeline->globalUboStride;
+
+    VkWriteDescriptorSet uboWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    uboWrite.dstSet = pipeline->globalDescriptorSet[imageIdx];
+    uboWrite.dstBinding = 0;
+    uboWrite.dstArrayElement = 0;
+    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboWrite.descriptorCount = 1;
+    uboWrite.pBufferInfo = &bufferInfo;
+
+    VkWriteDescriptorSet descriptorWrites[2];
+    descriptorWrites[0] = uboWrite;
+
+    vkUpdateDescriptorSets(state.device.handle, 1, descriptorWrites, 0, 0);
+
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &descriptor, 0, 0);
+    return true;
+}
+
+static std::string compileShader(const std::string& name)
+{
+    std::string path = "./data/shaders/";
+    std::string filename = path + name;
+    std::string pathCompiled = filename + ".spv";
+    std::string compileCmd = "glslc " + filename + " -o " + pathCompiled;
+    system(compileCmd.c_str());
+    return pathCompiled;
 }

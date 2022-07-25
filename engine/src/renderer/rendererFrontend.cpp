@@ -33,8 +33,10 @@ bool renderSystemInit(u64* memoryRequirement, void* state, const char* appName, 
     pState = static_cast<RenderFrontendState*>(state);
     pState->deferredQuad = 0;
     
+    // Create render backend of given type. Type is right now hardcoded to vulkan API.
     rendererBackendInit(VULKAN_API, &pState->renderBackend);
 
+    // Initi by configuring all necessary data.
     if(!pState->renderBackend.init(appName, winHandle))
     {
         PFATAL("Render Backend failed to initialize!");
@@ -57,29 +59,34 @@ bool renderDrawFrame(const RenderPacket& packet)
 {
     if(pState->renderBackend.beginFrame(packet.deltaTime))
     {
-        // Begin command call
-        pState->renderBackend.beginCommandBuffer(RENDER_PASS_FORWARD);
-
         // Begin renderpass
-        if(!pState->renderBackend.beginRenderPass(RENDER_PASS_FORWARD))
+        if(!pState->renderBackend.beginRenderPass("debug.pipeline"))
         {
             PFATAL("renderDrawFrame - Could not begin render pass.");
             return false;
         }
 
-        // Update light descriptor
+        // Activate pipeline
+        pState->renderBackend.activatePipeline("debug.pipeline");
+
+        // Update globals
         pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
 
+        // Draw geometry
         for(auto& key : CRenderManager::Get()->keys){
-            TCompTransform* cTransform = key.hTransform;
+            CEntity* e = key.hOwner.getOwner();
+            
+            TCompTransform* cTransform = e->get<TCompTransform>();// key.hTransform;
             PASSERT(cTransform)
             RenderMeshData renderData = {cTransform->asMatrix(), key.mesh, key.material};
-            pState->renderBackend.drawGeometry(RENDER_PASS_FORWARD, &renderData);
+            pState->renderBackend.drawGeometry(&renderData);
         }
 
-        pState->renderBackend.drawGui(packet);
-        pState->renderBackend.endRenderPass(RENDER_PASS_FORWARD);
-        pState->renderBackend.submitCommands(RENDER_PASS_FORWARD);
+        // Draw ImGui
+        pState->renderBackend.drawGui();
+        // End debug renderpass
+        pState->renderBackend.endRenderPass("debug.pipeline");
+        
         pState->renderBackend.endFrame();
 
         return true;
@@ -90,6 +97,7 @@ bool renderDrawFrame(const RenderPacket& packet)
 
 bool renderDeferredFrame(const RenderPacket& packet)
 {
+    /*
     if(pState->renderBackend.beginFrame(packet.deltaTime))
     {
         // Begin command call
@@ -103,13 +111,14 @@ bool renderDeferredFrame(const RenderPacket& packet)
         pState->renderBackend.updateDeferredGlobalState((f32)packet.deltaTime);
 
         // TODO Get active camera and update its data ...
-
+    */
         /** TODO Deferred renderer ... 
         * - Draw into GBuffers
         * - Draw Decals
         * - Draw AO
         * ...
         */
+       /* 
         CRenderManager::Get()->render();        
 
         for(auto& key : CRenderManager::Get()->keys){
@@ -121,7 +130,7 @@ bool renderDeferredFrame(const RenderPacket& packet)
     
         pState->renderBackend.endRenderPass(RENDER_PASS_GEOMETRY);
         pState->renderBackend.submitCommands(RENDER_PASS_GEOMETRY);
-
+ */
         /**
          * TODO
          * Draw light information
@@ -133,6 +142,7 @@ bool renderDeferredFrame(const RenderPacket& packet)
          */
 
         // Begin command call
+        /*
         pState->renderBackend.beginCommandBuffer(RENDER_PASS_DEFERRED);
         pState->renderBackend.beginRenderPass(RENDER_PASS_DEFERRED);
         if(!pState->deferredQuad)
@@ -147,6 +157,7 @@ bool renderDeferredFrame(const RenderPacket& packet)
         pState->renderBackend.endFrame();
         return true;
     }
+    */
     return false;
 }
 

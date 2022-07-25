@@ -2,14 +2,13 @@
 
 #include "vulkanTypes.h"
 
-bool vulkanFramebufferCreate(
+bool vulkanRenderTargetCreate(
     const VulkanDevice& device,
-    VulkanRenderpass* renderpass, 
-    u32 width, u32 height, 
-    u32 attachmentCount,
     std::vector<VkImageView>& attachments,
-    Framebuffer* outFramebuffer);
+    VulkanRenderpass* renderpass,
+    u32 width, u32 height,
+    VulkanRenderTarget* renderTarget);
 
-void vulkanFramebufferDestroy(
+void vulkanRenderTargetDestroy(
     const VulkanDevice& device,
-    Framebuffer* framebuffer);
+    VulkanRenderTarget* target);
