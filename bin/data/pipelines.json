@@ -1,0 +1,9 @@
+{
+  "debug":
+  {
+    "vs": "solid.vert",
+    "ps": "solid.frag",
+    "vert_decl": "PosColorUvN",
+    "rs": "wireframe"
+  }
+}

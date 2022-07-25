@@ -41,18 +41,5 @@
         "radius" : 100.0
       }
     }
-  },
-  {
-    "xentity": {
-      "name" : "camera",
-      "transform":{
-        "pos" : "0 2 -2",
-        "lookat" : "0 0 0"
-      },
-      "camera": {
-        "fov":60.0
-      },
-      "flyover_controller":{}
-    }
   }
 ]
