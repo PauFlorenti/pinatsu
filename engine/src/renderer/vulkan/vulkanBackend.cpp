@@ -30,7 +30,7 @@ static f32 gameTime = 0;
 static VulkanState state;
 
 /**
- * Vulkan Debug Messenger Functions
+ * @brief Vulkan Debug Messenger Functions
  * It has de creation and destruction function.
  * A debug callback is also needed to process the messages
  * sent from the validation layers and treat such messages accordingly.
@@ -98,7 +98,7 @@ void vulkanRegenerateFramebuffers(
     VulkanRenderpass* renderpass);
 
 bool recreateSwapchain();
-
+/* 
 // TODO review to function per shader pass.
 void vulkanForwardUpdateGlobalState(f32 dt)
 {
@@ -117,37 +117,65 @@ void vulkanForwardUpdateGlobalState(f32 dt)
     vulkanBindGlobals();
     vulkanApplyGlobals();
 }
+ */
+void vulkanLoadRenderpasses()
+{
+    // Take the json holding all renderpasses configurations.
+    json j = loadJson("data/renderpasses.json");
+
+    // Create each render pass.
+    for(auto jpass : j.items())
+    {
+        const std::string& name = jpass.key() + ".renderpass";
+        const json& jdef = jpass.value();
+
+        VulkanRenderpass* renderpass = nullptr;
+        auto it = state.renderpasses.find(name.c_str());
+        if(it != state.renderpasses.end())
+        {
+            renderpass = it->second;
+            PWARN("Render pass %s already loaded in system.");
+        }
+        else
+        {
+            renderpass = new VulkanRenderpass();
+            state.renderpasses[name] = renderpass;
+        }
+
+        vulkanCreateRenderPass(renderpass, jdef);
+    }
+}
 
 void vulkanLoadPipelines()
 {
+    // Take the json holding all pipelines configurations.
     json j = loadJson("data/pipelines.json");
 
-    // Create all render passes from json.
-    for(auto it : j.items())
+    // Create each render pipeline.
+    for(auto jpipeline : j.items())
     {
-        const std::string& key = it.key();
-        const json& jdef = it.value();
-        std::string name = key + ".pipeline";
-        vulkanCreateRenderPassFromJson(name, jdef);
+        const std::string& name = jpipeline.key() + ".pipeline";
+        const json& jdef = jpipeline.value();
+
+        VulkanRenderPipeline* pipeline = nullptr;
+        auto it = state.pipelines.find(name.c_str());
+        if(it != state.pipelines.end())
+        {
+            pipeline = it->second;
+            PWARN("Render pipeline %s already loaded in system.");
+        }
+        else
+        {
+            pipeline = new VulkanRenderPipeline();
+            pipeline->pipelineConfig.name = name;
+            state.pipelines[name] = pipeline;
+        }
+
+        if(vulkanCreateRenderPipeline(pipeline, jdef) == false)
+            PERROR("Failed to create render pipeline %s", name);
     }
 }
 
-void vulkanCreateRenderPassFromJson(const std::string& name, const json& j)
-{
-    VulkanPipeline* pipeline = nullptr;
-
-    auto it = state.pipelines.find(name.c_str());
-    if(it == state.pipelines.end())
-    {
-        pipeline = new VulkanPipeline();
-        state.pipelines[name] = pipeline;
-    }
-    else{
-        pipeline = it->second;
-    }
-
-    vulkanCreatePipeline(pipeline, name, j);
-}
 
 bool vulkanCreateMesh(Mesh* mesh, u32 vertexCount, Vertex* vertices, u32 indexCount, u32* indices)
 {
@@ -340,32 +368,61 @@ void vulkanDestroyTexture(Texture* texture)
     memZero(texture, sizeof(Texture));
 }
 
-bool vulkanCreateMaterial(Material* m)
+bool vulkanCreateMaterial(const std::string& pipelineName, Material* m)
 {
-    return true;
-    /* 
-    if(m)
+
+    VulkanRenderPipeline* pipeline = state.pipelines[pipelineName];
+
+    u32 index = INVALID_ID;
+    for(u32 i = 0; i < VULKAN_MAX_MATERIAL_COUNT; ++i)
     {
-        switch (m->type)
+        if(pipeline->materialInstances[i].id == INVALID_ID)
         {
-        case MATERIAL_TYPE_FORWARD:
-            if(!vulkanForwardShaderGetMaterial(&state, &state.forwardShader, m))
-            {
-                PERROR("vulkanCreateMaterial - could not create material '%s'.", m->name);
-            }
-            if(!vulkanDeferredShaderGetMaterial(&state, &state.deferredShader, m))
-            {
-                PERROR("vulkanCreateMaterial - could not create deferred material '%s'.", m->name);
-            }
-            break;
-        case MATERIAL_TYPE_UI:
-            break;
-        default:
+            pipeline->materialInstances[i].id = i;
+            m->rendererId = i;
+            index = i;
             break;
         }
-        return true;
     }
-    return false; */
+
+    if(index == INVALID_ID)
+    {
+        PERROR("VulkanCreateMaterial - failed to acquire a valid id for material '%s'.", m->name)
+        return false;
+    }
+
+    VulkanMaterialInstance* instance = &pipeline->materialInstances[index];
+
+    for(u32 i = 0; i < 1; ++i)
+    {
+        for(u32 j = 0; j < 3; j++)
+        {
+            instance->descriptorState[i].generations[j] = INVALID_ID;
+            instance->descriptorState[i].ids[j] = INVALID_ID;
+        }
+    }
+
+    VkDescriptorSetLayout layouts[3] = {
+        pipeline->descriptorSetLayout[1],
+        pipeline->descriptorSetLayout[1],
+        pipeline->descriptorSetLayout[1]
+    };
+
+    VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    allocInfo.descriptorPool        = pipeline->descriptorPool;
+    allocInfo.descriptorSetCount    = 3;
+    allocInfo.pSetLayouts           = layouts;
+    VkResult result = vkAllocateDescriptorSets(
+        state.device.handle, 
+        &allocInfo, 
+        instance->descriptorSets);
+    
+    if(result != VK_SUCCESS){
+        PERROR("VulkanCreateMaterial - Could not allocate descriptor sets for material instance in pipeline '%s'.", pipeline->pipelineConfig.name.c_str());
+        return false;
+    }
+        
+    return true;
 }
 
 /**
@@ -486,6 +543,8 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
         return false;
     }
 
+    vulkanLoadRenderpasses();
+
     vulkanLoadPipelines();
 
     createCommandBuffers();
@@ -517,7 +576,7 @@ bool vulkanBackendInit(const char* appName, void* winHandle)
         state.vulkanMeshes[i].id = INVALID_ID;
     }
 
-    imguiInit(&state, &state.pipelines["debug.pipeline"]->renderpass);
+    imguiInit(&state, state.pipelines["debug.pipeline"]->renderpass);
 
     return true;
 }
@@ -578,17 +637,8 @@ void vulkanBackendShutdown(void)
 
 
     PDEBUG("Destroying Vulkan Pipelines ...");
-    for(std::map<std::string, VulkanPipeline*>::iterator it = state.pipelines.begin(); it != state.pipelines.end(); ++it)
-        vulkanPipelineDestroy(it->second);
-
-    //vkDestroyRenderPass(state.device.handle, state.pipelines["debug.pipeline"]->renderpass.handle, nullptr);
-
-    /*
-    for(auto framebuffer : state.swapchain.framebuffers)
-    {
-        vkDestroyFramebuffer(state.device.handle, framebuffer.handle, nullptr);
-    }
-    */
+    for(std::map<std::string, VulkanRenderPipeline*>::iterator it = state.pipelines.begin(); it != state.pipelines.end(); ++it)
+        vulkanDestroyRenderPipeline(it->second);
 
     PDEBUG("Destroying Vulkan Swapchain ...");
     vulkanSwapchainDestroy(&state);
@@ -690,7 +740,7 @@ bool vulkanBeginRenderPass(const std::string& renderpass)
     CommandBuffer cmd = state.commandBuffers[state.imageIndex];
 
     // TODO This should be thought to be changed.
-    VulkanRenderpass* renderPass = &state.pipelines[renderpass]->renderpass; //state.renderpasses[renderpass];
+    VulkanRenderpass* renderPass = state.pipelines[renderpass]->renderpass; //state.renderpasses[renderpass];
 
     VkRenderPassBeginInfo renderpassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     renderpassInfo.renderPass = renderPass->handle;
@@ -699,7 +749,7 @@ bool vulkanBeginRenderPass(const std::string& renderpass)
     renderpassInfo.renderArea.offset = {0, 0};
     renderpassInfo.renderArea.extent = state.swapchain.extent;
 
-    // TODO Should be driven by the renderpass info
+    // TODO Should be driven by the renderpass info.
     VkClearValue clearColors[2];
     clearColors[0] = {{0.2f, 0.2f, 0.2f, 1.0f}};
     clearColors[1].depthStencil.depth = 1.0f;
@@ -725,10 +775,11 @@ void vulkanDrawGeometry(const RenderMeshData* data)
     CommandBuffer cmd = state.commandBuffers[state.imageIndex];
     VulkanMesh* geometry = &state.vulkanMeshes[data->mesh->rendererId];
 
+    // TODO Temps set material ...
+
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(cmd.handle, 0, 1, &geometry->vertexBuffer.handle, &offset);
     //vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
-    vkCmdPushConstants(cmd.handle, state.boundPipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &data->model);
     if(geometry->indexCount > 0)
     {
         vkCmdBindIndexBuffer(cmd.handle, geometry->indexBuffer.handle, offset, VK_INDEX_TYPE_UINT32);
@@ -866,7 +917,7 @@ bool recreateSwapchain()
 
     vulkanRegenerateFramebuffers(
         &state.swapchain,
-        &state.pipelines["debug.pipeline"]->renderpass);
+        state.pipelines["debug.pipeline"]->renderpass);
     
     createCommandBuffers();
     state.recreatingSwapchain = false;
@@ -878,44 +929,58 @@ void vulkanImguiRender()
     imguiRender(state.commandBuffers[state.imageIndex].handle);
 }
 
-void vulkanRenderPassCreate(VulkanRenderpass* outRenderpass, const json& j)
+void vulkanCreateRenderPass(VulkanRenderpass* outRenderpass, const json& j)
 {
-    // TODO Make configurable from json file ...
+    outRenderpass->clearColor = loadVec4(j, "color");
+    outRenderpass->previousPass = j.value("previous", "");
+    outRenderpass->nextPass = j.value("next", "");
+    bool doDepth = j["depth"].is_boolean() ? j["depth"].get<bool>():false;
+
+    // Subpass
+    VkSubpassDescription subpassDescription = {};
+    subpassDescription.pipelineBindPoint        = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+    std::vector<VkAttachmentDescription> attachmentDesc;
+
     // Colour attachment
     VkAttachmentDescription attachmentDescription = {};
     attachmentDescription.format        = state.swapchain.format.format;
     attachmentDescription.samples       = VK_SAMPLE_COUNT_1_BIT;
-    attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachmentDescription.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachmentDescription.initialLayout = outRenderpass->previousPass.empty() ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachmentDescription.finalLayout   = outRenderpass->nextPass.empty() ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
     attachmentDescription.loadOp        = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachmentDescription.storeOp       = VK_ATTACHMENT_STORE_OP_STORE;
     attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachmentDescription.stencilStoreOp= VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-    VkAttachmentDescription depthAttachmentDescription{};
-    depthAttachmentDescription.format           = state.swapchain.depthFormat;
-    depthAttachmentDescription.samples          = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachmentDescription.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachmentDescription.finalLayout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    depthAttachmentDescription.loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachmentDescription.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    depthAttachmentDescription.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachmentDescription.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
     VkAttachmentReference attachmentRef = {};
     attachmentRef.attachment    = 0;
     attachmentRef.layout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentReference depthRef{};
-    depthRef.attachment = 1;
-    depthRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    // Subpass
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint        = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.colorAttachmentCount     = 1;
     subpassDescription.pColorAttachments        = &attachmentRef;
-    subpassDescription.pDepthStencilAttachment  = &depthRef;
+
+    attachmentDesc.push_back(attachmentDescription);
+
+    if(doDepth)
+    {
+        VkAttachmentDescription depthAttachmentDescription{};
+        depthAttachmentDescription.format           = state.swapchain.depthFormat;
+        depthAttachmentDescription.samples          = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachmentDescription.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachmentDescription.finalLayout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachmentDescription.loadOp           = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachmentDescription.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachmentDescription.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachmentDescription.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        VkAttachmentReference depthRef{};
+        depthRef.attachment = 1;
+        depthRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        subpassDescription.pDepthStencilAttachment  = &depthRef;
+
+        attachmentDesc.push_back(depthAttachmentDescription);
+    }
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
@@ -933,12 +998,11 @@ void vulkanRenderPassCreate(VulkanRenderpass* outRenderpass, const json& j)
     depthDependency.dstStageMask    = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
     depthDependency.dstAccessMask   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-    VkAttachmentDescription attachmentDesc[2] = {attachmentDescription, depthAttachmentDescription};
     VkSubpassDependency subpassDependencies[2] = {dependency, depthDependency};
 
     VkRenderPassCreateInfo info = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    info.attachmentCount    = 2;
-    info.pAttachments       = attachmentDesc;
+    info.attachmentCount    = attachmentDesc.size();
+    info.pAttachments       = attachmentDesc.data();
     info.subpassCount       = 1;
     info.pSubpasses         = &subpassDescription;
     info.dependencyCount    = 2;
@@ -961,13 +1025,33 @@ void vulkanRenderPassDestroy(VulkanRenderpass* renderpass)
     vkDestroyRenderPass(state.device.handle, renderpass->handle, nullptr);
 }
 
-bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, const json& j)
+bool vulkanCreateRenderPipeline(
+    VulkanRenderPipeline* pipeline,  
+    const json& j)
 {
-    vulkanRenderPassCreate(&pipeline->renderpass, j);
+
+    // Should we only get the configuration and then create them on the initialization pass
+    // TODO Not necessary at the moment, it will be made modular in the future, probably in a separate function.
+/*     std::vector<VkShaderStageFlags> shaderStages;
+    json jstages = j["stages"];
+    for(const json& jstage : jstages.items())
+    {
+        std::string stageStr = jstage.get<std::string>();
+        if(stageStr == "vs")
+            shaderStages.push_back(VK_SHADER_STAGE_VERTEX_BIT);
+        else if(stageStr == "ps")
+            shaderStages.push_back(VK_SHADER_STAGE_FRAGMENT_BIT);
+        else
+            shaderStages.push_back(VK_SHADER_STAGE_ALL_GRAPHICS);
+    }
+ */
+    std::string renderpassName = j.value("renderpass", "");
+    pipeline->renderpass = state.renderpasses[renderpassName + ".renderpass"];
+    PASSERT(pipeline->renderpass);
 
     // Compile shaders --- One for each stage. At the moment only Vertex and Fragment shader.
-    const std::string vsFilename = j.value("vs", "");
-    const std::string psFilename = j.value("ps", "");
+    const std::string vsFilename = j["stages"].value("vs", "");
+    const std::string psFilename = j["stages"].value("ps", "");
     // Shader modules creation ---
     std::vector<char> vertexBuffer;
     if(!readShaderFile(compileShader(vsFilename).c_str(), vertexBuffer)) {
@@ -982,61 +1066,92 @@ bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, con
     vulkanCreateShaderModule(state.device, vertexBuffer, &pipeline->shaderStages[0].shaderModule);
     vulkanCreateShaderModule(state.device, fragBuffer, &pipeline->shaderStages[1].shaderModule);
 
+    // TODO Create shader stages, should be done in separated functions. 
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStagesInfo(2);
+
+    VkPipelineShaderStageCreateInfo vertexStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    vertexStageInfo.stage   = VK_SHADER_STAGE_VERTEX_BIT;
+    vertexStageInfo.module  = pipeline->shaderStages[0].shaderModule;
+    vertexStageInfo.pName   = "main";
+    shaderStagesInfo.at(0) = (vertexStageInfo);
+
+    VkPipelineShaderStageCreateInfo fragmentStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    fragmentStageInfo.stage     = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragmentStageInfo.module    = pipeline->shaderStages[1].shaderModule;
+    fragmentStageInfo.pName     = "main";
+    shaderStagesInfo.at(1) = (fragmentStageInfo);
+
     // Set the samplers index
     pipeline->samplerUses[0] = TEXTURE_USE_DIFFUSE;
     pipeline->samplerUses[1] = TEXTURE_USE_NORMAL;
     pipeline->samplerUses[2] = TEXTURE_USE_METALLIC_ROUGHNESS;
 
     // HARDCODED
-    pipeline->poolSizes[0] = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024};
-    pipeline->poolSizes[1] = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096};
+    pipeline->pipelineConfig.poolSizes[0] = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024};
+    pipeline->pipelineConfig.poolSizes[1] = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4096};
 
     // Create descriptor pool
     VkDescriptorPoolCreateInfo descriptorPoolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     descriptorPoolInfo.poolSizeCount    = 2;
-    descriptorPoolInfo.pPoolSizes       = pipeline->poolSizes;
-    descriptorPoolInfo.maxSets          = static_cast<u32>(state.swapchain.images.size());
+    descriptorPoolInfo.pPoolSizes       = pipeline->pipelineConfig.poolSizes;
+    descriptorPoolInfo.maxSets          = 1024; //TODO make this configurable.
     descriptorPoolInfo.flags            = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &pipeline->descriptorPool));
 
-    // Create descriptor set
-    pipeline->descriptorSets[0].bindings->binding = 0;  // TODO Make configurable
-    pipeline->descriptorSets[0].bindings->descriptorCount = 1;
-    pipeline->descriptorSets[0].bindings->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pipeline->descriptorSets[0].bindings->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    u32 bindingCount = 0;
+    // Global descriptor set config.
+    VkDescriptorSetLayoutBinding globalDescriptorSetLayoutBinding{};
+    globalDescriptorSetLayoutBinding.binding            = bindingCount;  // TODO Make configurable, even thoug global will always be bound to 0.
+    globalDescriptorSetLayoutBinding.descriptorCount    = 1;
+    globalDescriptorSetLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    globalDescriptorSetLayoutBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindingCount++;
 
-    //pipeline->descriptorSets[0].bindings->binding = 1;  // TODO Make configurable
+    // ! No global samplers at the moment.
+    //pipeline->descriptorSets[0].bindings->binding = pipeline->pipelineConfig.vDescriptorSetConfigs.size();  // TODO Make configurable
     //pipeline->descriptorSets[0].bindings->descriptorCount = 1; // TODO Make configurable
     //pipeline->descriptorSets[0].bindings->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     //pipeline->descriptorSets[0].bindings->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    // TODO HARDCODED - Only globals at the moment
-    pipeline->descriptorSetCount = 1;
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    layoutInfo.bindingCount = bindingCount;
+    layoutInfo.pBindings    = &globalDescriptorSetLayoutBinding;
+    VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[0]));
 
-    // Create Descriptor set layouts.
-    for(u32 i = 0; i < pipeline->descriptorSetCount; ++i)
+    u8 localsCount = j.count("local");
+    if(j.count("local") > 0)
     {
-        VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        layoutInfo.bindingCount = 1; //pipeline->descriptorSets[i].bindingCount;
-        layoutInfo.pBindings = pipeline->descriptorSets[i].bindings;
-        VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[i]));
+        for(auto it : j["local"].items())
+        {
+            const json& jdef = it.value();
+            pipeline->pushConstantSize = jdef.value("range", "") == "ModelUniformSize" ? sizeof(glm::mat4) : 0;
+            pipeline->pushConstantStride = sizeof(glm::mat4); // TODO Make if from json file ...
+        }
     }
+    std::vector<VkDescriptorSetLayoutBinding> vLayouts;
+    u8 instanceCount = j.count("instance");
+    if(instanceCount > 0)
+    {
+        for(auto instance : j["instance"].items())
+        {
+            const json& jdef = instance.value();
+            json i = instance.value();
+            VkDescriptorSetLayoutBinding layout;
+            layout.binding          = 0; //bindingCount;
+            layout.descriptorCount  = 1;
+            layout.descriptorType   = jdef.value("sampler", false) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            layout.stageFlags       = jdef.value("stage", "all") == "ps" ? VK_SHADER_STAGE_FRAGMENT_BIT : VK_SHADER_STAGE_VERTEX_BIT; // TODO make "all" viable
+            vLayouts.push_back(layout);
+        }
 
-    // TODO Create shader stages, should be done in separated functions. 
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
+        // ! No samplers at the moment ...
 
-    VkPipelineShaderStageCreateInfo vertexStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    vertexStageInfo.stage   = VK_SHADER_STAGE_VERTEX_BIT;
-    vertexStageInfo.module  = pipeline->shaderStages[0].shaderModule;
-    vertexStageInfo.pName   = "main";
-    shaderStages.at(0) = (vertexStageInfo);
-
-    VkPipelineShaderStageCreateInfo fragmentStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    fragmentStageInfo.stage     = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragmentStageInfo.module    = pipeline->shaderStages[1].shaderModule;
-    fragmentStageInfo.pName     = "main";
-    shaderStages.at(1) = (fragmentStageInfo);
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+        layoutInfo.bindingCount = vLayouts.size();
+        layoutInfo.pBindings    = vLayouts.data();
+        VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[1]));
+    }
 
     // Viewport
     VkViewport viewport;
@@ -1056,17 +1171,59 @@ bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, con
     colorBlendAttachment.blendEnable = VK_FALSE;
     colorBlendAttachment.colorWriteMask = 0xf;
 
-    const VertexDeclaration* vtx = getVertexDeclarationByName("PosColor");
+    // Get the vertex declaration from the pipeline config.
+    const VertexDeclaration* vtx;
+    if(j.count("vert_decl") > 0.0f)
+    {
+        json jattr = j.value("vert_decl", "");
+        PASSERT(jattr.is_string())
+        vtx = getVertexDeclarationByName(jattr.get<std::string>());
+    }
+    else
+    {
+        PFATAL("No vertex declaration in pipeline configuration. Aborting ...");
+        return false;
+    };
+
+    // Get the push constant ranges from the pipeline config.
+    std::vector<VkPushConstantRange> pushConstantRanges;
+    if(j.count("local") > 0)
+    {
+        u32 offset = 0.0f;
+        json jlocals = j["local"];
+        for(auto& jitems : jlocals)
+        {
+            json jstage = jitems.value("stage", "");
+            std::string stageName = jstage.get<std::string>();
+            json jrange = jitems.value("range", "");
+            std::string rangeName = jrange.get<std::string>();
+            u32 sizeRange = rangeName == "ModelUniformSize" ? sizeof(glm::mat4) : 0;
+            VkPushConstantRange p;
+            p.size = sizeRange;
+            p.offset = offset;
+/*             if(stageName == ("vs"))
+                p.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+            else if(stageName == "ps")
+                p.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            else
+                p.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS; */
+            p.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+            pushConstantRanges.push_back(p);
+
+            offset += sizeRange;
+        }
+    }
 
     vulkanCreateGraphicsPipeline(
         state.device,
-        &pipeline->renderpass,
+        pipeline->renderpass,
         vtx->size,
         vtx->layout,
-        shaderStages.size(),
-        shaderStages.data(),
-        1,
+        shaderStagesInfo.size(),
+        shaderStagesInfo.data(),
+        2,
         pipeline->descriptorSetLayout,
+        pushConstantRanges,
         1,
         &colorBlendAttachment,
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
@@ -1077,8 +1234,18 @@ bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, con
         pipeline
     );
 
+    // Set all materialInstances ids to 0.
+    for(u32 i = 0; i < VULKAN_MAX_MATERIAL_COUNT; ++i)
+    {
+        pipeline->materialInstances[i].id = INVALID_ID;
+    }
+
     // Uniform buffer // TODO Make dynamic.
-    u64 totalSize = sizeof(GlobalUniformBufferData) + (pipeline->uboStride * VULKAN_MAX_MATERIAL_COUNT);
+    pipeline->uboAlignment      = state.device.properties.limits.minUniformBufferOffsetAlignment;
+    pipeline->globalUboStride   = getAligned(sizeof(GlobalUniformBufferData), pipeline->uboAlignment);
+    pipeline->instanceUboStride = getAligned(sizeof(VulkanMaterialInstance), pipeline->uboAlignment);
+
+    u64 totalSize = pipeline->globalUboStride + (pipeline->instanceUboStride * VULKAN_MAX_MATERIAL_COUNT);
     if(!vulkanBufferCreate(
         state.device, 
         totalSize, 
@@ -1106,22 +1273,22 @@ bool vulkanCreatePipeline(VulkanPipeline* pipeline, const std::string& name, con
     {
         std::vector<VkImageView> attachments = {state.swapchain.imageViews.at(i), state.swapchain.depthImage.view};
         VulkanRenderTarget* renderTarget = new VulkanRenderTarget();
-        vulkanRenderTargetCreate(state.device, attachments, &pipeline->renderpass, state.swapchain.extent.width, state.swapchain.extent.height, renderTarget);
-        pipeline->renderpass.renderTargets.emplace_back(*renderTarget);
+        vulkanRenderTargetCreate(state.device, attachments, pipeline->renderpass, state.swapchain.extent.width, state.swapchain.extent.height, renderTarget);
+        pipeline->renderpass->renderTargets.emplace_back(*renderTarget);
     }
     
     VK_CHECK(vkAllocateDescriptorSets(state.device.handle, &descriptorSetAllocInfo, pipeline->globalDescriptorSet));
     return true;
 }
 
-void vulkanPipelineDestroy(VulkanPipeline* pipeline)
+void vulkanDestroyRenderPipeline(VulkanRenderPipeline* pipeline)
 {
     if(!pipeline){
         PERROR("vulkanPipelineDestroy - No pipeline to destroy.");
         return;
     }
 
-    for(u8 i = 0; i < pipeline->descriptorSetCount; ++i){
+    for(u8 i = 0; i < 2/* pipeline->descriptorSetCount */; ++i){
         vkDestroyDescriptorSetLayout(state.device.handle, pipeline->descriptorSetLayout[i], nullptr);
     }
 
@@ -1130,17 +1297,17 @@ void vulkanPipelineDestroy(VulkanPipeline* pipeline)
 
     vulkanBufferDestroy(state.device, pipeline->uniformBuffer);
 
-    vulkanRenderPassDestroy(&pipeline->renderpass);
+    vulkanRenderPassDestroy(pipeline->renderpass);
 
-    if(pipeline->handle)
+    if(pipeline->pipeline.handle)
     {
-        vkDestroyPipeline(state.device.handle, pipeline->handle, nullptr);
-        pipeline->handle = nullptr;
+        vkDestroyPipeline(state.device.handle, pipeline->pipeline.handle, nullptr);
+        pipeline->pipeline.handle = nullptr;
     }
-    if(pipeline->layout)
+    if(pipeline->pipeline.layout)
     {
-        vkDestroyPipelineLayout(state.device.handle, pipeline->layout, nullptr);
-        pipeline->layout = nullptr;
+        vkDestroyPipelineLayout(state.device.handle, pipeline->pipeline.layout, nullptr);
+        pipeline->pipeline.layout = nullptr;
     }
 
     for(auto stage : pipeline->shaderStages)
@@ -1150,14 +1317,84 @@ void vulkanPipelineDestroy(VulkanPipeline* pipeline)
 
 void vulkanUsePipeline(const std::string& name)
 {
-    VulkanPipeline* pipeline = state.pipelines[name];
-    vulkanBindPipeline(&state.commandBuffers[state.imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vulkanBindPipeline(&state.commandBuffers[state.imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, state.pipelines[name]);
 }
 
-void vulkanBindPipeline(CommandBuffer* cmd, VkPipelineBindPoint bindPoint, VulkanPipeline* pipeline)
+void vulkanBindPipeline(CommandBuffer* cmd, VkPipelineBindPoint bindPoint, VulkanRenderPipeline* pipeline)
 {
-    vkCmdBindPipeline(cmd->handle, bindPoint, pipeline->handle);
+    vkCmdBindPipeline(cmd->handle, bindPoint, pipeline->pipeline.handle);
     state.boundPipeline = pipeline;
+}
+
+bool vulkanActivateGlobals()
+{
+    if(vulkanBindGlobals())
+        return vulkanApplyGlobals();
+    return false;
+}
+
+bool vulkanActivateConstants(const RenderMeshData* mesh)
+{
+    vkCmdPushConstants(
+        state.commandBuffers[state.imageIndex].handle, 
+        state.boundPipeline->pipeline.layout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 
+        0, state.boundPipeline->pushConstantSize, 
+        &mesh->model);
+    return true;
+}
+
+bool vulkanActivateInstance(const RenderMeshData* mesh)
+{
+    u32 idx = state.imageIndex;
+    u32 descriptorCount = 0;
+    u32 descriptorIdx = 0;
+
+    u32 range = state.boundPipeline->instanceUboStride;
+    u32 offset = state.boundPipeline->globalUboStride + range * mesh->material->rendererId;
+
+    VkWriteDescriptorSet writes[4];
+
+    VulkanMaterialShaderUBO data{};
+    data.diffuseColor = glm::vec4(1, 0, 0, 1); // mesh->material->diffuseColor;
+    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, offset, range, 0, &data);
+
+    VulkanMaterialInstance* descriptor = &state.boundPipeline->materialInstances[mesh->material->rendererId];
+
+    if(descriptor->descriptorState->generations[idx] == INVALID_ID ||
+        descriptor->descriptorState->generations[idx] != mesh->material->generation)
+    {
+        VkDescriptorBufferInfo info{};
+        info.buffer = state.boundPipeline->uniformBuffer.handle;
+        info.offset = offset;
+        info.range  = range;
+
+        VkWriteDescriptorSet instanceWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        instanceWrite.pBufferInfo       = &info;
+        instanceWrite.descriptorCount   = 1;
+        instanceWrite.descriptorType    = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        instanceWrite.dstArrayElement   = 0;
+        instanceWrite.dstBinding        = 0;
+        instanceWrite.dstSet            = descriptor->descriptorSets[idx];
+
+        writes[descriptorCount] = instanceWrite;
+        descriptorCount++;
+        descriptor->descriptorState[0].generations[idx] = mesh->material->generation;
+    }
+    descriptorIdx++;
+
+    // ! Make sampler bindings ...
+
+    if(descriptorCount > 0)
+        vkUpdateDescriptorSets(state.device.handle, descriptorCount, writes, 0, nullptr);
+
+    vkCmdBindDescriptorSets(
+        state.commandBuffers[idx].handle, 
+        VK_PIPELINE_BIND_POINT_GRAPHICS, 
+        state.boundPipeline->pipeline.layout,
+        1, 1, &descriptor->descriptorSets[idx], 
+        0, nullptr);
+    return true;
 }
 
 bool vulkanBindGlobals()
@@ -1172,30 +1409,45 @@ bool vulkanBindGlobals()
 
 bool vulkanApplyGlobals()
 {
-    VulkanPipeline* pipeline = state.boundPipeline;
+
+    // TODO This should be in another function call.
+    CEntity* hcamera = getEntityByName("camera");
+    TCompCamera* cCamera = hcamera->get<TCompCamera>();
+
+    GlobalUniformBufferData data;
+    data.view        = cCamera->getView();
+    data.projection  = cCamera->getProjection();
+    data.position    = cCamera->getEye();
+
+    VulkanRenderPipeline* pipeline = state.boundPipeline;
+
+    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, 0, pipeline->globalUboStride, 0, &data);
+
+    // ------------------------------------------
+
     u32 imageIdx = state.imageIndex;
     VkCommandBuffer cmdBuffer = state.commandBuffers[imageIdx].handle;
     VkDescriptorSet descriptor = pipeline->globalDescriptorSet[imageIdx];
 
     VkDescriptorBufferInfo bufferInfo;
-    bufferInfo.buffer = pipeline->uniformBuffer.handle;
-    bufferInfo.offset = 0; // This is hardcoded since globals will always be stored at the beginning of the buffer.
-    bufferInfo.range = sizeof(GlobalUniformBufferData);
+    bufferInfo.buffer   = pipeline->uniformBuffer.handle;
+    bufferInfo.offset   = 0; // This is hardcoded since globals will always be stored at the beginning of the buffer.
+    bufferInfo.range    = pipeline->globalUboStride;
 
     VkWriteDescriptorSet uboWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-    uboWrite.dstSet = pipeline->globalDescriptorSet[imageIdx];
-    uboWrite.dstBinding = 0;
-    uboWrite.dstArrayElement = 0;
-    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboWrite.descriptorCount = 1;
-    uboWrite.pBufferInfo = &bufferInfo;
+    uboWrite.dstSet             = pipeline->globalDescriptorSet[imageIdx];
+    uboWrite.dstBinding         = 0;
+    uboWrite.dstArrayElement    = 0;
+    uboWrite.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboWrite.descriptorCount    = 1;
+    uboWrite.pBufferInfo        = &bufferInfo;
 
     VkWriteDescriptorSet descriptorWrites[2];
     descriptorWrites[0] = uboWrite;
 
     vkUpdateDescriptorSets(state.device.handle, 1, descriptorWrites, 0, 0);
 
-    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &descriptor, 0, 0);
+    vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline.layout, 0, 1, &descriptor, 0, 0);
     return true;
 }
 

@@ -9,13 +9,21 @@ bool rendererBackendInit(RenderBackendAPI api, RendererBackend* state)
     {
         state->init = vulkanBackendInit;
         state->shutdown = vulkanBackendShutdown;
+
         state->beginFrame = vulkanBeginFrame;
         state->beginRenderPass = vulkanBeginRenderPass;
         state->drawGeometry = vulkanDrawGeometry;
         state->endRenderPass = vulkanEndRenderPass;
         state->endFrame = vulkanEndFrame;
+
+        state->bindPipeline = vulkanUsePipeline;
+        state->activateGlobals = vulkanActivateGlobals;
+        state->activateConstants = vulkanActivateConstants;
+        state->activateInstance = vulkanActivateInstance;
+
         state->onResize = vulkanBackendOnResize;
-        state->updateGlobalState = vulkanForwardUpdateGlobalState;
+        //state->updateGlobalState = vulkanForwardUpdateGlobalState;
+
         state->onCreateMesh = vulkanCreateMesh;
         state->onCreateTexture = vulkanCreateTexture;
         state->onDestroyTexture = vulkanDestroyTexture;

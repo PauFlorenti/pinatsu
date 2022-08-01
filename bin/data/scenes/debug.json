@@ -14,5 +14,21 @@
         "scene"
       ]
     }
+  },
+  {
+    "xentity": {
+      "transform":{
+        "pos" : "5 1 0"
+      },
+      "name" : "cube_01",
+      "render" : [
+        {
+          "mesh": "cubeMarbre/cube.gltf"
+        }
+      ],
+      "tag" : [
+        "scene"
+      ]
+    }
   }
 ]

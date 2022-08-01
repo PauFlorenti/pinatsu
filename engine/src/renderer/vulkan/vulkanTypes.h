@@ -52,7 +52,7 @@ struct VulkanRenderTarget
     VkFramebuffer handle;
 };
 
-typedef struct VulkanRenderpass
+struct VulkanRenderpass
 {
     /** @brief The clear color of the render pass. By default it's black.*/
     glm::vec4 clearColor = glm::vec4(0.0f);
@@ -65,7 +65,12 @@ typedef struct VulkanRenderpass
 
     /** @brief The render pass handle.*/
     VkRenderPass handle;
-} VulkanRenderpass;
+
+    /** @brief The name of the previous pass.*/
+    std::string previousPass;
+    /** @brief The name of the next pass.*/
+    std::string nextPass;
+};
 
 typedef struct CommandBuffer
 {
@@ -129,6 +134,7 @@ typedef struct VulkanImage
 } VulkanImage;
 
 // TODO make configurable
+/** @brief The maximum number of textures in the engine.*/
 #define VULKAN_MAX_TEXTURES 512
 
 typedef struct VulkanTexture
@@ -138,6 +144,7 @@ typedef struct VulkanTexture
 } VulkanTexture;
 
 // TODO make configurable
+/** @brief The maximum number of meshes in the engine.*/
 #define VULKAN_MAX_MESHES 512
 
 typedef struct VulkanMesh
@@ -157,36 +164,34 @@ typedef struct VulkanShaderObject
     VkShaderModule shaderModule;
 } VulkanShaderObject;
 
-// Used to determine if a descriptor need updating or not.
-typedef struct VulkanDescriptorState
+/** @brief The current maximum number of material instances in the engine.*/
+#define VULKAN_MAX_MATERIAL_COUNT 512
+/** @brief The number of descriptors per material instance. This should grow when addins textures.*/
+#define VULKAN_MATERIAL_DESCRIPTOR_COUNT 1
+/** @brief The number of sampler types. At the moment
+ *  Diffuse, Normal and MetallicRoughness.*/
+#define VULKAN_MATERIAL_SAMPLER_COUNT 3
+/** @brief The maximum number of shader stages. Vertex and Fragment.*/
+#define VULKAN_MAX_SHADER_STAGES 2
+
+/** @brief Used to determine if a descriptor need updating or not.*/
+struct VulkanDescriptorState
 {
     u32 generations[3]; // one per frame
     u32 ids[3]; // Used for samplers
-} VulkanDescriptorState;
+};
 
-#define VULKAN_MAX_MATERIAL_COUNT 512
-
-// At the moment just one for the Material info.
-// May grow later for textures
-#define VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT 4
-
-// At the moment it can hold samplers for diffuse, normal and MetallicRoughness
-#define VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT 3
-
-#define VULKAN_MAX_SHADER_STAGES 2
-
-// Holding the descriptors (3 per frame) for each material instance.
-typedef struct VulkanMaterialInstance
+/** @brief Holding the descriptors (3 per each frame) for each material instance.*/
+struct VulkanMaterialInstance
 {
+    /** @brief The id of the Material Instance state. */
+    u32 id;
+    /** @brief The offset to match into the uniform buffer.*/
+    u32 offset;
+    /** @brief Three descriptor sets per each frame per instance.*/
     VkDescriptorSet descriptorSets[3];
-    VulkanDescriptorState descriptorState[VULKAN_FORWARD_MATERIAL_DESCRIPTOR_COUNT];
-} VulkanMaterialInstance;
-
-struct VulkanObjectDescriptor
-{
-    VkDescriptorSet descriptorSet;
-    u32 generation[4];
-    u32 id[4];
+    /** @brief The state of the descriptor set.*/
+    VulkanDescriptorState descriptorState[VULKAN_MATERIAL_DESCRIPTOR_COUNT];
 };
 
 /**
@@ -203,55 +208,76 @@ struct VulkanMaterialShaderUBO{
     glm::mat4 matReserved03; // 64 bytes
 };
 
+/** @brief The Shader Stage configuration. */
+struct VulkanShaderStageConfig
+{
+    /** @brief The name of the shader stage. */
+    std::string name;
+    /** @brief The Shader Stage Flags bits. */
+    VkShaderStageFlagBits stage;
+};
+
+/** @brief The configuration for a Descriptor Set.*/
 struct VulkanDescriptorSetConfig
 {
-    u8 bindingCount;
-    VkDescriptorSetLayoutBinding bindings[2];
+    /** @brief A list of descriptor set layout bindings.*/
+    std::vector<VkDescriptorSetLayoutBinding> vBindings;
+    /** @brief The index of the sampler binding.*/
     u8 samplerBindingIndex;
 };
 
-typedef struct VulkanPipeline
+/** @brief The Vulkan Pipeline Config given by the json file and generated in VulkanPipelineCreate() function. */
+struct VulkanPipelineConfig
 {
-    /** @brief The render pass to be used in the pipeline. */
-    VulkanRenderpass renderpass;
+    /** @brief The pipeline name. */
+    std::string name;
 
-    /** @brief Vertex and fragment shader stages at the moment.*/
-    VulkanShaderObject shaderStages[VULKAN_MAX_SHADER_STAGES];
-
-    /** @brief The descriptor pool used in this shader. */
-    VkDescriptorPool descriptorPool;
+    /** @brief The List of shader stage configurations in this pipeline.*/
+    std::vector<VulkanShaderStageConfig> vShaderStageConfigs;
 
     /** @brief Array of pool sizes. */
     VkDescriptorPoolSize poolSizes[2];
 
-    /** @brief Descriptor set layouts, max of 2. Idx 0=global, 1=instance. */
-    VkDescriptorSetLayout descriptorSetLayout[2];
-
     /** @brief Total number of descriptor sets. 1 if only using globals, 2 otherwise. */
     u8 descriptorSetCount;
     /** @brief Descriptor sets, max of 2. Idx 0=global, 1=instance. */
-    VulkanDescriptorSetConfig descriptorSets[2];
+    //std::vector<VulkanDescriptorSetConfig> vDescriptorSetConfigs;
 
+    /** @brief A list of attribute description for this pipeline.*/
+    std::vector<VkVertexInputAttributeDescription> vVertexDeclaration;
+};
+
+struct VulkanPipeline
+{
+    /** @brief The VulkanPipeline layout. */ 
+    VkPipeline handle;
+    /** @brief The VkPipeline handle. */
+    VkPipelineLayout layout;
+};
+
+struct VulkanRenderPipeline
+{
+    /** @brief The data struct holding all information to properly create the pipeline.*/
+    VulkanPipelineConfig pipelineConfig;
+
+    /** @brief Shader stages, vertex and fragment at the moment.*/
+    VulkanShaderObject shaderStages[VULKAN_MAX_SHADER_STAGES];
+
+    /** @brief The descriptor pool used in this render pipeline. */
+    VkDescriptorPool descriptorPool;
+
+    /** @brief Descriptor set layouts, max of 2. Idx 0=global, 1=instance. */
+    VkDescriptorSetLayout descriptorSetLayout[2];
     /** @brief One DescriptorSet per each buffer from the triple buffer. */
     VkDescriptorSet globalDescriptorSet[3];
-
     /** @brief The uniform buffer used by this shader. Globals + locals. */
     VulkanBuffer uniformBuffer;
 
-    /** @brief The VulkanPipeline layout. */ 
-    VkPipelineLayout layout;
-    /** @brief The VkPipeline handle. */
-    VkPipeline handle;
+    /** @brief The data holding the pipeline handle and layout.*/
+    VulkanPipeline pipeline;
 
-    /** @brief The global UBO size.*/
-    u64 globalUboSize;
-    /** @brief The global UBO stride. */
-    u64 globalUboStride;
-
-    /** @brief The UBO size. */
-    u64 uboSize;
-    /** @brief The UBO stride. */
-    u64 uboStride;
+    /** @brief The renderpass to be used with this shader.*/
+    VulkanRenderpass* renderpass;
 
     /*** @brief The push constant size. */
     u64 pushConstantSize;
@@ -259,13 +285,17 @@ typedef struct VulkanPipeline
     u64 pushConstantStride;
 
     /** @brief Texture uses. Idx 0=Difusse, 1=Normal, 2=MetallicRoughness. */
-    TextureUse samplerUses [VULKAN_FORWARD_MATERIAL_SAMPLER_COUNT];
+    TextureUse samplerUses [VULKAN_MATERIAL_SAMPLER_COUNT];
     /** @brief Instance states for all instances. */
     VulkanMaterialInstance materialInstances[VULKAN_MAX_MATERIAL_COUNT];
 
-    // TODO Temp, maybe move to a generic pipeline for all APIS
-    u32 boundUboOffset;
-} VulkanPipeline;
+    /** @brief The minimum uniform buffer alignment given by the device properties.*/
+    u64 uboAlignment;
+    /** @brief The global UBO stride. */
+    u64 globalUboStride;
+    /** @brief The UBO stride. */
+    u64 instanceUboStride;
+};
 
 /** @brief Vulkan Swapchain structure. */
 typedef struct VulkanSwapchain
@@ -320,7 +350,9 @@ typedef struct VulkanState
     void* windowHandle;
 
     /** @brief The map holding a Pipeline with its name as a key. */
-    std::map<std::string, VulkanPipeline*> pipelines;
+    std::map<std::string, VulkanRenderPipeline*> pipelines;
+    /** @brief The render passe to be used in the pipeline. */
+    std::map<std::string, VulkanRenderpass*> renderpasses;
     //std::map<std::string, VulkanRenderpass*> renderpasses;
 
     // TODO Temporal render pass.
@@ -339,15 +371,11 @@ typedef struct VulkanState
 
     // TODO temp ¿?
     // Store the current pipeline bound.
-    VulkanPipeline* boundPipeline = nullptr;
+    VulkanRenderPipeline* boundPipeline = nullptr;
 
     // TODO implement own allocator for vulkan
     // VkAllocationCallbacks* allocator;
 
     // TODO Temporal variables
     VulkanMesh* vulkanMeshes;
-
-    // TODO Temporal shaders
-/*     VulkanForwardShader forwardShader;
-    VulkanDeferredShader deferredShader; */
 } VulkanState;

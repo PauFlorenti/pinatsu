@@ -18,6 +18,19 @@
   },
   {
     "entity": {
+      "transform":{
+        "pos" : "5 1 0"
+      },
+      "name" : "cube_01",
+      "render" : [
+        {
+          "mesh": "cubeMarbre/cube.gltf"
+        }
+      ]
+    }
+  },
+  {
+    "entity": {
       "name" : "light",
       "transform": {
         "pos" : "0 2 -3"

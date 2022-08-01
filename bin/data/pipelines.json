@@ -1,9 +1,28 @@
 {
   "debug":
   {
-    "vs": "solid.vert",
-    "ps": "solid.frag",
-    "vert_decl": "PosColorUvN",
-    "rs": "wireframe"
+    "stages": {
+      "vs": "solid.vert",
+      "ps": "solid.frag"
+    },
+    "vert_decl": "PosColor",
+    "global" : [
+      "GlobalUniformSize"
+    ],
+    "local": [
+      {
+        "range" : "ModelUniformSize",
+        "stage" : "vs"
+      }
+    ],
+    "instance": [
+      {
+        "range" : "MaterialUniformSize",
+        "stage" : "ps",
+        "sampler" : false
+      }
+    ],
+    "rs": "wireframe",
+    "renderpass" : "basic"
   }
 }

@@ -59,6 +59,8 @@ bool renderDrawFrame(const RenderPacket& packet)
 {
     if(pState->renderBackend.beginFrame(packet.deltaTime))
     {
+
+        //if(!pState->renderBackend.beginRenderPass("skybox.pipeline"))
         // Begin renderpass
         if(!pState->renderBackend.beginRenderPass("debug.pipeline"))
         {
@@ -70,15 +72,18 @@ bool renderDrawFrame(const RenderPacket& packet)
         pState->renderBackend.activatePipeline("debug.pipeline");
 
         // Update globals
-        pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
+        //pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
+        pState->renderBackend.activateGlobals();
 
         // Draw geometry
         for(auto& key : CRenderManager::Get()->keys){
             CEntity* e = key.hOwner.getOwner();
-            
             TCompTransform* cTransform = e->get<TCompTransform>();// key.hTransform;
             PASSERT(cTransform)
             RenderMeshData renderData = {cTransform->asMatrix(), key.mesh, key.material};
+            // bind local and instance
+            pState->renderBackend.activateInstance(&renderData);
+            pState->renderBackend.activateConstants(&renderData);
             pState->renderBackend.drawGeometry(&renderData);
         }
 
@@ -185,7 +190,8 @@ void renderDestroyTexture(Texture* t)
 
 bool renderCreateMaterial(Material* m)
 {
-    return pState->renderBackend.onCreateMaterial(m);
+    // TODO Make it dynamic!
+    return pState->renderBackend.onCreateMaterial("debug.pipeline", m);
 }
 
 static void activateMainCamera()

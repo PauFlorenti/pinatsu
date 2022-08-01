@@ -9,6 +9,7 @@ void vulkanCreateGraphicsPipeline(
     VkPipelineShaderStageCreateInfo* stages,
     u32 descriptorCount,
     VkDescriptorSetLayout* descriptorSetLayouts,
+    std::vector<VkPushConstantRange>& pushConstantRanges,
     u32 blendAttachmentCount,
     VkPipelineColorBlendAttachmentState* blendAttachments,
     u32 stride,
@@ -16,7 +17,7 @@ void vulkanCreateGraphicsPipeline(
     VkRect2D scissors,
     bool wireframe,
     bool depthTest,
-    VulkanPipeline* outPipeline)
+    VulkanRenderPipeline* outPipeline)
 {
     // Vertex Info
     VkVertexInputBindingDescription vertexBinding = {};
@@ -76,19 +77,13 @@ void vulkanCreateGraphicsPipeline(
     dynamicStateInfo.dynamicStateCount                  = static_cast<u32>(dynamicStates.size());
     dynamicStateInfo.pDynamicStates                     = dynamicStates.data();
 
-    // Push constant to upload model matrix for each geometry.
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.size          = sizeof(glm::mat4);
-    pushConstantRange.offset        = 0;
-    pushConstantRange.stageFlags    = VK_SHADER_STAGE_VERTEX_BIT;
-
     VkPipelineLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    layoutInfo.pushConstantRangeCount   = 1;
-    layoutInfo.pPushConstantRanges      = &pushConstantRange;
+    layoutInfo.pushConstantRangeCount   = pushConstantRanges.size() > 0 ? pushConstantRanges.size() : 0;
+    layoutInfo.pPushConstantRanges      = pushConstantRanges.size() > 0 ? pushConstantRanges.data() : 0;
     layoutInfo.setLayoutCount           = descriptorCount;
     layoutInfo.pSetLayouts              = descriptorSetLayouts;
 
-    VK_CHECK(vkCreatePipelineLayout(device.handle, &layoutInfo, nullptr, &outPipeline->layout));
+    VK_CHECK(vkCreatePipelineLayout(device.handle, &layoutInfo, nullptr, &outPipeline->pipeline.layout));
 
     VkGraphicsPipelineCreateInfo info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
     info.stageCount             = stageCount;
@@ -102,11 +97,11 @@ void vulkanCreateGraphicsPipeline(
     info.pColorBlendState       = &colorBlendInfo;
     info.pDynamicState          = &dynamicStateInfo;
     info.pTessellationState     = nullptr;
-    info.layout                 = outPipeline->layout;
+    info.layout                 = outPipeline->pipeline.layout;
     info.renderPass             = renderpass->handle;
     info.subpass                = 0;
 
-    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->handle));
+    VK_CHECK(vkCreateGraphicsPipelines(device.handle, VK_NULL_HANDLE, 1, &info, nullptr, &outPipeline->pipeline.handle));
 }
 
 void vulkanDestroyGrapchisPipeline(
