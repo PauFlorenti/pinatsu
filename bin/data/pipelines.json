@@ -5,7 +5,7 @@
       "vs": "solid.vert",
       "ps": "solid.frag"
     },
-    "vert_decl": "PosColor",
+    "vert_decl": "PosColorUv",
     "global" : [
       "GlobalUniformSize"
     ],
@@ -20,6 +20,10 @@
         "range" : "MaterialUniformSize",
         "stage" : "ps",
         "sampler" : false
+      },
+      {
+        "sampler" : true,
+        "stage" : "ps"
       }
     ],
     "rs": "wireframe",

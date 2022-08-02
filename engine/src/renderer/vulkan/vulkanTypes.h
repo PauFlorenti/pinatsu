@@ -167,7 +167,7 @@ typedef struct VulkanShaderObject
 /** @brief The current maximum number of material instances in the engine.*/
 #define VULKAN_MAX_MATERIAL_COUNT 512
 /** @brief The number of descriptors per material instance. This should grow when addins textures.*/
-#define VULKAN_MATERIAL_DESCRIPTOR_COUNT 1
+#define VULKAN_MATERIAL_DESCRIPTOR_COUNT 2
 /** @brief The number of sampler types. At the moment
  *  Diffuse, Normal and MetallicRoughness.*/
 #define VULKAN_MATERIAL_SAMPLER_COUNT 3

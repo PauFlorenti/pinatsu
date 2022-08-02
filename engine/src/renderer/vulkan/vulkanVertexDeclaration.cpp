@@ -32,9 +32,19 @@ layoutPosColor[] = {
 
 VertexDeclaration vtx_decl_pos_color("PosColor", layoutPosColor, 2);
 
+static VkVertexInputAttributeDescription
+layoutPosColorUv[] = {
+    {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+    {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(f32) * 3},
+    {2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(f32) * 7}
+};
+
+VertexDeclaration vtx_decl_pos_color_uvs("PosColorUv", layoutPosColorUv, 3);
+
 VertexDeclaration::VertexDeclaration(const char* name, const VkVertexInputAttributeDescription* newLayout, u32 size)
     : name(name), layout(newLayout), size(size)
 { };
+
 
 const VertexDeclaration*
 getVertexDeclarationByName(const std::string& name)
@@ -47,6 +57,8 @@ getVertexDeclarationByName(const std::string& name)
         return &vtx_decl_pos_uv;
     if(name == vtx_decl_pos_color_uvs_norm.name)
         return &vtx_decl_pos_color_uvs_norm;
+    if(name == vtx_decl_pos_color_uvs.name)
+        return &vtx_decl_pos_color_uvs;
     PWARN("No Vertex declaration found with such name %s", name.c_str());
     return nullptr;
 }

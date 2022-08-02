@@ -71,8 +71,7 @@ bool renderDrawFrame(const RenderPacket& packet)
         // Activate pipeline
         pState->renderBackend.activatePipeline("debug.pipeline");
 
-        // Update globals
-        //pState->renderBackend.updateGlobalState((f32)packet.deltaTime);
+        // Update and activate globals globals
         pState->renderBackend.activateGlobals();
 
         // Draw geometry

@@ -98,26 +98,7 @@ void vulkanRegenerateFramebuffers(
     VulkanRenderpass* renderpass);
 
 bool recreateSwapchain();
-/* 
-// TODO review to function per shader pass.
-void vulkanForwardUpdateGlobalState(f32 dt)
-{
-    gameTime += dt;
 
-    CEntity* hcamera = getEntityByName("camera");
-    TCompCamera* cCamera = hcamera->get<TCompCamera>();
-
-    GlobalUniformBufferData data;
-    data.view        = cCamera->getView();
-    data.projection  = cCamera->getProjection();
-    data.position    = cCamera->getEye();
-
-    vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, 0, sizeof(GlobalUniformBufferData), 0, &data);
-
-    vulkanBindGlobals();
-    vulkanApplyGlobals();
-}
- */
 void vulkanLoadRenderpasses()
 {
     // Take the json holding all renderpasses configurations.
@@ -1099,14 +1080,12 @@ bool vulkanCreateRenderPipeline(
 
     VK_CHECK(vkCreateDescriptorPool(state.device.handle, &descriptorPoolInfo, nullptr, &pipeline->descriptorPool));
 
-    u32 bindingCount = 0;
     // Global descriptor set config.
     VkDescriptorSetLayoutBinding globalDescriptorSetLayoutBinding{};
-    globalDescriptorSetLayoutBinding.binding            = bindingCount;  // TODO Make configurable, even thoug global will always be bound to 0.
+    globalDescriptorSetLayoutBinding.binding            = 0;  // TODO Make configurable, even thoug global will always be bound to 0.
     globalDescriptorSetLayoutBinding.descriptorCount    = 1;
     globalDescriptorSetLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     globalDescriptorSetLayoutBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    bindingCount++;
 
     // ! No global samplers at the moment.
     //pipeline->descriptorSets[0].bindings->binding = pipeline->pipelineConfig.vDescriptorSetConfigs.size();  // TODO Make configurable
@@ -1115,7 +1094,7 @@ bool vulkanCreateRenderPipeline(
     //pipeline->descriptorSets[0].bindings->stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    layoutInfo.bindingCount = bindingCount;
+    layoutInfo.bindingCount = 1; // TODO At the moment there is only one global binding. It may grow if we have global samples.
     layoutInfo.pBindings    = &globalDescriptorSetLayoutBinding;
     VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[0]));
 
@@ -1129,28 +1108,32 @@ bool vulkanCreateRenderPipeline(
             pipeline->pushConstantStride = sizeof(glm::mat4); // TODO Make if from json file ...
         }
     }
-    std::vector<VkDescriptorSetLayoutBinding> vLayouts;
+
+    u32 bindingCount = 0;
+    //std::vector<VkDescriptorSetLayoutBinding> vLayouts;
+    VkDescriptorSetLayoutBinding layouts[2] = {};
     u8 instanceCount = j.count("instance");
     if(instanceCount > 0)
     {
         for(auto instance : j["instance"].items())
         {
             const json& jdef = instance.value();
-            json i = instance.value();
-            VkDescriptorSetLayoutBinding layout;
-            layout.binding          = 0; //bindingCount;
-            layout.descriptorCount  = 1;
-            layout.descriptorType   = jdef.value("sampler", false) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            layout.stageFlags       = jdef.value("stage", "all") == "ps" ? VK_SHADER_STAGE_FRAGMENT_BIT : VK_SHADER_STAGE_VERTEX_BIT; // TODO make "all" viable
-            vLayouts.push_back(layout);
+            //VkDescriptorSetLayoutBinding layout;
+            layouts[bindingCount].binding          = bindingCount;
+            layouts[bindingCount].descriptorCount  = 1;
+            layouts[bindingCount].descriptorType   = jdef.value("sampler", false) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            layouts[bindingCount].stageFlags       = jdef.value("stage", "all") == "ps" ? VK_SHADER_STAGE_FRAGMENT_BIT : VK_SHADER_STAGE_VERTEX_BIT; // TODO make "all" viable
+            //vLayouts.push_back(layout);
+            bindingCount++;
         }
 
         // ! No samplers at the moment ...
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        layoutInfo.bindingCount = vLayouts.size();
-        layoutInfo.pBindings    = vLayouts.data();
-        VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[1]));
+        layoutInfo.bindingCount = bindingCount; //vLayouts.size();
+        layoutInfo.pBindings    = layouts; //vLayouts.data();
+        //VK_CHECK(vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[1]));
+        VkResult r = vkCreateDescriptorSetLayout(state.device.handle, &layoutInfo, nullptr, &pipeline->descriptorSetLayout[1]);
     }
 
     // Viewport
@@ -1356,7 +1339,7 @@ bool vulkanActivateInstance(const RenderMeshData* mesh)
     VkWriteDescriptorSet writes[4];
 
     VulkanMaterialShaderUBO data{};
-    data.diffuseColor = glm::vec4(1, 0, 0, 1); // mesh->material->diffuseColor;
+    data.diffuseColor = mesh->material->diffuseColor;
     vulkanBufferLoadData(state.device, state.boundPipeline->uniformBuffer, offset, range, 0, &data);
 
     VulkanMaterialInstance* descriptor = &state.boundPipeline->materialInstances[mesh->material->rendererId];
@@ -1384,6 +1367,57 @@ bool vulkanActivateInstance(const RenderMeshData* mesh)
     descriptorIdx++;
 
     // ! Make sampler bindings ...
+    Material* m = mesh->material;
+    const u32 samplerCount = 1;
+    for(u32 samplerIdx = 0; samplerIdx < samplerCount; ++samplerIdx)
+    {
+        TextureUse use = (TextureUse)state.boundPipeline->samplerUses[samplerIdx];
+        Texture* t = nullptr;
+        switch (use)
+        {
+        case TEXTURE_USE_DIFFUSE:
+            t = m->diffuseTexture;
+            break;
+        case TEXTURE_USE_NORMAL:
+            t = m->normalTexture;
+            break;
+        case TEXTURE_USE_METALLIC_ROUGHNESS:
+            t = m->metallicRoughnessTexture;
+            break;
+        default:
+            break;
+        }
+
+        VkDescriptorImageInfo imageInfo[3];
+        u32* descriptorGeneration = &descriptor->descriptorState[1].generations[idx];
+        u32* descriptorId = &descriptor->descriptorState[1].ids[idx];
+
+        if(t && (*descriptorId != t->id || *descriptorGeneration == INVALID_ID || t->generation != *descriptorGeneration))
+        {
+            VulkanTexture* vulkanTexture = (VulkanTexture*)t->data;
+
+            imageInfo[samplerIdx].imageLayout   = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo[samplerIdx].imageView     = vulkanTexture->image.view;
+            imageInfo[samplerIdx].sampler       = vulkanTexture->sampler;
+
+            VkWriteDescriptorSet textWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            textWrite.descriptorCount   = 1;
+            textWrite.pImageInfo        = &imageInfo[samplerIdx];
+            textWrite.descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            textWrite.dstArrayElement   = 0;
+            textWrite.dstBinding        = descriptorIdx;
+            textWrite.dstSet            = descriptor->descriptorSets[idx];
+
+            writes[descriptorCount] = textWrite;
+            descriptorCount++;
+
+            if(t->generation != INVALID_ID) {
+                *descriptorGeneration = t->generation;
+                *descriptorId = t->id;
+            }
+        }
+        descriptorIdx++;
+    }
 
     if(descriptorCount > 0)
         vkUpdateDescriptorSets(state.device.handle, descriptorCount, writes, 0, nullptr);

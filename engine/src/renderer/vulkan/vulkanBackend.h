@@ -10,7 +10,6 @@ void vulkanBackendOnResize(u32 width, u32 height);
 
 bool vulkanBeginFrame(f32 delta);
 bool vulkanBeginRenderPass(const std::string& renderpass);
-//void vulkanForwardUpdateGlobalState(f32 dt);
 void vulkanDrawGeometry(const RenderMeshData* mesh);
 void vulkanEndRenderPass(const std::string& renderpass);
 void vulkanEndFrame();
